@@ -11,15 +11,17 @@ import {
   Zap,
   AlertCircle,
   X,
-  Trash2
+  Trash2,
+  CheckCircle2
 } from 'lucide-react';
 import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
-import { onAuthStateChanged, User as FirebaseUser, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import Scorecard from '../components/Scorecard';
 
 export default function MatchScoring() {
   const { id } = useParams();
@@ -65,7 +67,9 @@ export default function MatchScoring() {
   const [isSelectingPlayers, setIsSelectingPlayers] = useState(true);
   const [showWicketModal, setShowWicketModal] = useState(false);
   const [wicketType, setWicketType] = useState('Bowled');
+  const [fielderName, setFielderName] = useState('');
   const [extraRuns, setExtraRuns] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (match && match.status === 'Upcoming' && isSettingUp === false) {
@@ -83,13 +87,15 @@ export default function MatchScoring() {
 
       const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
       const nonStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
+      const bowlerId = currentInn.currentBowlerId;
       
-      // Check if we need a new bowler (over finished)
-      const isOverFinished = currentInn.balls === 0 && currentInn.overs > 0 && currentInn.ballHistory.length > 0;
-      
-      if (!striker || !nonStriker || isOverFinished) {
+      // Sync local names for the modal
+      if (striker && striker.playerName !== strikerName) setStrikerName(striker.playerName);
+      if (nonStriker && nonStriker.playerName !== nonStrikerName) setNonStrikerName(nonStriker.playerName);
+      if (bowlerId && bowlerId !== bowlerName) setBowlerName(bowlerId);
+
+      if (!striker || !nonStriker || !bowlerId) {
         setIsSelectingPlayers(true);
-        if (isOverFinished) setBowlerName('');
       } else {
         setIsSelectingPlayers(false);
       }
@@ -150,10 +156,34 @@ export default function MatchScoring() {
   const confirmPlayers = async () => {
     if (!canManage || !strikerName || !nonStrikerName || !bowlerName || !match) return;
 
+    if (strikerName === nonStrikerName) {
+      setError("Striker and Non-Striker cannot be the same person");
+      return;
+    }
+
     const updatedMatch = { ...match };
     const currentInn = updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2;
     
     if (currentInn) {
+      // Check if batsman is already out
+      const strikerStats = currentInn.battingStats[strikerName];
+      const nonStrikerStats = currentInn.battingStats[nonStrikerName];
+
+      if (strikerStats?.isOut) {
+        setError(`${strikerName} is already out and cannot bat again`);
+        return;
+      }
+      if (nonStrikerStats?.isOut) {
+        setError(`${nonStrikerName} is already out and cannot bat again`);
+        return;
+      }
+
+      // Check if bowler bowled the last over
+      if (currentInn.currentBowlerId === bowlerName && currentInn.balls === 0 && (currentInn.overs > 0)) {
+        setError(`${bowlerName} cannot bowl consecutive overs`);
+        return;
+      }
+
       // Reset striker status for all players
       Object.values(currentInn.battingStats).forEach(b => {
         (b as BatterStats).isStriker = false;
@@ -192,6 +222,7 @@ export default function MatchScoring() {
       }
 
       // Add or update bowler
+      currentInn.currentBowlerId = bowlerName;
       if (!currentInn.bowlingStats[bowlerName]) {
         currentInn.bowlingStats[bowlerName] = {
           playerId: bowlerName,
@@ -208,19 +239,20 @@ export default function MatchScoring() {
     try {
       await setDoc(doc(db, 'matches', match.id), updatedMatch);
       setIsSelectingPlayers(false);
+      setError(null);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `matches/${match.id}`);
     }
   };
 
-  const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string) => {
+  const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string, fName?: string) => {
     if (!canManage || !match) return;
     // Get current striker and bowler
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     if (!currentInn) return;
     
     const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
-    const bowler = (Object.values(currentInn.bowlingStats || {}) as BowlerStats[]).find(b => b.playerName === bowlerName); 
+    const bowler = currentInn.currentBowlerId ? currentInn.bowlingStats[currentInn.currentBowlerId] : null;
 
     if (!striker || !bowler) {
       setIsSelectingPlayers(true);
@@ -233,6 +265,7 @@ export default function MatchScoring() {
       extraType,
       isWicket,
       wicketType: wType,
+      fielderName: fName,
       strikerId: striker.playerId,
       bowlerId: bowler.playerId
     });
@@ -409,6 +442,12 @@ export default function MatchScoring() {
           <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Select Players</h2>
           
           <div className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
             {!striker && (
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest">New Striker</label>
@@ -480,19 +519,48 @@ export default function MatchScoring() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {['Bowled', 'Caught', 'LBW', 'Run Out', 'Stumped', 'Hit Wicket'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    handleBall(0, false, undefined, true, type);
-                    setShowWicketModal(false);
-                  }}
-                  className="py-4 rounded-xl bg-red-50 border border-red-100 text-red-700 font-black uppercase tracking-widest text-xs hover:bg-red-100 transition-all"
-                >
-                  {type}
-                </button>
-              ))}
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {['Bowled', 'Caught', 'LBW', 'Run Out', 'Stumped', 'Hit Wicket'].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setWicketType(type)}
+                    className={cn(
+                      "py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all border-2",
+                      wicketType === type ? "bg-red-50 border-red-500 text-red-700" : "bg-white border-slate-100 text-slate-400"
+                    )}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+
+              {(wicketType === 'Caught' || wicketType === 'Run Out' || wicketType === 'Stumped') && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                    {wicketType === 'Caught' ? 'Fielder Name' : 'Who did run out?'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={fielderName}
+                    onChange={(e) => setFielderName(e.target.value)}
+                    placeholder="Enter name"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  />
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  handleBall(0, false, undefined, true, wicketType, fielderName);
+                  setShowWicketModal(false);
+                  setFielderName('');
+                }}
+                className="w-full py-4 rounded-xl bg-red-600 text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
+              >
+                Confirm Wicket
+              </button>
             </div>
           </div>
         </div>
@@ -576,14 +644,34 @@ export default function MatchScoring() {
                     {match.status === 'Live' ? 'Live Scoring' : 'Final Score'}
                   </span>
                   <h3 className="text-2xl font-black uppercase tracking-tight text-blue-100">{battingTeamName}</h3>
-                </div>
-                <div className="text-right">
-                  <p className="text-6xl font-black tracking-tighter leading-none">
+                  <h1 className="text-6xl font-black tracking-tighter leading-none mt-2">
                     {currentInnings?.runs}<span className="text-3xl text-blue-400">/{currentInnings?.wickets}</span>
-                  </p>
+                  </h1>
                   <p className="text-xl font-bold text-blue-300 mt-2">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-sm opacity-50">/ {match.oversLimit} ov</span></p>
                 </div>
+                <div className="text-right">
+                  <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1">Run Rate</div>
+                  <div className="text-2xl font-black">
+                    {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
+                      ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
+                      : '0.00'}
+                  </div>
+                  {match.currentInnings === 2 && match.innings1 && (
+                    <div className="mt-4">
+                      <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1">Target</div>
+                      <div className="text-2xl font-black">{match.innings1.runs + 1}</div>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {match.currentInnings === 2 && match.innings1 && (
+                <div className="bg-blue-800/50 rounded-2xl p-4 border border-blue-700/50 mb-8">
+                  <p className="text-sm font-bold text-center">
+                    {match.teamAId === match.innings2?.battingTeamId ? match.teamAName : match.teamBName} needs {match.innings1.runs + 1 - (match.innings2?.runs || 0)} runs in {(match.oversLimit * 6) - ((match.innings2?.overs || 0) * 6 + (match.innings2?.balls || 0))} balls
+                  </p>
+                </div>
+              )}
 
               {/* Target for 2nd Innings */}
               {match.currentInnings === 2 && match.innings1 && (
@@ -593,119 +681,155 @@ export default function MatchScoring() {
                 </div>
               )}
 
-              {/* Player Stats */}
-              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-blue-800">
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Batting</p>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-sm truncate max-w-[120px]">{striker?.playerName || 'Striker'} *</span>
-                    <span className="font-black text-lg">{striker?.runs || 0} <span className="text-xs text-blue-400 font-bold">({striker?.balls || 0})</span></span>
-                  </div>
-                  <div className="flex justify-between items-center opacity-60">
-                    <span className="font-bold text-sm truncate max-w-[120px]">{nonStriker?.playerName || 'Non-Striker'}</span>
-                    <span className="font-black text-lg">{nonStriker?.runs || 0} <span className="text-xs text-blue-400 font-bold">({nonStriker?.balls || 0})</span></span>
-                  </div>
-                </div>
-                <div className="space-y-4 border-l border-blue-800 pl-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Bowling</p>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-sm truncate max-w-[120px]">{bowler?.playerName || 'Bowler'}</span>
-                    <span className="font-black text-lg">{bowler?.wickets || 0}-{bowler?.runs || 0} <span className="text-xs text-blue-400 font-bold">({bowler?.overs || 0}.{bowler?.balls || 0})</span></span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Scoring Buttons */}
+          {/* Scoring Controls - Only for Admin */}
           {canManage && match.status === 'Live' && (
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((run) => (
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-8">
+              {/* Active Players */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Striker</span>
+                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">On Strike</span>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                    <p className="text-lg font-black text-blue-900">{striker?.playerName || 'Select Batter'}</p>
+                    <p className="text-xs font-bold text-blue-600 mt-1">{striker?.runs || 0} ({striker?.balls || 0})</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p className="text-lg font-black text-slate-900">{nonStriker?.playerName || 'Select Batter'}</p>
+                    <p className="text-xs font-bold text-slate-50 mt-1">{nonStriker?.runs || 0} ({nonStriker?.balls || 0})</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Bowler</span>
+                <div className="p-4 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
+                  <div>
+                    <p className="text-lg font-black">{bowler?.playerName || 'Select Bowler'}</p>
+                    <p className="text-xs font-bold text-slate-400 mt-1">{bowler?.wickets || 0} - {bowler?.runs || 0} ({bowler?.overs || 0}.{bowler?.balls || 0})</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Economy</p>
+                    <p className="text-xl font-black">
+                      {bowler && (bowler.overs > 0 || bowler.balls > 0) 
+                        ? (bowler.runs / (bowler.overs + bowler.balls/6)).toFixed(2)
+                        : '0.00'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Runs Buttons */}
+              <div className="grid grid-cols-4 gap-4">
+                {[0, 1, 2, 3, 4, 6].map((run) => (
                   <button
                     key={run}
                     onClick={() => handleBall(run)}
-                    className={cn(
-                      "aspect-square rounded-2xl font-black text-2xl transition-all shadow-sm active:scale-95",
-                      run === 4 ? "bg-emerald-500 text-white hover:bg-emerald-600" :
-                      run === 6 ? "bg-purple-600 text-white hover:bg-purple-700" :
-                      "bg-slate-900 text-white hover:bg-slate-800"
-                    )}
+                    className="h-16 rounded-2xl bg-slate-50 border border-slate-100 text-slate-900 font-black text-xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm active:scale-95"
                   >
                     {run}
                   </button>
                 ))}
                 <button
                   onClick={() => setShowWicketModal(true)}
-                  className="aspect-square rounded-2xl bg-red-600 text-white font-black text-xl hover:bg-red-700 transition-all shadow-sm active:scale-95"
+                  className="h-16 rounded-2xl bg-red-50 border border-red-100 text-red-600 font-black text-xl hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm active:scale-95"
                 >
                   W
                 </button>
+                <button
+                  onClick={undoLastBall}
+                  className="h-16 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 font-black text-xl hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                >
+                  <RotateCcw className="w-6 h-6" />
+                </button>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extra Runs (Runs + Extra)</label>
-                  <div className="flex gap-1">
-                    {[0, 1, 2, 3, 4].map(r => (
-                      <button 
-                        key={r}
-                        onClick={() => setExtraRuns(r)}
+              {/* Extras Section */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Extras</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { label: 'WD', type: 'Wd' },
+                    { label: 'NB', type: 'Nb' },
+                    { label: 'BYE', type: 'By' },
+                    { label: 'LB', type: 'Lb' }
+                  ].map((extra) => (
+                    <div key={extra.type} className="space-y-2">
+                      <button
+                        onClick={() => handleBall(extraRuns, true, extra.type as any)}
+                        className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-black text-xs hover:bg-blue-900 hover:text-white transition-all uppercase tracking-widest"
+                      >
+                        {extra.label}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Extra Runs</span>
+                  <div className="flex gap-2 flex-1">
+                    {[0, 1, 2, 3, 4].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setExtraRuns(num)}
                         className={cn(
-                          "w-8 h-8 rounded-lg text-xs font-black transition-all",
-                          extraRuns === r ? "bg-amber-500 text-white shadow-md" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                          "flex-1 py-2 rounded-lg font-black transition-all",
+                          extraRuns === num ? "bg-blue-900 text-white" : "bg-white text-slate-600 border border-slate-200"
                         )}
                       >
-                        {r}
+                        {num}
                       </button>
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <button 
-                    onClick={() => {
-                      handleBall(extraRuns, true, 'Wd');
-                      setExtraRuns(0);
-                    }}
-                    className="py-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-black uppercase tracking-widest text-xs hover:bg-amber-100 transition-all"
-                  >
-                    Wide {extraRuns > 0 && `+${extraRuns}`}
-                  </button>
-                  <button 
-                    onClick={() => {
-                      handleBall(extraRuns, true, 'Nb');
-                      setExtraRuns(0);
-                    }}
-                    className="py-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-black uppercase tracking-widest text-xs hover:bg-amber-100 transition-all"
-                  >
-                    No Ball {extraRuns > 0 && `+${extraRuns}`}
-                  </button>
-                  <button 
-                    onClick={() => {
-                      handleBall(extraRuns, true, 'By');
-                      setExtraRuns(0);
-                    }}
-                    className="py-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all"
-                  >
-                    Bye {extraRuns > 0 && `+${extraRuns}`}
-                  </button>
-                  <button 
-                    onClick={() => {
-                      handleBall(extraRuns, true, 'Lb');
-                      setExtraRuns(0);
-                    }}
-                    className="py-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all"
-                  >
-                    Leg Bye {extraRuns > 0 && `+${extraRuns}`}
-                  </button>
-                </div>
               </div>
             </div>
           )}
+
+          {/* Full Scorecard View */}
+          <div className="space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="h-px flex-1 bg-slate-200"></div>
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Full Scorecard</h2>
+              <div className="h-px flex-1 bg-slate-200"></div>
+            </div>
+
+            {match.innings1 && (
+              <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
+            )}
+            
+            {match.innings2 && (
+              <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
+            )}
+          </div>
         </div>
 
-        {/* Sidebar: Ball History & Stats */}
+        {/* Sidebar - Match Info & Results */}
         <div className="space-y-6">
+          {match.status === 'Finished' && match.resultMessage && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center gap-3 text-emerald-700">
+                <CheckCircle2 className="w-6 h-6" />
+                <h3 className="font-black uppercase tracking-tight">Result</h3>
+              </div>
+              <p className="text-2xl font-black text-slate-900 leading-tight">
+                {match.resultMessage}
+              </p>
+              {match.manOfTheMatch && (
+                <div className="pt-4 border-t border-emerald-100">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Man of the Match</p>
+                  <p className="font-bold text-slate-900">{match.manOfTheMatch}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm h-full flex flex-col">
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
               <History className="w-4 h-4" /> Recent Balls
@@ -730,17 +854,6 @@ export default function MatchScoring() {
                 <p className="text-slate-300 italic text-sm py-4">No balls bowled yet.</p>
               )}
             </div>
-            
-            {canManage && (
-              <div className="mt-auto pt-6 border-t border-slate-100">
-                 <button 
-                  onClick={undoLastBall}
-                  className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-                 >
-                   <RotateCcw className="w-4 h-4" /> Undo Last Ball
-                 </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

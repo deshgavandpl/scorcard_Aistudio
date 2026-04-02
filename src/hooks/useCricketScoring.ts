@@ -53,10 +53,18 @@ export function useCricketScoring(matchId: string | undefined) {
     const ball = newInnings.balls + 1;
 
     const ballEvent: BallEvent = {
-      ...event,
+      runs: event.runs,
+      isExtra: event.isExtra,
+      isWicket: event.isWicket,
+      strikerId: event.strikerId,
+      bowlerId: event.bowlerId,
       over,
       ball: event.isExtra && (event.extraType === 'Wd' || event.extraType === 'Nb') ? newInnings.balls : ball
     };
+
+    if (event.isExtra && event.extraType) ballEvent.extraType = event.extraType;
+    if (event.isWicket && event.wicketType) ballEvent.wicketType = event.wicketType;
+    if (event.fielderName) ballEvent.fielderName = event.fielderName;
 
     // Update runs and extras
     let runsToAdd = event.runs;
@@ -78,36 +86,42 @@ export function useCricketScoring(matchId: string | undefined) {
     newInnings.runs += runsToAdd;
 
     // Update batter stats
-    const striker = { ...newInnings.battingStats[event.strikerId] };
+    const striker = newInnings.battingStats[event.strikerId];
     if (striker) {
-      striker.runs += (event.isExtra && (event.extraType === 'By' || event.extraType === 'Lb')) ? 0 : event.runs;
+      const updatedStriker = { ...striker };
+      updatedStriker.runs += (event.isExtra && (event.extraType === 'By' || event.extraType === 'Lb')) ? 0 : event.runs;
       if (!event.isExtra || event.extraType !== 'Wd') {
-        striker.balls += 1;
+        updatedStriker.balls += 1;
       }
-      if (event.runs === 4 && !event.isExtra) striker.fours += 1;
-      if (event.runs === 6 && !event.isExtra) striker.sixes += 1;
+      if (event.runs === 4 && !event.isExtra) updatedStriker.fours += 1;
+      if (event.runs === 6 && !event.isExtra) updatedStriker.sixes += 1;
       if (event.isWicket) {
-        striker.isOut = true;
-        striker.isStriker = false;
+        updatedStriker.isOut = true;
+        updatedStriker.isStriker = false;
+        updatedStriker.howOut = event.wicketType || 'Out';
+        if (event.fielderName) {
+          updatedStriker.howOut += ` (${event.fielderName})`;
+        }
       }
-      newInnings.battingStats[event.strikerId] = striker;
+      newInnings.battingStats[event.strikerId] = updatedStriker;
     }
 
     // Update bowler stats
-    const bowler = { ...newInnings.bowlingStats[event.bowlerId] };
+    const bowler = newInnings.bowlingStats[event.bowlerId];
     if (bowler) {
-      bowler.runs += (event.extraType === 'By' || event.extraType === 'Lb') ? 0 : runsToAdd;
+      const updatedBowler = { ...bowler };
+      updatedBowler.runs += (event.extraType === 'By' || event.extraType === 'Lb') ? 0 : runsToAdd;
       if (!event.isExtra || (event.extraType !== 'Wd' && event.extraType !== 'Nb')) {
-        bowler.balls += 1;
-        if (bowler.balls === 6) {
-          bowler.overs += 1;
-          bowler.balls = 0;
+        updatedBowler.balls += 1;
+        if (updatedBowler.balls === 6) {
+          updatedBowler.overs += 1;
+          updatedBowler.balls = 0;
         }
       }
       if (event.isWicket) {
-        bowler.wickets += 1;
+        updatedBowler.wickets += 1;
       }
-      newInnings.bowlingStats[event.bowlerId] = bowler;
+      newInnings.bowlingStats[event.bowlerId] = updatedBowler;
     }
 
     // Update innings balls/overs
@@ -116,6 +130,7 @@ export function useCricketScoring(matchId: string | undefined) {
       if (newInnings.balls === 6) {
         newInnings.overs += 1;
         newInnings.balls = 0;
+        delete newInnings.currentBowlerId; // Clear bowler at end of over
         // Auto strike change at end of over
         (Object.values(newInnings.battingStats) as BatterStats[]).forEach(b => {
           if (!b.isOut) b.isStriker = !b.isStriker;
@@ -162,12 +177,21 @@ export function useCricketScoring(matchId: string | undefined) {
         updatedMatch.status = 'Finished';
         // Determine winner
         if (updatedMatch.innings1 && updatedMatch.innings2) {
-          if (updatedMatch.innings2.runs > updatedMatch.innings1.runs) {
+          const inn1Runs = updatedMatch.innings1.runs;
+          const inn2Runs = updatedMatch.innings2.runs;
+          const inn2Wickets = updatedMatch.innings2.wickets;
+          const battingTeamName = updatedMatch.innings2.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+          const bowlingTeamName = updatedMatch.innings2.bowlingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+
+          if (inn2Runs > inn1Runs) {
             updatedMatch.winnerId = updatedMatch.innings2.battingTeamId;
-          } else if (updatedMatch.innings1.runs > updatedMatch.innings2.runs) {
+            updatedMatch.resultMessage = `${battingTeamName} won by ${10 - inn2Wickets} wickets`;
+          } else if (inn1Runs > inn2Runs) {
             updatedMatch.winnerId = updatedMatch.innings1.battingTeamId;
+            updatedMatch.resultMessage = `${bowlingTeamName} won by ${inn1Runs - inn2Runs} runs`;
           } else {
             updatedMatch.winnerId = 'Draw';
+            updatedMatch.resultMessage = 'Match Draw';
           }
         }
       }
@@ -175,6 +199,8 @@ export function useCricketScoring(matchId: string | undefined) {
         // Target achieved
         updatedMatch.status = 'Finished';
         updatedMatch.winnerId = newInnings.battingTeamId;
+        const battingTeamName = updatedMatch.innings2?.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+        updatedMatch.resultMessage = `${battingTeamName} won by ${10 - newInnings.wickets} wickets`;
     }
 
     await saveMatch(updatedMatch);
@@ -252,6 +278,7 @@ export function useCricketScoring(matchId: string | undefined) {
       if (newInnings.balls === 0) {
         newInnings.overs -= 1;
         newInnings.balls = 5;
+        newInnings.currentBowlerId = lastBall.bowlerId; // Restore bowler on undo over end
         // Reverse auto strike change at end of over
         (Object.values(newInnings.battingStats) as BatterStats[]).forEach(b => {
           if (!b.isOut) b.isStriker = !b.isStriker;

@@ -29,6 +29,7 @@ export interface MatchInnings {
   bowlingStats: Record<string, BowlerStats>;
   fallOfWickets: { runs: number; wickets: number; over: string }[];
   ballHistory: BallEvent[];
+  currentBowlerId?: string;
 }
 
 export interface BatterStats {
@@ -61,6 +62,7 @@ export interface BallEvent {
   extraType?: 'Wd' | 'Nb' | 'By' | 'Lb';
   isWicket: boolean;
   wicketType?: string;
+  fielderName?: string;
   strikerId: string;
   bowlerId: string;
 }
@@ -80,6 +82,7 @@ export interface Match {
   innings1?: MatchInnings;
   innings2?: MatchInnings;
   winnerId?: string;
+  resultMessage?: string;
   manOfTheMatch?: string;
   createdAt: number;
 }
