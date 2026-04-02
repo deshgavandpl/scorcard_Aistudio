@@ -5,19 +5,31 @@ import { Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedMatches = JSON.parse(localStorage.getItem('cricket_matches') || '[]');
-    setMatches(savedMatches.sort((a: Match, b: Match) => b.createdAt - a.createdAt));
+    const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
+      setMatches(matchesData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'matches');
+    });
+    return () => unsub();
   }, []);
 
-  const deleteMatch = (id: string) => {
-    const updated = matches.filter(m => m.id !== id);
-    setMatches(updated);
-    localStorage.setItem('cricket_matches', JSON.stringify(updated));
+  const deleteMatch = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'matches', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `matches/${id}`);
+    }
   };
 
   const createNewMatch = () => {

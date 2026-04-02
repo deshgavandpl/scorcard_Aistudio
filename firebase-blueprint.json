@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "Match": {
+      "title": "Match",
+      "description": "Cricket match data including scores and stats.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "teamAId": { "type": "string" },
+        "teamBId": { "type": "string" },
+        "teamAName": { "type": "string" },
+        "teamBName": { "type": "string" },
+        "tossWinnerId": { "type": "string" },
+        "tossDecision": { "type": "string", "enum": ["Bat", "Bowl"] },
+        "oversLimit": { "type": "number" },
+        "status": { "type": "string", "enum": ["Upcoming", "Live", "Finished"] },
+        "currentInnings": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "winnerId": { "type": "string" },
+        "innings1": { "$ref": "MatchInnings" },
+        "innings2": { "$ref": "MatchInnings" }
+      },
+      "required": ["id", "teamAName", "teamBName", "status", "createdAt"]
+    },
+    "MatchInnings": {
+      "title": "MatchInnings",
+      "description": "Data for a single innings of a match.",
+      "type": "object",
+      "properties": {
+        "battingTeamId": { "type": "string" },
+        "bowlingTeamId": { "type": "string" },
+        "runs": { "type": "number" },
+        "wickets": { "type": "number" },
+        "overs": { "type": "number" },
+        "balls": { "type": "number" },
+        "extras": { "type": "object" },
+        "battingStats": { "type": "object" },
+        "bowlingStats": { "type": "object" },
+        "fallOfWickets": { "type": "array" },
+        "ballHistory": { "type": "array" }
+      }
+    },
+    "Tournament": {
+      "title": "Tournament",
+      "description": "Cricket tournament data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "teams": { "type": "array" },
+        "matches": { "type": "array" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "status"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "Cricket team data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "players": { "type": "array" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "/matches/{matchId}": {
+      "schema": "Match",
+      "description": "Individual match documents."
+    },
+    "/tournaments/{tournamentId}": {
+      "schema": "Tournament",
+      "description": "Individual tournament documents."
+    },
+    "/teams/{teamId}": {
+      "schema": "Team",
+      "description": "Individual team documents."
+    }
+  }
+}

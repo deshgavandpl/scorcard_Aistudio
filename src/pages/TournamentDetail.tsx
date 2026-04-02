@@ -5,6 +5,10 @@ import { Tournament, Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+
 export default function TournamentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -12,11 +16,15 @@ export default function TournamentDetail() {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'points'>('fixtures');
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('cricket_tournaments') || '[]');
-    const found = saved.find((t: Tournament) => t.id === id);
-    if (found) {
-      setTournament(found);
-    }
+    if (!id) return;
+    const unsub = onSnapshot(doc(db, 'tournaments', id), (docSnap) => {
+      if (docSnap.exists()) {
+        setTournament({ id: docSnap.id, ...docSnap.data() } as Tournament);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `tournaments/${id}`);
+    });
+    return () => unsub();
   }, [id]);
 
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;

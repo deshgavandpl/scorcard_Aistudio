@@ -14,6 +14,9 @@ import {
 import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
 export default function MatchScoring() {
   const { id } = useParams();
@@ -29,8 +32,7 @@ export default function MatchScoring() {
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
   // Scoring State
-  const [matchData, setMatchData] = useState<Match | null>(null);
-  const { match, addBall, undoLastBall, setMatch } = useCricketScoring(matchData || {} as Match);
+  const { match, addBall, undoLastBall, setMatch, loading } = useCricketScoring(id === 'new' ? undefined : id);
   
   const [strikerName, setStrikerName] = useState('');
   const [nonStrikerName, setNonStrikerName] = useState('');
@@ -38,36 +40,30 @@ export default function MatchScoring() {
   const [isSelectingPlayers, setIsSelectingPlayers] = useState(true);
 
   useEffect(() => {
-    if (id && id !== 'new') {
-      const savedMatches = JSON.parse(localStorage.getItem('cricket_matches') || '[]');
-      const found = savedMatches.find((m: Match) => m.id === id);
-      if (found) {
-        setMatchData(found);
-        setMatch(found);
-        setIsSettingUp(false);
-        // If match is already live, we might not need player selection immediately
-        if (found.status === 'Live') {
-          const currentInn = found.currentInnings === 1 ? found.innings1 : found.innings2;
-          const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
-          const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
-          const bowler = (Object.values(currentInn?.bowlingStats || {}) as BowlerStats[]).find(b => b.balls < 6); // Simple logic
-          
-          if (striker && nonStriker && bowler) {
-            setIsSelectingPlayers(false);
-          }
+    if (match && !isSettingUp) {
+      // If match is already live, we might not need player selection immediately
+      if (match.status === 'Live') {
+        const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+        const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
+        const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
+        const bowler = (Object.values(currentInn?.bowlingStats || {}) as BowlerStats[]).find(b => b.balls < 6); // Simple logic
+        
+        if (striker && nonStriker && bowler) {
+          setIsSelectingPlayers(false);
         }
       }
     }
-  }, [id]);
+  }, [match, isSettingUp]);
 
-  const startMatch = () => {
+  const startMatch = async () => {
     const teamAId = 'team_a';
     const teamBId = 'team_b';
     const battingTeamId = (tossWinner === teamA && tossDecision === 'Bat') || (tossWinner === teamB && tossDecision === 'Bowl') ? teamAId : teamBId;
     const bowlingTeamId = battingTeamId === teamAId ? teamBId : teamAId;
 
+    const matchId = Math.random().toString(36).substr(2, 9);
     const newMatch: Match = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: matchId,
       teamAId,
       teamBId,
       teamAName: teamA,
@@ -92,21 +88,19 @@ export default function MatchScoring() {
         ballHistory: []
       }
     };
-    setMatchData(newMatch);
-    setMatch(newMatch);
-    setIsSettingUp(false);
-    setIsSelectingPlayers(true);
     
-    // Save to local storage
-    const matches = JSON.parse(localStorage.getItem('cricket_matches') || '[]');
-    matches.push(newMatch);
-    localStorage.setItem('cricket_matches', JSON.stringify(matches));
-    
-    navigate(`/match/${newMatch.id}`, { replace: true });
+    try {
+      await setDoc(doc(db, 'matches', matchId), newMatch);
+      navigate(`/match/${matchId}`, { replace: true });
+      setIsSettingUp(false);
+      setIsSelectingPlayers(true);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `matches/${matchId}`);
+    }
   };
 
-  const confirmPlayers = () => {
-    if (!strikerName || !nonStrikerName || !bowlerName) return;
+  const confirmPlayers = async () => {
+    if (!strikerName || !nonStrikerName || !bowlerName || !match) return;
 
     const updatedMatch = { ...match };
     const currentInn = updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2;
@@ -158,15 +152,11 @@ export default function MatchScoring() {
       }
     }
 
-    setMatch(updatedMatch);
-    setIsSelectingPlayers(false);
-    
-    // Save to local storage
-    const matches = JSON.parse(localStorage.getItem('cricket_matches') || '[]');
-    const index = matches.findIndex((m: Match) => m.id === updatedMatch.id);
-    if (index > -1) {
-      matches[index] = updatedMatch;
-      localStorage.setItem('cricket_matches', JSON.stringify(matches));
+    try {
+      await setDoc(doc(db, 'matches', match.id), updatedMatch);
+      setIsSelectingPlayers(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `matches/${match.id}`);
     }
   };
 
@@ -201,6 +191,10 @@ export default function MatchScoring() {
       setIsSelectingPlayers(true);
     }
   };
+
+  if (loading && id !== 'new') return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Match...</div>;
+
+  if (!match && id !== 'new' && !isSettingUp) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest">Match Not Found</div>;
 
   if (isSettingUp) {
     return (
@@ -348,9 +342,7 @@ export default function MatchScoring() {
     );
   }
 
-  if (!match.id) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Match...</div>;
-
-  if (isSelectingPlayers) {
+  if (isSelectingPlayers && match) {
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
@@ -409,6 +401,8 @@ export default function MatchScoring() {
       </div>
     );
   }
+
+  if (!match) return null;
 
   const currentInnings = match.currentInnings === 1 ? match.innings1 : match.innings2;
   const battingTeamName = currentInnings?.battingTeamId === 'team_a' ? match.teamAName : match.teamBName;

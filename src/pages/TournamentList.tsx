@@ -5,12 +5,22 @@ import { Tournament } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+
 export default function TournamentList() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('cricket_tournaments') || '[]');
-    setTournaments(saved);
+    const q = query(collection(db, 'tournaments'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const tournamentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tournament));
+      setTournaments(tournamentsData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'tournaments');
+    });
+    return () => unsub();
   }, []);
 
   return (

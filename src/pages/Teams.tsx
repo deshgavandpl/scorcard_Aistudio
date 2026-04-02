@@ -4,32 +4,48 @@ import { Team, Player } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import { collection, onSnapshot, query, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+
 export default function Teams() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [newTeamName, setNewTeamName] = useState('');
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('cricket_teams') || '[]');
-    setTeams(saved);
+    const q = query(collection(db, 'teams'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const teamsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+      setTeams(teamsData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'teams');
+    });
+    return () => unsub();
   }, []);
 
-  const addTeam = () => {
+  const addTeam = async () => {
     if (!newTeamName.trim()) return;
+    const teamId = Math.random().toString(36).substr(2, 9);
     const newTeam: Team = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: teamId,
       name: newTeamName,
       players: []
     };
-    const updated = [...teams, newTeam];
-    setTeams(updated);
-    localStorage.setItem('cricket_teams', JSON.stringify(updated));
-    setNewTeamName('');
+    
+    try {
+      await setDoc(doc(db, 'teams', teamId), newTeam);
+      setNewTeamName('');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `teams/${teamId}`);
+    }
   };
 
-  const deleteTeam = (id: string) => {
-    const updated = teams.filter(t => t.id !== id);
-    setTeams(updated);
-    localStorage.setItem('cricket_teams', JSON.stringify(updated));
+  const deleteTeam = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'teams', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `teams/${id}`);
+    }
   };
 
   return (

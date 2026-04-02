@@ -5,6 +5,10 @@ import { Team, Tournament, Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+
 export default function TournamentSetup() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -49,7 +53,7 @@ export default function TournamentSetup() {
     return matches;
   };
 
-  const createTournament = () => {
+  const createTournament = async () => {
     const validTeams = teamNames.filter(n => n.trim() !== '');
     if (validTeams.length < 2) return;
 
@@ -59,19 +63,21 @@ export default function TournamentSetup() {
       players: []
     }));
 
+    const tournamentId = Math.random().toString(36).substr(2, 9);
     const tournament: Tournament = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: tournamentId,
       name,
       teams,
       matches: generateFixtures(teams),
       status: 'Live'
     };
 
-    const saved = JSON.parse(localStorage.getItem('cricket_tournaments') || '[]');
-    saved.push(tournament);
-    localStorage.setItem('cricket_tournaments', JSON.stringify(saved));
-
-    navigate('/tournaments');
+    try {
+      await setDoc(doc(db, 'tournaments', tournamentId), tournament);
+      navigate('/tournaments');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${tournamentId}`);
+    }
   };
 
   return (

@@ -4,13 +4,23 @@ import { Match, MatchInnings, BatterStats, BowlerStats } from '../types/cricket'
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { db } from '../firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+
 export default function Stats() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'batting' | 'bowling'>('batting');
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('cricket_matches') || '[]');
-    setMatches(saved);
+    const q = query(collection(db, 'matches'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
+      setMatches(matchesData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'matches');
+    });
+    return () => unsub();
   }, []);
 
   const getAggregatedBattingStats = () => {
