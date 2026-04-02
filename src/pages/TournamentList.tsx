@@ -1,16 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Plus, Calendar, Users, ChevronRight } from 'lucide-react';
+import { Trophy, Plus, Calendar, Users, ChevronRight, Trash2 } from 'lucide-react';
 import { Tournament } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, onSnapshot, query, deleteDoc, doc, getDocs, where } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 export default function TournamentList() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    
+    const handleStorageChange = () => {
+      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const canManage = user || isAdminMode;
 
   useEffect(() => {
     const q = query(collection(db, 'tournaments'));
@@ -23,6 +46,22 @@ export default function TournamentList() {
     return () => unsub();
   }, []);
 
+  const deleteTournament = async (tournamentId: string) => {
+    if (!window.confirm('Are you sure you want to delete this tournament and all its matches?')) return;
+    try {
+      // Delete all matches first
+      const q = query(collection(db, 'matches'), where('tournamentId', '==', tournamentId));
+      const matchesSnap = await getDocs(q);
+      for (const matchDoc of matchesSnap.docs) {
+        await deleteDoc(doc(db, 'matches', matchDoc.id));
+      }
+      // Delete tournament
+      await deleteDoc(doc(db, 'tournaments', tournamentId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `tournaments/${tournamentId}`);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -30,12 +69,14 @@ export default function TournamentList() {
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Tournaments</h1>
           <p className="text-slate-500 font-medium">Create and manage your cricket leagues.</p>
         </div>
-        <Link 
-          to="/tournaments/new"
-          className="px-6 py-3 rounded-xl bg-amber-500 text-white font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" /> Create Tournament
-        </Link>
+        {canManage && (
+          <Link 
+            to="/tournaments/new"
+            className="px-6 py-3 rounded-xl bg-amber-500 text-white font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" /> Create Tournament
+          </Link>
+        )}
       </div>
 
       {tournaments.length === 0 ? (
@@ -65,12 +106,27 @@ export default function TournamentList() {
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                   <Trophy className="w-20 h-20" />
                 </div>
-                <span className={cn(
-                  "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block",
-                  t.status === 'Live' ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300"
-                )}>
-                  {t.status}
-                </span>
+                <div className="flex justify-between items-start mb-4">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-[0.2em] inline-block",
+                    t.status === 'Live' ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300"
+                  )}>
+                    {t.status}
+                  </span>
+                  {canManage && (
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteTournament(t.id);
+                      }}
+                      className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                      title="Delete Tournament"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 <h3 className="text-2xl font-black uppercase tracking-tight truncate">{t.name}</h3>
               </div>
               

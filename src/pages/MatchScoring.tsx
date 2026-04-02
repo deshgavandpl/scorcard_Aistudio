@@ -10,12 +10,13 @@ import {
   History,
   Zap,
   AlertCircle,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -138,6 +139,11 @@ export default function MatchScoring() {
     const currentInn = updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2;
     
     if (currentInn) {
+      // Reset striker status for all players
+      Object.values(currentInn.battingStats).forEach(b => {
+        (b as BatterStats).isStriker = false;
+      });
+
       // Add or update striker
       if (!currentInn.battingStats[strikerName]) {
         currentInn.battingStats[strikerName] = {
@@ -193,11 +199,13 @@ export default function MatchScoring() {
   };
 
   const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string) => {
-    if (!canManage) return;
+    if (!canManage || !match) return;
     // Get current striker and bowler
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
-    const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
-    const bowler = (Object.values(currentInn?.bowlingStats || {}) as BowlerStats[]).find(b => b.playerName === bowlerName); 
+    if (!currentInn) return;
+    
+    const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
+    const bowler = (Object.values(currentInn.bowlingStats || {}) as BowlerStats[]).find(b => b.playerName === bowlerName); 
 
     if (!striker || !bowler) {
       setIsSelectingPlayers(true);
@@ -213,6 +221,16 @@ export default function MatchScoring() {
       strikerId: striker.playerId,
       bowlerId: bowler.playerId
     });
+  };
+
+  const deleteMatch = async () => {
+    if (!match || !window.confirm('Are you sure you want to delete this match?')) return;
+    try {
+      await deleteDoc(doc(db, 'matches', match.id));
+      navigate(-1);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `matches/${match.id}`);
+    }
   };
 
   if (loading && id !== 'new') return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Match...</div>;
@@ -488,8 +506,25 @@ export default function MatchScoring() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setIsSelectingPlayers(true)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" title="Change Players"><User className="w-5 h-5" /></button>
-          <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400"><Settings className="w-5 h-5" /></button>
+          {canManage && (
+            <button 
+              onClick={deleteMatch}
+              className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-400" 
+              title="Delete Match"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
+          {canManage && (
+            <button onClick={() => setIsSelectingPlayers(true)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" title="Change Players">
+              <User className="w-5 h-5" />
+            </button>
+          )}
+          {canManage && (
+            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400">
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -568,7 +603,7 @@ export default function MatchScoring() {
           </div>
 
           {/* Scoring Buttons */}
-          {match.status === 'Live' && (
+          {canManage && match.status === 'Live' && (
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
                 {[0, 1, 2, 3, 4, 5, 6, 7].map((run) => (

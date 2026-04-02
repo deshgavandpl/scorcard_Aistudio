@@ -261,8 +261,8 @@ export function useCricketScoring(matchId: string | undefined) {
       }
     }
 
-    // Reverse strike change on odd runs
-    if (lastBall.runs % 2 !== 0 && !lastBall.isExtra) {
+    // Reverse strike change on odd runs (including runs on extras)
+    if (lastBall.runs % 2 !== 0) {
        (Object.values(newInnings.battingStats) as BatterStats[]).forEach(b => {
           if (!b.isOut) b.isStriker = !b.isStriker;
         });
