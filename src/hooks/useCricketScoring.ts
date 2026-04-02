@@ -313,5 +313,24 @@ export function useCricketScoring(matchId: string | undefined) {
     await saveMatch(updatedMatch);
   };
 
-  return { match, addBall, undoLastBall, setMatch, loading };
+  const swapStrike = async () => {
+    if (!match) return;
+    const currentInnings = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    if (!currentInnings) return;
+
+    const newInnings = { ...currentInnings };
+    newInnings.battingStats = { ...newInnings.battingStats };
+
+    (Object.values(newInnings.battingStats) as BatterStats[]).forEach(b => {
+      if (!b.isOut) b.isStriker = !b.isStriker;
+    });
+
+    const updatedMatch = { ...match };
+    if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
+    else updatedMatch.innings2 = newInnings;
+
+    await saveMatch(updatedMatch);
+  };
+
+  return { match, addBall, undoLastBall, swapStrike, setMatch, loading };
 }

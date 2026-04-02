@@ -151,7 +151,8 @@ export default function LiveScore() {
                     </div>
                     <button 
                       onClick={() => deleteMatch(match.id)}
-                      className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                      title="Delete Match"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

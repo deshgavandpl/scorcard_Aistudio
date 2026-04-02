@@ -73,7 +73,8 @@ export default function Teams() {
   };
 
   const deleteTeam = async (id: string) => {
-    if (!user) return;
+    if (!canManage) return;
+    if (!window.confirm('Are you sure you want to delete this team?')) return;
     try {
       await deleteDoc(doc(db, 'teams', id));
     } catch (error) {
@@ -140,12 +141,15 @@ export default function Teams() {
                 </div>
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{team.name}</h3>
               </div>
-              <button 
-                onClick={() => deleteTeam(team.id)}
-                className="text-slate-300 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {canManage && (
+                <button 
+                  onClick={() => deleteTeam(team.id)}
+                  className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                  title="Delete Team"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
             
             <div className="p-6 space-y-4">

@@ -59,7 +59,7 @@ export default function MatchScoring() {
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
   // Scoring State
-  const { match, addBall, undoLastBall, setMatch, loading } = useCricketScoring(id === 'new' ? undefined : id);
+  const { match, addBall, undoLastBall, swapStrike, setMatch, loading } = useCricketScoring(id === 'new' ? undefined : id);
   
   const [strikerName, setStrikerName] = useState('');
   const [nonStrikerName, setNonStrikerName] = useState('');
@@ -687,36 +687,51 @@ export default function MatchScoring() {
           {/* Scoring Controls - Only for Admin */}
           {canManage && match.status === 'Live' && (
             <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-8">
-              {/* Active Players */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+              {/* Active Players Summary */}
+              <div className="grid grid-cols-2 gap-4">
+                <motion.div 
+                  initial={false}
+                  animate={{ backgroundColor: striker?.isStriker ? 'rgb(239 246 255)' : 'rgb(248 250 252)' }}
+                  className={cn(
+                    "p-4 rounded-2xl border transition-all",
+                    striker?.isStriker ? "border-blue-200 ring-2 ring-blue-500/20 shadow-sm" : "border-slate-100"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Striker</span>
-                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">On Strike</span>
+                    {striker?.isStriker && <Zap className="w-3 h-3 text-blue-500 fill-blue-500" />}
                   </div>
-                  <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
-                    <p className="text-lg font-black text-blue-900">{striker?.playerName || 'Select Batter'}</p>
-                    <p className="text-xs font-bold text-blue-600 mt-1">{striker?.runs || 0} ({striker?.balls || 0})</p>
+                  <p className="text-lg font-black text-slate-900 truncate">{striker?.playerName || 'Select Batter'}</p>
+                  <p className="text-xs font-bold text-blue-600 mt-1">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
+                </motion.div>
+
+                <motion.div 
+                  initial={false}
+                  animate={{ backgroundColor: nonStriker?.isStriker ? 'rgb(239 246 255)' : 'rgb(248 250 252)' }}
+                  className={cn(
+                    "p-4 rounded-2xl border transition-all",
+                    nonStriker?.isStriker ? "border-blue-200 ring-2 ring-blue-500/20 shadow-sm" : "border-slate-100"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
+                    {nonStriker?.isStriker && <Zap className="w-3 h-3 text-blue-500 fill-blue-500" />}
                   </div>
-                </div>
-                <div className="space-y-3">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                    <p className="text-lg font-black text-slate-900">{nonStriker?.playerName || 'Select Batter'}</p>
-                    <p className="text-xs font-bold text-slate-50 mt-1">{nonStriker?.runs || 0} ({nonStriker?.balls || 0})</p>
-                  </div>
-                </div>
+                  <p className="text-lg font-black text-slate-900 truncate">{nonStriker?.playerName || 'Select Batter'}</p>
+                  <p className="text-xs font-bold text-blue-600 mt-1">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
+                </motion.div>
               </div>
 
-              <div className="space-y-3">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Bowler</span>
-                <div className="p-4 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
+              {/* Bowler & Strike Swap */}
+              <div className="flex gap-4">
+                <div className="flex-1 p-4 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
                   <div>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Current Bowler</span>
                     <p className="text-lg font-black">{bowler?.playerName || 'Select Bowler'}</p>
-                    <p className="text-xs font-bold text-slate-400 mt-1">{bowler?.wickets || 0} - {bowler?.runs || 0} ({bowler?.overs || 0}.{bowler?.balls || 0})</p>
+                    <p className="text-xs font-bold text-slate-400 mt-1">{bowler?.wickets || 0} - {bowler?.runs || 0} <span className="opacity-50">({bowler?.overs || 0}.{bowler?.balls || 0})</span></p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Economy</p>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Econ</p>
                     <p className="text-xl font-black">
                       {bowler && (bowler.overs > 0 || bowler.balls > 0) 
                         ? (bowler.runs / (bowler.overs + bowler.balls/6)).toFixed(2)
@@ -724,69 +739,109 @@ export default function MatchScoring() {
                     </p>
                   </div>
                 </div>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={swapStrike}
+                  className="px-6 rounded-2xl bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex flex-col items-center justify-center gap-1"
+                  title="Swap Strike"
+                >
+                  <RotateCcw className="w-5 h-5 rotate-180" />
+                  <span className="text-[8px] font-black uppercase tracking-widest">Swap</span>
+                </motion.button>
               </div>
 
-              {/* Runs Buttons */}
-              <div className="grid grid-cols-4 gap-4">
-                {[0, 1, 2, 3, 4, 6].map((run) => (
-                  <button
-                    key={run}
-                    onClick={() => handleBall(run)}
-                    className="h-16 rounded-2xl bg-slate-50 border border-slate-100 text-slate-900 font-black text-xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm active:scale-95"
+              {/* Main Scoring Grid */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-4 gap-3">
+                  {[0, 1, 2, 3].map((run) => (
+                    <motion.button
+                      key={run}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleBall(run)}
+                      className="h-20 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-2xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
+                    >
+                      {run}
+                    </motion.button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  {[4, 6].map((run) => (
+                    <motion.button
+                      key={run}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleBall(run)}
+                      className={cn(
+                        "h-20 rounded-2xl border-2 font-black text-2xl transition-all shadow-md flex items-center justify-center",
+                        run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" : 
+                        "bg-purple-50 border-purple-500 text-purple-700 hover:bg-purple-600 hover:text-white"
+                      )}
+                    >
+                      {run}
+                    </motion.button>
+                  ))}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowWicketModal(true)}
+                    className="h-20 rounded-2xl bg-red-50 border-2 border-red-500 text-red-600 font-black text-2xl hover:bg-red-600 hover:text-white transition-all shadow-md flex items-center justify-center"
                   >
-                    {run}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setShowWicketModal(true)}
-                  className="h-16 rounded-2xl bg-red-50 border border-red-100 text-red-600 font-black text-xl hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm active:scale-95"
-                >
-                  W
-                </button>
-                <button
-                  onClick={undoLastBall}
-                  className="h-16 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 font-black text-xl hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all shadow-sm active:scale-95 flex items-center justify-center"
-                >
-                  <RotateCcw className="w-6 h-6" />
-                </button>
+                    W
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={undoLastBall}
+                    className="h-20 rounded-2xl bg-amber-50 border-2 border-amber-500 text-amber-600 font-black text-2xl hover:bg-amber-600 hover:text-white transition-all shadow-md flex items-center justify-center"
+                  >
+                    <RotateCcw className="w-8 h-8" />
+                  </motion.button>
+                </div>
               </div>
 
               {/* Extras Section */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Extras</h3>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { label: 'WD', type: 'Wd' },
-                    { label: 'NB', type: 'Nb' },
-                    { label: 'BYE', type: 'By' },
-                    { label: 'LB', type: 'Lb' }
-                  ].map((extra) => (
-                    <div key={extra.type} className="space-y-2">
-                      <button
-                        onClick={() => handleBall(extraRuns, true, extra.type as any)}
-                        className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-black text-xs hover:bg-blue-900 hover:text-white transition-all uppercase tracking-widest"
-                      >
-                        {extra.label}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Extra Runs</span>
-                  <div className="flex gap-2 flex-1">
+              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Extras & Penalties</h3>
+                  <div className="flex gap-1">
                     {[0, 1, 2, 3, 4].map((num) => (
-                      <button
+                      <motion.button
                         key={num}
+                        whileTap={{ scale: 0.9 }}
                         onClick={() => setExtraRuns(num)}
                         className={cn(
-                          "flex-1 py-2 rounded-lg font-black transition-all",
-                          extraRuns === num ? "bg-blue-900 text-white" : "bg-white text-slate-600 border border-slate-200"
+                          "w-8 h-8 rounded-lg font-black text-xs transition-all",
+                          extraRuns === num ? "bg-blue-900 text-white" : "bg-white text-slate-400 border border-slate-200"
                         )}
                       >
                         {num}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { label: 'Wide', type: 'Wd', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+                    { label: 'No Ball', type: 'Nb', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+                    { label: 'Bye', type: 'By', color: 'bg-slate-200 text-slate-700 border-slate-300' },
+                    { label: 'Leg Bye', type: 'Lb', color: 'bg-slate-200 text-slate-700 border-slate-300' }
+                  ].map((extra) => (
+                    <motion.button
+                      key={extra.type}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleBall(extraRuns, true, extra.type as any)}
+                      className={cn(
+                        "py-4 rounded-xl font-black text-[10px] transition-all uppercase tracking-widest border",
+                        extra.color,
+                        "hover:shadow-md"
+                      )}
+                    >
+                      {extra.label}
+                    </motion.button>
+                  ))}
                 </div>
               </div>
             </div>

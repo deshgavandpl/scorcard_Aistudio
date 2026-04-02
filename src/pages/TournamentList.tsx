@@ -120,7 +120,7 @@ export default function TournamentList() {
                         e.stopPropagation();
                         deleteTournament(t.id);
                       }}
-                      className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                      className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                       title="Delete Tournament"
                     >
                       <Trash2 className="w-4 h-4" />
