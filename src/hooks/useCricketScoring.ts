@@ -123,8 +123,8 @@ export function useCricketScoring(matchId: string | undefined) {
       }
     }
 
-    // Handle strike change on odd runs
-    if (event.runs % 2 !== 0 && !event.isExtra) {
+    // Handle strike change on odd runs (including runs on extras)
+    if (event.runs % 2 !== 0) {
        (Object.values(newInnings.battingStats) as BatterStats[]).forEach(b => {
           if (!b.isOut) b.isStriker = !b.isStriker;
         });

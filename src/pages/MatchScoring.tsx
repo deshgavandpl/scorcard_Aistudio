@@ -9,7 +9,8 @@ import {
   Trophy,
   History,
   Zap,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
@@ -61,19 +62,26 @@ export default function MatchScoring() {
   const [nonStrikerName, setNonStrikerName] = useState('');
   const [bowlerName, setBowlerName] = useState('');
   const [isSelectingPlayers, setIsSelectingPlayers] = useState(true);
+  const [showWicketModal, setShowWicketModal] = useState(false);
+  const [wicketType, setWicketType] = useState('Bowled');
+  const [extraRuns, setExtraRuns] = useState(0);
 
   useEffect(() => {
     if (match && !isSettingUp) {
-      // If match is already live, we might not need player selection immediately
-      if (match.status === 'Live') {
-        const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
-        const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
-        const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
-        const bowler = (Object.values(currentInn?.bowlingStats || {}) as BowlerStats[]).find(b => b.balls < 6); // Simple logic
-        
-        if (striker && nonStriker && bowler) {
-          setIsSelectingPlayers(false);
-        }
+      const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+      if (!currentInn) return;
+
+      const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
+      const nonStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
+      
+      // Check if we need a new bowler (over finished)
+      const isOverFinished = currentInn.balls === 0 && currentInn.overs > 0 && currentInn.ballHistory.length > 0;
+      
+      if (!striker || !nonStriker || isOverFinished) {
+        setIsSelectingPlayers(true);
+        if (isOverFinished) setBowlerName('');
+      } else {
+        setIsSelectingPlayers(false);
       }
     }
   }, [match, isSettingUp]);
@@ -184,12 +192,12 @@ export default function MatchScoring() {
     }
   };
 
-  const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false) => {
+  const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string) => {
     if (!canManage) return;
     // Get current striker and bowler
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
-    const bowler = (Object.values(currentInn?.bowlingStats || {}) as BowlerStats[]).find(b => b.playerName === bowlerName); // Simplified
+    const bowler = (Object.values(currentInn?.bowlingStats || {}) as BowlerStats[]).find(b => b.playerName === bowlerName); 
 
     if (!striker || !bowler) {
       setIsSelectingPlayers(true);
@@ -201,20 +209,10 @@ export default function MatchScoring() {
       isExtra,
       extraType,
       isWicket,
+      wicketType: wType,
       strikerId: striker.playerId,
       bowlerId: bowler.playerId
     });
-
-    // Check if we need new players
-    const updatedInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
-    if (isWicket) {
-      setStrikerName('');
-      setIsSelectingPlayers(true);
-    } else if (updatedInn && updatedInn.balls === 0 && updatedInn.overs > 0) {
-      // Over finished
-      setBowlerName('');
-      setIsSelectingPlayers(true);
-    }
   };
 
   if (loading && id !== 'new') return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Match...</div>;
@@ -439,6 +437,34 @@ export default function MatchScoring() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Wicket Modal */}
+      {showWicketModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Wicket!</h2>
+              <button onClick={() => setShowWicketModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {['Bowled', 'Caught', 'LBW', 'Run Out', 'Stumped', 'Hit Wicket'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    handleBall(0, false, undefined, true, type);
+                    setShowWicketModal(false);
+                  }}
+                  className="py-4 rounded-xl bg-red-50 border border-red-100 text-red-700 font-black uppercase tracking-widest text-xs hover:bg-red-100 transition-all"
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin Access Warning */}
       {!canManage && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
@@ -544,8 +570,8 @@ export default function MatchScoring() {
           {/* Scoring Buttons */}
           {match.status === 'Live' && (
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-              <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
-                {[0, 1, 2, 3, 4, 6].map((run) => (
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((run) => (
                   <button
                     key={run}
                     onClick={() => handleBall(run)}
@@ -560,38 +586,69 @@ export default function MatchScoring() {
                   </button>
                 ))}
                 <button
-                  onClick={() => handleBall(0, false, undefined, true)}
+                  onClick={() => setShowWicketModal(true)}
                   className="aspect-square rounded-2xl bg-red-600 text-white font-black text-xl hover:bg-red-700 transition-all shadow-sm active:scale-95"
                 >
                   W
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button 
-                  onClick={() => handleBall(0, true, 'Wd')}
-                  className="py-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-black uppercase tracking-widest text-xs hover:bg-amber-100 transition-all"
-                >
-                  Wide
-                </button>
-                <button 
-                  onClick={() => handleBall(0, true, 'Nb')}
-                  className="py-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-black uppercase tracking-widest text-xs hover:bg-amber-100 transition-all"
-                >
-                  No Ball
-                </button>
-                <button 
-                  onClick={() => handleBall(0, true, 'By')}
-                  className="py-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all"
-                >
-                  Bye
-                </button>
-                <button 
-                  onClick={() => handleBall(0, true, 'Lb')}
-                  className="py-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all"
-                >
-                  Leg Bye
-                </button>
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extra Runs (Runs + Extra)</label>
+                  <div className="flex gap-1">
+                    {[0, 1, 2, 3, 4].map(r => (
+                      <button 
+                        key={r}
+                        onClick={() => setExtraRuns(r)}
+                        className={cn(
+                          "w-8 h-8 rounded-lg text-xs font-black transition-all",
+                          extraRuns === r ? "bg-amber-500 text-white shadow-md" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        )}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <button 
+                    onClick={() => {
+                      handleBall(extraRuns, true, 'Wd');
+                      setExtraRuns(0);
+                    }}
+                    className="py-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-black uppercase tracking-widest text-xs hover:bg-amber-100 transition-all"
+                  >
+                    Wide {extraRuns > 0 && `+${extraRuns}`}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleBall(extraRuns, true, 'Nb');
+                      setExtraRuns(0);
+                    }}
+                    className="py-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-black uppercase tracking-widest text-xs hover:bg-amber-100 transition-all"
+                  >
+                    No Ball {extraRuns > 0 && `+${extraRuns}`}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleBall(extraRuns, true, 'By');
+                      setExtraRuns(0);
+                    }}
+                    className="py-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all"
+                  >
+                    Bye {extraRuns > 0 && `+${extraRuns}`}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleBall(extraRuns, true, 'Lb');
+                      setExtraRuns(0);
+                    }}
+                    className="py-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all"
+                  >
+                    Leg Bye {extraRuns > 0 && `+${extraRuns}`}
+                  </button>
+                </div>
               </div>
             </div>
           )}

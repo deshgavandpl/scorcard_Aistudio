@@ -63,12 +63,13 @@ export default function TournamentSetup() {
     setTeamNames(updated);
   };
 
-  const generateFixtures = (teams: Team[]): Match[] => {
+  const generateFixtures = (teams: Team[], tournamentId: string): Match[] => {
     const matches: Match[] = [];
     for (let i = 0; i < teams.length; i++) {
       for (let j = i + 1; j < teams.length; j++) {
         matches.push({
           id: Math.random().toString(36).substr(2, 9),
+          tournamentId,
           teamAId: teams[i].id,
           teamBId: teams[j].id,
           teamAName: teams[i].name,
@@ -96,16 +97,25 @@ export default function TournamentSetup() {
     }));
 
     const tournamentId = Math.random().toString(36).substr(2, 9);
+    const fixtures = generateFixtures(teams, tournamentId);
+    
     const tournament: Tournament = {
       id: tournamentId,
       name,
       teams,
-      matches: generateFixtures(teams),
+      matches: fixtures,
       status: 'Live'
     };
 
     try {
+      // Save tournament
       await setDoc(doc(db, 'tournaments', tournamentId), tournament);
+      
+      // Save each match to the matches collection for real-time scoring
+      for (const match of fixtures) {
+        await setDoc(doc(db, 'matches', match.id), match);
+      }
+
       navigate('/tournaments');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `tournaments/${tournamentId}`);

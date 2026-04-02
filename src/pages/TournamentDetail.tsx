@@ -5,7 +5,7 @@ import { Tournament, Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
@@ -13,6 +13,7 @@ export default function TournamentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'fixtures' | 'points'>('fixtures');
 
   useEffect(() => {
@@ -27,10 +28,22 @@ export default function TournamentDetail() {
     return () => unsub();
   }, [id]);
 
+  useEffect(() => {
+    if (!id) return;
+    const q = query(collection(db, 'matches'), where('tournamentId', '==', id));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
+      setMatches(matchesData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'matches');
+    });
+    return () => unsub();
+  }, [id]);
+
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
 
   const pointsTable = tournament.teams.map(team => {
-    const teamMatches = tournament.matches.filter(m => m.status === 'Finished' && (m.teamAId === team.id || m.teamBId === team.id));
+    const teamMatches = matches.filter(m => m.status === 'Finished' && (m.teamAId === team.id || m.teamBId === team.id));
     const wins = teamMatches.filter(m => m.winnerId === team.id).length;
     const losses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
     const draws = teamMatches.filter(m => m.winnerId === 'Draw').length;
@@ -96,7 +109,7 @@ export default function TournamentDetail() {
 
       {activeTab === 'fixtures' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tournament.matches.map((match, idx) => (
+          {matches.map((match, idx) => (
             <div key={match.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match {idx + 1}</span>

@@ -67,6 +67,7 @@ export interface BallEvent {
 
 export interface Match {
   id: string;
+  tournamentId?: string;
   teamAId: string;
   teamBId: string;
   teamAName: string;
