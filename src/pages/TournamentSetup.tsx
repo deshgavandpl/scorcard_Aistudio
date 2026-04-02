@@ -15,13 +15,27 @@ export default function TournamentSetup() {
   const [name, setName] = useState('');
   const [teamNames, setTeamNames] = useState(['', '', '', '']);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
-    return () => unsubscribe();
+    
+    const handleStorageChange = () => {
+      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
+
+  const canManage = user || isAdminMode;
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -114,12 +128,12 @@ export default function TournamentSetup() {
         </div>
 
         <div className="p-8 space-y-8">
-          {!user && (
+          {!canManage && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-2">
-                <p className="text-sm font-bold text-amber-900">Login Required to Create Tournaments</p>
-                <p className="text-xs text-amber-700">You must be logged in to save tournament data to the cloud. Public users can only view scores.</p>
+                <p className="text-sm font-bold text-amber-900">Admin Access Required</p>
+                <p className="text-xs text-amber-700">You must be logged in or use Admin PIN to save tournament data to the cloud.</p>
                 <button 
                   onClick={handleLogin}
                   className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-700 transition-all"
@@ -183,11 +197,11 @@ export default function TournamentSetup() {
 
           <div className="pt-4">
             <button 
-              disabled={!user || !name || teamNames.filter(n => n.trim() !== '').length < 2}
+              disabled={!canManage || !name || teamNames.filter(n => n.trim() !== '').length < 2}
               onClick={createTournament}
               className="w-full py-4 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <Zap className="w-5 h-5 fill-amber-400 text-amber-400" /> {user ? 'Generate Fixtures & Start' : 'Login to Create'}
+              <Zap className="w-5 h-5 fill-amber-400 text-amber-400" /> {canManage ? 'Generate Fixtures & Start' : 'Admin Access Required'}
             </button>
           </div>
         </div>

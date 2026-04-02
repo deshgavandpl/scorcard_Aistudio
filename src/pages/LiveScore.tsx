@@ -13,14 +13,30 @@ import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as Fireba
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
-    return () => unsubscribe();
+    
+    // Listen for storage changes to sync admin mode
+    const handleStorageChange = () => {
+      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    // Also poll briefly because 'storage' event only fires on other tabs
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
+
+  const canManage = user || isAdminMode;
 
   useEffect(() => {
     const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
@@ -43,7 +59,7 @@ export default function LiveScore() {
   };
 
   const deleteMatch = async (id: string) => {
-    if (!user) return;
+    if (!canManage) return;
     try {
       await deleteDoc(doc(db, 'matches', id));
     } catch (error) {
@@ -52,19 +68,19 @@ export default function LiveScore() {
   };
 
   const createNewMatch = () => {
-    if (!user) return;
+    if (!canManage) return;
     navigate('/match/new');
   };
 
   return (
     <div className="space-y-8">
-      {!user && (
+      {!canManage && (
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Login Required for Scoring</p>
-              <p className="text-sm text-blue-700 font-medium">You can view all live scores, but you must be logged in to create or manage matches.</p>
+              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Admin Access Required</p>
+              <p className="text-sm text-blue-700 font-medium">You can view all live scores, but you must be logged in or use Admin PIN to manage matches.</p>
             </div>
           </div>
           <button 
@@ -84,17 +100,17 @@ export default function LiveScore() {
         <div className="flex gap-3">
           <button 
             onClick={createNewMatch}
-            disabled={!user}
+            disabled={!canManage}
             className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
             <Plus className="w-5 h-5" /> Single Match
           </button>
           <Link 
-            to={user ? "/tournaments/new" : "#"}
-            onClick={(e) => !user && e.preventDefault()}
+            to={canManage ? "/tournaments/new" : "#"}
+            onClick={(e) => !canManage && e.preventDefault()}
             className={cn(
               "px-6 py-3 rounded-xl bg-amber-500 text-white font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg flex items-center gap-2",
-              !user && "opacity-50 cursor-not-allowed"
+              !canManage && "opacity-50 cursor-not-allowed"
             )}
           >
             <Trophy className="w-5 h-5" /> Tournament

@@ -13,13 +13,27 @@ export default function Teams() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [newTeamName, setNewTeamName] = useState('');
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
-    return () => unsubscribe();
+    
+    const handleStorageChange = () => {
+      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
+
+  const canManage = user || isAdminMode;
 
   useEffect(() => {
     const q = query(collection(db, 'teams'));
@@ -69,13 +83,13 @@ export default function Teams() {
 
   return (
     <div className="space-y-8">
-      {!user && (
+      {!canManage && (
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Login Required for Management</p>
-              <p className="text-sm text-blue-700 font-medium">You can view all teams, but you must be logged in to add or delete teams.</p>
+              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Admin Access Required</p>
+              <p className="text-sm text-blue-700 font-medium">You can view all teams, but you must be logged in or use Admin PIN to add or delete teams.</p>
             </div>
           </div>
           <button 
@@ -97,13 +111,13 @@ export default function Teams() {
             type="text" 
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
-            disabled={!user}
-            placeholder={user ? "New Team Name" : "Login to add teams"}
+            disabled={!canManage}
+            placeholder={canManage ? "New Team Name" : "Admin access required"}
             className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-bold disabled:bg-slate-50 disabled:text-slate-400"
           />
           <button 
             onClick={addTeam}
-            disabled={!user || !newTeamName.trim()}
+            disabled={!canManage || !newTeamName.trim()}
             className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
             <Plus className="w-5 h-5" /> Add

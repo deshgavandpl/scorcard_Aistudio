@@ -15,14 +15,37 @@ import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats } fro
 import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { onAuthStateChanged, User as FirebaseUser, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 export default function MatchScoring() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isSettingUp, setIsSettingUp] = useState(id === 'new');
   const [setupStep, setSetupStep] = useState(1);
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    
+    const handleStorageChange = () => {
+      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const canManage = user || isAdminMode;
   
   // Setup State
   const [teamA, setTeamA] = useState('');
@@ -56,6 +79,7 @@ export default function MatchScoring() {
   }, [match, isSettingUp]);
 
   const startMatch = async () => {
+    if (!canManage) return;
     const teamAId = 'team_a';
     const teamBId = 'team_b';
     const battingTeamId = (tossWinner === teamA && tossDecision === 'Bat') || (tossWinner === teamB && tossDecision === 'Bowl') ? teamAId : teamBId;
@@ -100,7 +124,7 @@ export default function MatchScoring() {
   };
 
   const confirmPlayers = async () => {
-    if (!strikerName || !nonStrikerName || !bowlerName || !match) return;
+    if (!canManage || !strikerName || !nonStrikerName || !bowlerName || !match) return;
 
     const updatedMatch = { ...match };
     const currentInn = updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2;
@@ -161,6 +185,7 @@ export default function MatchScoring() {
   };
 
   const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false) => {
+    if (!canManage) return;
     // Get current striker and bowler
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
@@ -414,6 +439,17 @@ export default function MatchScoring() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Admin Access Warning */}
+      {!canManage && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-amber-900 uppercase tracking-tight">Admin Access Required</p>
+            <p className="text-xs text-amber-700 font-medium">You are in View-Only mode. To update scores, please login or use Admin PIN.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
