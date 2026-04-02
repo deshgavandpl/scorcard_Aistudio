@@ -1,0 +1,92 @@
+export type PlayerRole = 'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper';
+
+export interface Player {
+  id: string;
+  name: string;
+  role: PlayerRole;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  players: Player[];
+}
+
+export interface MatchInnings {
+  battingTeamId: string;
+  bowlingTeamId: string;
+  runs: number;
+  wickets: number;
+  overs: number;
+  balls: number;
+  extras: {
+    wide: number;
+    noBall: number;
+    bye: number;
+    legBye: number;
+  };
+  battingStats: Record<string, BatterStats>;
+  bowlingStats: Record<string, BowlerStats>;
+  fallOfWickets: { runs: number; wickets: number; over: string }[];
+  ballHistory: BallEvent[];
+}
+
+export interface BatterStats {
+  playerId: string;
+  playerName: string;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  isOut: boolean;
+  howOut?: string;
+  isStriker: boolean;
+}
+
+export interface BowlerStats {
+  playerId: string;
+  playerName: string;
+  overs: number;
+  balls: number;
+  runs: number;
+  wickets: number;
+  maiden: number;
+}
+
+export interface BallEvent {
+  over: number;
+  ball: number;
+  runs: number;
+  isExtra: boolean;
+  extraType?: 'Wd' | 'Nb' | 'By' | 'Lb';
+  isWicket: boolean;
+  wicketType?: string;
+  strikerId: string;
+  bowlerId: string;
+}
+
+export interface Match {
+  id: string;
+  teamAId: string;
+  teamBId: string;
+  teamAName: string;
+  teamBName: string;
+  tossWinnerId: string;
+  tossDecision: 'Bat' | 'Bowl';
+  oversLimit: number;
+  status: 'Upcoming' | 'Live' | 'Finished';
+  currentInnings: 1 | 2;
+  innings1?: MatchInnings;
+  innings2?: MatchInnings;
+  winnerId?: string;
+  manOfTheMatch?: string;
+  createdAt: number;
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  teams: Team[];
+  matches: Match[];
+  status: 'Draft' | 'Live' | 'Finished';
+}
