@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X } from 'lucide-react';
+import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { auth } from '../firebase';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,7 +11,32 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
@@ -54,13 +81,41 @@ export default function Layout({ children }: LayoutProps) {
                   {item.name}
                 </Link>
               ))}
-              <button className="bg-red-600 text-white px-4 py-2 rounded-md text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all transform -skew-x-6">
-                <span className="inline-block transform skew-x-6">Admin</span>
-              </button>
+              
+              {user ? (
+                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logged in as</span>
+                    <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">{user.displayName || user.email}</span>
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-all"
+                    title="Logout"
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleLogin}
+                  className="bg-blue-900 text-white px-4 py-2 rounded-md text-xs font-black uppercase tracking-widest hover:bg-blue-800 transition-all flex items-center gap-2"
+                >
+                  <LogIn className="w-4 h-4" /> Login
+                </button>
+              )}
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden flex items-center">
+            <div className="md:hidden flex items-center gap-2">
+              {!user && (
+                <button 
+                  onClick={handleLogin}
+                  className="p-2 text-blue-900"
+                >
+                  <LogIn className="w-5 h-5" />
+                </button>
+              )}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="text-slate-600 p-2"
@@ -90,6 +145,25 @@ export default function Layout({ children }: LayoutProps) {
                 {item.name}
               </Link>
             ))}
+            {user && (
+              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                    <User className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-900 uppercase">{user.displayName}</span>
+                    <span className="text-[10px] text-slate-400 font-bold">{user.email}</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="p-2 text-red-500"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </nav>

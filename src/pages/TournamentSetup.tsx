@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Trash2, Trophy, Zap } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Trophy, Zap, AlertCircle, LogIn } from 'lucide-react';
 import { Team, Tournament, Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 
 export default function TournamentSetup() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [teamNames, setTeamNames] = useState(['', '', '', '']);
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
 
   const addTeamField = () => {
     setTeamNames([...teamNames, '']);
@@ -96,6 +114,22 @@ export default function TournamentSetup() {
         </div>
 
         <div className="p-8 space-y-8">
+          {!user && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-amber-900">Login Required to Create Tournaments</p>
+                <p className="text-xs text-amber-700">You must be logged in to save tournament data to the cloud. Public users can only view scores.</p>
+                <button 
+                  onClick={handleLogin}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-700 transition-all"
+                >
+                  <LogIn className="w-4 h-4" /> Login with Google
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Tournament Name</label>
             <input 
@@ -149,11 +183,11 @@ export default function TournamentSetup() {
 
           <div className="pt-4">
             <button 
-              disabled={!name || teamNames.filter(n => n.trim() !== '').length < 2}
+              disabled={!user || !name || teamNames.filter(n => n.trim() !== '').length < 2}
               onClick={createTournament}
               className="w-full py-4 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <Zap className="w-5 h-5 fill-amber-400 text-amber-400" /> Generate Fixtures & Start
+              <Zap className="w-5 h-5 fill-amber-400 text-amber-400" /> {user ? 'Generate Fixtures & Start' : 'Login to Create'}
             </button>
           </div>
         </div>

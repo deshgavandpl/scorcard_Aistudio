@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Play, Trophy, History, Trash2 } from 'lucide-react';
+import { Plus, Play, Trophy, History, Trash2, AlertCircle, LogIn } from 'lucide-react';
 import { Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
@@ -24,7 +33,17 @@ export default function LiveScore() {
     return () => unsub();
   }, []);
 
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
   const deleteMatch = async (id: string) => {
+    if (!user) return;
     try {
       await deleteDoc(doc(db, 'matches', id));
     } catch (error) {
@@ -33,11 +52,30 @@ export default function LiveScore() {
   };
 
   const createNewMatch = () => {
+    if (!user) return;
     navigate('/match/new');
   };
 
   return (
     <div className="space-y-8">
+      {!user && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Login Required for Scoring</p>
+              <p className="text-sm text-blue-700 font-medium">You can view all live scores, but you must be logged in to create or manage matches.</p>
+            </div>
+          </div>
+          <button 
+            onClick={handleLogin}
+            className="px-8 py-3 bg-blue-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"
+          >
+            <LogIn className="w-4 h-4" /> Login with Google
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Create Live Score</h1>
@@ -46,13 +84,18 @@ export default function LiveScore() {
         <div className="flex gap-3">
           <button 
             onClick={createNewMatch}
-            className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"
+            disabled={!user}
+            className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
             <Plus className="w-5 h-5" /> Single Match
           </button>
           <Link 
-            to="/tournaments/new"
-            className="px-6 py-3 rounded-xl bg-amber-500 text-white font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg flex items-center gap-2"
+            to={user ? "/tournaments/new" : "#"}
+            onClick={(e) => !user && e.preventDefault()}
+            className={cn(
+              "px-6 py-3 rounded-xl bg-amber-500 text-white font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg flex items-center gap-2",
+              !user && "opacity-50 cursor-not-allowed"
+            )}
           >
             <Trophy className="w-5 h-5" /> Tournament
           </Link>

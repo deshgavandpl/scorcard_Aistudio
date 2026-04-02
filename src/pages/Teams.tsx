@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, Shield, User } from 'lucide-react';
+import { Users, Plus, Trash2, Shield, User, AlertCircle, LogIn } from 'lucide-react';
 import { Team, Player } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
 import { collection, onSnapshot, query, setDoc, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 
 export default function Teams() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [newTeamName, setNewTeamName] = useState('');
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'teams'));
@@ -23,8 +32,17 @@ export default function Teams() {
     return () => unsub();
   }, []);
 
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
   const addTeam = async () => {
-    if (!newTeamName.trim()) return;
+    if (!user || !newTeamName.trim()) return;
     const teamId = Math.random().toString(36).substr(2, 9);
     const newTeam: Team = {
       id: teamId,
@@ -41,6 +59,7 @@ export default function Teams() {
   };
 
   const deleteTeam = async (id: string) => {
+    if (!user) return;
     try {
       await deleteDoc(doc(db, 'teams', id));
     } catch (error) {
@@ -50,6 +69,24 @@ export default function Teams() {
 
   return (
     <div className="space-y-8">
+      {!user && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Login Required for Management</p>
+              <p className="text-sm text-blue-700 font-medium">You can view all teams, but you must be logged in to add or delete teams.</p>
+            </div>
+          </div>
+          <button 
+            onClick={handleLogin}
+            className="px-8 py-3 bg-blue-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"
+          >
+            <LogIn className="w-4 h-4" /> Login with Google
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Teams</h1>
@@ -60,12 +97,14 @@ export default function Teams() {
             type="text" 
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
-            placeholder="New Team Name"
-            className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-bold"
+            disabled={!user}
+            placeholder={user ? "New Team Name" : "Login to add teams"}
+            className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-bold disabled:bg-slate-50 disabled:text-slate-400"
           />
           <button 
             onClick={addTeam}
-            className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"
+            disabled={!user || !newTeamName.trim()}
+            className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
             <Plus className="w-5 h-5" /> Add
           </button>
