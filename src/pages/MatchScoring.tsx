@@ -68,6 +68,15 @@ export default function MatchScoring() {
   const [extraRuns, setExtraRuns] = useState(0);
 
   useEffect(() => {
+    if (match && match.status === 'Upcoming' && isSettingUp === false) {
+      setIsSettingUp(true);
+      setTeamA(match.teamAName);
+      setTeamB(match.teamBName);
+      setOvers(match.oversLimit);
+    }
+  }, [match, isSettingUp]);
+
+  useEffect(() => {
     if (match && !isSettingUp) {
       const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
       if (!currentInn) return;
@@ -89,24 +98,28 @@ export default function MatchScoring() {
 
   const startMatch = async () => {
     if (!canManage) return;
-    const teamAId = 'team_a';
-    const teamBId = 'team_b';
-    const battingTeamId = (tossWinner === teamA && tossDecision === 'Bat') || (tossWinner === teamB && tossDecision === 'Bowl') ? teamAId : teamBId;
-    const bowlingTeamId = battingTeamId === teamAId ? teamBId : teamAId;
+    
+    // Use existing IDs if we are in an existing match
+    const tAId = match?.teamAId || 'team_a';
+    const tBId = match?.teamBId || 'team_b';
+    
+    const battingTeamId = (tossWinner === teamA && tossDecision === 'Bat') || (tossWinner === teamB && tossDecision === 'Bowl') ? tAId : tBId;
+    const bowlingTeamId = battingTeamId === tAId ? tBId : tAId;
 
-    const matchId = Math.random().toString(36).substr(2, 9);
-    const newMatch: Match = {
-      id: matchId,
-      teamAId,
-      teamBId,
+    const mId = id === 'new' ? Math.random().toString(36).substr(2, 9) : id;
+    const updatedMatch: Match = {
+      ...(match || {}),
+      id: mId as string,
+      teamAId: tAId,
+      teamBId: tBId,
       teamAName: teamA,
       teamBName: teamB,
-      tossWinnerId: tossWinner === teamA ? teamAId : teamBId,
+      tossWinnerId: tossWinner === teamA ? tAId : tBId,
       tossDecision,
       oversLimit: overs,
       status: 'Live',
       currentInnings: 1,
-      createdAt: Date.now(),
+      createdAt: match?.createdAt || Date.now(),
       innings1: {
         battingTeamId,
         bowlingTeamId,
@@ -121,14 +134,16 @@ export default function MatchScoring() {
         ballHistory: []
       }
     };
-    
+
     try {
-      await setDoc(doc(db, 'matches', matchId), newMatch);
-      navigate(`/match/${matchId}`, { replace: true });
+      await setDoc(doc(db, 'matches', updatedMatch.id), updatedMatch);
       setIsSettingUp(false);
       setIsSelectingPlayers(true);
+      if (id === 'new') {
+        navigate(`/match/${updatedMatch.id}`, { replace: true });
+      }
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `matches/${matchId}`);
+      handleFirestoreError(error, OperationType.WRITE, `matches/${updatedMatch.id}`);
     }
   };
 
@@ -716,14 +731,16 @@ export default function MatchScoring() {
               )}
             </div>
             
-            <div className="mt-auto pt-6 border-t border-slate-100">
-               <button 
-                onClick={undoLastBall}
-                className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-               >
-                 <RotateCcw className="w-4 h-4" /> Undo Last Ball
-               </button>
-            </div>
+            {canManage && (
+              <div className="mt-auto pt-6 border-t border-slate-100">
+                 <button 
+                  onClick={undoLastBall}
+                  className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                 >
+                   <RotateCcw className="w-4 h-4" /> Undo Last Ball
+                 </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
