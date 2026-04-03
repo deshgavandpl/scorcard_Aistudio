@@ -327,15 +327,18 @@ export default function TournamentDetail() {
 
               {match.status !== 'Finished' ? (
                 <Link 
-                  to={`/match/${match.id}`}
+                  to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
                   className="w-full py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-blue-900 transition-all"
                 >
-                  <Play className="w-3 h-3 fill-white" /> {match.status === 'Live' ? 'Resume Scoring' : 'Start Scoring'}
+                  <Play className="w-3 h-3 fill-white" /> {match.status === 'Live' ? (canManage ? 'Resume Scoring' : 'View Live Score') : (canManage ? 'Start Scoring' : 'View Match')}
                 </Link>
               ) : (
-                <div className="w-full py-3 rounded-xl bg-emerald-50 text-emerald-700 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
+                <Link 
+                  to={`/match/${match.id}`}
+                  className="w-full py-3 rounded-xl bg-emerald-50 text-emerald-700 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                >
                   <CheckCircle className="w-3 h-3" /> Match Completed
-                </div>
+                </Link>
               )}
             </div>
           ))}

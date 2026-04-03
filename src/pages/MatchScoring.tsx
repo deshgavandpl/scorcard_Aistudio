@@ -246,7 +246,7 @@ export default function MatchScoring() {
   };
 
   const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string, fName?: string) => {
-    if (!canManage || !match) return;
+    if (!match) return;
     // Get current striker and bowler
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     if (!currentInn) return;
@@ -280,6 +280,12 @@ export default function MatchScoring() {
       handleFirestoreError(error, OperationType.DELETE, `matches/${match.id}`);
     }
   };
+
+  useEffect(() => {
+    if (!loading && match && !canManage) {
+      navigate(`/match/${id}`);
+    }
+  }, [match, canManage, loading, navigate, id]);
 
   if (loading && id !== 'new') return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Match...</div>;
 
@@ -566,17 +572,6 @@ export default function MatchScoring() {
         </div>
       )}
 
-      {/* Admin Access Warning */}
-      {!canManage && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-amber-900 uppercase tracking-tight">Admin Access Required</p>
-            <p className="text-xs text-amber-700 font-medium">You are in View-Only mode. To update scores, please login or use Admin PIN.</p>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
@@ -589,25 +584,26 @@ export default function MatchScoring() {
           </div>
         </div>
         <div className="flex gap-2">
-          {canManage && (
-            <button 
-              onClick={deleteMatch}
-              className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-400" 
-              title="Delete Match"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-          )}
-          {canManage && (
-            <button onClick={() => setIsSelectingPlayers(true)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" title="Change Players">
-              <User className="w-5 h-5" />
-            </button>
-          )}
-          {canManage && (
-            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400">
-              <Settings className="w-5 h-5" />
-            </button>
-          )}
+          <button 
+            onClick={deleteMatch}
+            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-400" 
+            title="Delete Match"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+          <button onClick={() => setIsSelectingPlayers(true)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" title="Change Players">
+            <User className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => window.open(`#/match/${match.id}`, '_blank')} 
+            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-400" 
+            title="View Public Live Score"
+          >
+            <Zap className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400">
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -684,8 +680,8 @@ export default function MatchScoring() {
             </div>
           </div>
 
-          {/* Scoring Controls - Only for Admin */}
-          {canManage && match.status === 'Live' && (
+          {/* Scoring Controls */}
+          {match.status === 'Live' && (
             <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-8">
               {/* Active Players Summary */}
               <div className="grid grid-cols-2 gap-4">

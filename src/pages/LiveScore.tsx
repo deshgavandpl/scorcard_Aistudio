@@ -69,7 +69,7 @@ export default function LiveScore() {
 
   const createNewMatch = () => {
     if (!canManage) return;
-    navigate('/match/new');
+    navigate('/admin/match/new');
   };
 
   return (
@@ -94,8 +94,12 @@ export default function LiveScore() {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Create Live Score</h1>
-          <p className="text-slate-500 font-medium">Manage your matches and tournaments in real-time.</p>
+          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">
+            {canManage ? 'Match Management' : 'Live Score Center'}
+          </h1>
+          <p className="text-slate-500 font-medium">
+            {canManage ? 'Manage your matches and tournaments in real-time.' : 'Follow live matches and tournament standings.'}
+          </p>
         </div>
         <div className="flex gap-3">
           <button 
@@ -103,7 +107,7 @@ export default function LiveScore() {
             disabled={!canManage}
             className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
-            <Plus className="w-5 h-5" /> Single Match
+            <Plus className="w-5 h-5" /> {canManage ? 'New Match' : 'Single Match'}
           </button>
           <Link 
             to={canManage ? "/tournaments/new" : "#"}
@@ -113,7 +117,7 @@ export default function LiveScore() {
               !canManage && "opacity-50 cursor-not-allowed"
             )}
           >
-            <Trophy className="w-5 h-5" /> Tournament
+            <Trophy className="w-5 h-5" /> {canManage ? 'New Tournament' : 'Tournament'}
           </Link>
         </div>
       </div>
@@ -178,10 +182,10 @@ export default function LiveScore() {
 
                   <div className="flex justify-center">
                     <Link 
-                      to={`/match/${match.id}`}
+                      to={canManage && match.status !== 'Finished' ? `/admin/match/${match.id}` : `/match/${match.id}`}
                       className="w-full text-center py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all"
                     >
-                      {match.status === 'Finished' ? 'View Scorecard' : 'Resume Scoring'}
+                      {match.status === 'Finished' ? 'View Scorecard' : (canManage ? 'Resume Scoring' : 'View Live Score')}
                     </Link>
                   </div>
                 </motion.div>

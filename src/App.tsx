@@ -7,6 +7,7 @@ import MatchScoring from './pages/MatchScoring';
 import TournamentList from './pages/TournamentList';
 import TournamentSetup from './pages/TournamentSetup';
 import TournamentDetail from './pages/TournamentDetail';
+import LiveMatchView from './pages/LiveMatchView';
 import Stats from './pages/Stats';
 import Teams from './pages/Teams';
 
@@ -17,7 +18,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/live" element={<LiveScore />} />
-          <Route path="/match/:id" element={<MatchScoring />} />
+          <Route path="/match/:id" element={<LiveMatchView />} />
+          <Route path="/admin/match/:id" element={<MatchScoring />} />
           <Route path="/tournaments" element={<TournamentList />} />
           <Route path="/tournaments/new" element={<TournamentSetup />} />
           <Route path="/tournament/:id" element={<TournamentDetail />} />
