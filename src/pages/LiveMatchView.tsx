@@ -6,7 +6,9 @@ import {
   Trophy, 
   History,
   Users,
-  Target
+  User,
+  Target,
+  CheckCircle2
 } from 'lucide-react';
 import { Match, BatterStats, BowlerStats } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
@@ -63,12 +65,68 @@ export default function LiveMatchView() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-            <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Live Broadcast</span>
-          </div>
+          {match.status === 'Live' && (
+            <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+              <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Live Broadcast</span>
+            </div>
+          )}
+          {match.status === 'Finished' && (
+            <div className="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Match Completed</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Match Result Card (Visible when finished) */}
+      {match.status === 'Finished' && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-emerald-600 rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Trophy className="w-64 h-64 text-white" />
+          </div>
+          
+          <div className="relative z-10 text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 border border-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-50 mb-4">
+              <Trophy className="w-4 h-4" /> Final Result
+            </div>
+            
+            <h1 className="text-6xl font-black tracking-tighter uppercase leading-none">
+              {match.winnerId === 'Draw' ? "Match Drawn" : (
+                <>
+                  <span className="text-emerald-200 block text-2xl mb-2">Champion</span>
+                  {match.winnerId === 'team_a' ? match.teamAName : match.teamBName}
+                </>
+              )}
+            </h1>
+
+            {match.resultMessage && (
+              <p className="text-2xl font-bold text-emerald-100 italic">
+                "{match.resultMessage}"
+              </p>
+            )}
+
+            {match.manOfTheMatch && (
+              <div className="pt-8 border-t border-emerald-500/30 inline-block">
+                <div className="flex items-center justify-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black text-emerald-200 uppercase tracking-widest">Man of the Match</p>
+                    <p className="text-2xl font-black text-white">{match.manOfTheMatch}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Main Score Display */}
       <div className="bg-slate-900 rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden">

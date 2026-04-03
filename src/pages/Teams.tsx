@@ -8,12 +8,15 @@ import { collection, onSnapshot, query, setDoc, doc, deleteDoc } from 'firebase/
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { toast } from 'sonner';
 
 export default function Teams() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [newTeamName, setNewTeamName] = useState('');
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const [teamToDelete, setTeamToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -74,9 +77,9 @@ export default function Teams() {
 
   const deleteTeam = async (id: string) => {
     if (!canManage) return;
-    if (!window.confirm('Are you sure you want to delete this team?')) return;
     try {
       await deleteDoc(doc(db, 'teams', id));
+      toast.success('Team deleted successfully.');
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `teams/${id}`);
     }
@@ -143,7 +146,7 @@ export default function Teams() {
               </div>
               {canManage && (
                 <button 
-                  onClick={() => deleteTeam(team.id)}
+                  onClick={() => setTeamToDelete(team.id)}
                   className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                   title="Delete Team"
                 >
@@ -185,6 +188,16 @@ export default function Teams() {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={!!teamToDelete}
+        onClose={() => setTeamToDelete(null)}
+        onConfirm={() => teamToDelete && deleteTeam(teamToDelete)}
+        title="Delete Team?"
+        message="This will permanently delete this team and all its player data. This action cannot be undone."
+        confirmText="Delete Now"
+        isDestructive={true}
+      />
     </div>
   );
 }

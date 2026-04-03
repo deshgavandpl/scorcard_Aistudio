@@ -9,11 +9,14 @@ import { collection, onSnapshot, query, deleteDoc, doc, getDocs, where } from 'f
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { toast } from 'sonner';
 
 export default function TournamentList() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -48,26 +51,31 @@ export default function TournamentList() {
 
   const deleteTournament = async (tournamentId: string) => {
     if (!canManage) return;
-    if (!window.confirm('Are you sure you want to delete this tournament and all its associated matches? This action cannot be undone.')) return;
+    
+    const toastId = toast.loading('Deleting tournament and matches...');
     
     try {
       // 1. Delete all matches associated with this tournament
       const q = query(collection(db, 'matches'), where('tournamentId', '==', tournamentId));
       const matchesSnap = await getDocs(q);
       
-      const deletePromises = matchesSnap.docs.map(matchDoc => 
-        deleteDoc(doc(db, 'matches', matchDoc.id))
-      );
-      await Promise.all(deletePromises);
+      if (!matchesSnap.empty) {
+        const deletePromises = matchesSnap.docs.map(matchDoc => 
+          deleteDoc(doc(db, 'matches', matchDoc.id))
+        );
+        await Promise.all(deletePromises);
+      }
 
       // 2. Delete the tournament itself
       await deleteDoc(doc(db, 'tournaments', tournamentId));
       
-      alert('Tournament and all associated matches deleted successfully.');
+      toast.success('Tournament and all associated matches deleted successfully.', { id: toastId });
     } catch (error) {
       console.error("Error deleting tournament:", error);
       handleFirestoreError(error, OperationType.DELETE, `tournaments/${tournamentId}`);
-      alert('Failed to delete tournament. Please check your permissions.');
+      toast.error('Failed to delete tournament.', { id: toastId });
+    } finally {
+      setTournamentToDelete(null);
     }
   };
 
@@ -132,7 +140,7 @@ export default function TournamentList() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        deleteTournament(t.id);
+                        setTournamentToDelete(t.id);
                       }}
                       className="p-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                       title="Delete Tournament"
@@ -169,6 +177,16 @@ export default function TournamentList() {
           ))}
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={!!tournamentToDelete}
+        onClose={() => setTournamentToDelete(null)}
+        onConfirm={() => tournamentToDelete && deleteTournament(tournamentToDelete)}
+        title="Delete Tournament?"
+        message="This will permanently delete the tournament and all its associated matches. This action cannot be undone."
+        confirmText="Delete Now"
+        isDestructive={true}
+      />
     </div>
   );
 }

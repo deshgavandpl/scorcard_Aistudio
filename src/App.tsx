@@ -1,5 +1,6 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import LiveScore from './pages/LiveScore';
@@ -14,6 +15,7 @@ import Teams from './pages/Teams';
 export default function App() {
   return (
     <Router>
+      <Toaster position="top-right" richColors />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />

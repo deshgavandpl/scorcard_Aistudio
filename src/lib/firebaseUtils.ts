@@ -1,4 +1,5 @@
 import { auth } from '../firebase';
+import { toast } from 'sonner';
 
 export enum OperationType {
   CREATE = 'create',
@@ -29,8 +30,10 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -47,6 +50,23 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   }
+
+  // Display user-friendly toast
+  let displayMessage = "An error occurred while accessing the database.";
+  
+  if (errorMessage.includes("permission-denied") || errorMessage.includes("insufficient permissions")) {
+    displayMessage = "Access Denied: You don't have permission to perform this action.";
+  } else if (errorMessage.includes("unavailable")) {
+    displayMessage = "The database is currently unavailable. Please check your internet connection.";
+  } else if (errorMessage.includes("quota-exceeded")) {
+    displayMessage = "Database quota exceeded. Please try again later.";
+  }
+
+  toast.error(displayMessage, {
+    description: `Operation: ${operationType} on ${path || 'unknown path'}`,
+    duration: 5000,
+  });
+
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }

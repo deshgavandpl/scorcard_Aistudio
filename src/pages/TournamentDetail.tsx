@@ -9,6 +9,8 @@ import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc } from 'fi
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { toast } from 'sonner';
 
 export default function TournamentDetail() {
   const { id } = useParams();
@@ -19,6 +21,7 @@ export default function TournamentDetail() {
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [showAddMatch, setShowAddMatch] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Add Match Form State
   const [teamAId, setTeamAId] = useState('');
@@ -72,7 +75,6 @@ export default function TournamentDetail() {
 
   const deleteTournament = async () => {
     if (!id || !canManage) return;
-    if (!window.confirm('Are you sure you want to delete this tournament and all its associated matches? This action cannot be undone.')) return;
     
     try {
       // 1. Delete all matches associated with this tournament
@@ -84,12 +86,11 @@ export default function TournamentDetail() {
       // 2. Delete the tournament itself
       await deleteDoc(doc(db, 'tournaments', id));
       
-      alert('Tournament and all associated matches deleted successfully.');
+      toast.success('Tournament and all associated matches deleted successfully.');
       navigate('/tournaments');
     } catch (error) {
       console.error("Error deleting tournament:", error);
       handleFirestoreError(error, OperationType.DELETE, `tournaments/${id}`);
-      alert('Failed to delete tournament. Please check your permissions.');
     }
   };
 
@@ -172,7 +173,7 @@ export default function TournamentDetail() {
             </span>
             {canManage && (
               <button 
-                onClick={deleteTournament}
+                onClick={() => setShowDeleteConfirm(true)}
                 className="p-3 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-lg"
                 title="Delete Tournament"
               >
@@ -386,6 +387,16 @@ export default function TournamentDetail() {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={deleteTournament}
+        title="Delete Tournament?"
+        message="This will permanently delete the tournament and all its associated matches. This action cannot be undone."
+        confirmText="Delete Now"
+        isDestructive={true}
+      />
     </div>
   );
 }

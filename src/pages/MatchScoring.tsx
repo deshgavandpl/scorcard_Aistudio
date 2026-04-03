@@ -22,6 +22,8 @@ import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import Scorecard from '../components/Scorecard';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { toast } from 'sonner';
 
 export default function MatchScoring() {
   const { id } = useParams();
@@ -30,6 +32,7 @@ export default function MatchScoring() {
   const [setupStep, setSetupStep] = useState(1);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -70,6 +73,19 @@ export default function MatchScoring() {
   const [fielderName, setFielderName] = useState('');
   const [extraRuns, setExtraRuns] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Result State
+  const [resultMessage, setResultMessage] = useState('');
+  const [manOfTheMatch, setManOfTheMatch] = useState('');
+  const [winnerId, setWinnerId] = useState('');
+
+  useEffect(() => {
+    if (match) {
+      setResultMessage(match.resultMessage || '');
+      setManOfTheMatch(match.manOfTheMatch || '');
+      setWinnerId(match.winnerId || '');
+    }
+  }, [match]);
 
   useEffect(() => {
     if (match && match.status === 'Upcoming' && isSettingUp === false) {
@@ -271,10 +287,26 @@ export default function MatchScoring() {
     });
   };
 
+  const saveResultDetails = async () => {
+    if (!match || !id) return;
+    try {
+      await setDoc(doc(db, 'matches', id), {
+        ...match,
+        winnerId,
+        resultMessage,
+        manOfTheMatch
+      });
+      toast.success('Match result details updated successfully!');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `matches/${id}`);
+    }
+  };
+
   const deleteMatch = async () => {
-    if (!match || !window.confirm('Are you sure you want to delete this match?')) return;
+    if (!match) return;
     try {
       await deleteDoc(doc(db, 'matches', match.id));
+      toast.success('Match deleted successfully.');
       navigate(-1);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `matches/${match.id}`);
@@ -585,7 +617,7 @@ export default function MatchScoring() {
         </div>
         <div className="flex gap-2">
           <button 
-            onClick={deleteMatch}
+            onClick={() => setShowDeleteConfirm(true)}
             className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-400" 
             title="Delete Match"
           >
@@ -608,18 +640,67 @@ export default function MatchScoring() {
       </div>
 
       {match.status === 'Finished' && (
-        <div className="bg-emerald-500 p-6 rounded-3xl text-white text-center shadow-lg">
-          <Trophy className="w-12 h-12 mx-auto mb-4" />
-          <h2 className="text-3xl font-black uppercase tracking-tight">Match Finished</h2>
-          <p className="text-emerald-100 font-bold mt-2">
-            {match.winnerId === 'Draw' ? "Match Drawn" : `${match.winnerId === 'team_a' ? match.teamAName : match.teamBName} Won!`}
-          </p>
-          <button 
-            onClick={() => navigate('/live')}
-            className="mt-6 px-8 py-3 rounded-xl bg-white text-emerald-600 font-black uppercase tracking-widest text-sm hover:bg-emerald-50 transition-all"
-          >
-            Back to Live Center
-          </button>
+        <div className="bg-emerald-500 p-8 rounded-3xl text-white shadow-lg space-y-6">
+          <div className="flex items-center gap-4">
+            <Trophy className="w-12 h-12 shrink-0" />
+            <div>
+              <h2 className="text-3xl font-black uppercase tracking-tight leading-none">Match Finished</h2>
+              <p className="text-emerald-100 font-bold mt-1 uppercase tracking-widest text-xs">Final Result & Awards</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-emerald-400/30">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-emerald-100">Winner</label>
+              <select 
+                value={winnerId}
+                onChange={(e) => setWinnerId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-emerald-600 border border-emerald-400 text-white font-bold outline-none focus:ring-2 focus:ring-white/20"
+              >
+                <option value="">Select Winner</option>
+                <option value="team_a">{match.teamAName}</option>
+                <option value="team_b">{match.teamBName}</option>
+                <option value="Draw">Draw</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-emerald-100">Result Message</label>
+              <input 
+                type="text"
+                value={resultMessage}
+                onChange={(e) => setResultMessage(e.target.value)}
+                placeholder="e.g. Won by 5 wickets"
+                className="w-full px-4 py-3 rounded-xl bg-emerald-600 border border-emerald-400 text-white font-bold outline-none focus:ring-2 focus:ring-white/20 placeholder:text-emerald-300"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-emerald-100">Man of the Match</label>
+              <input 
+                type="text"
+                value={manOfTheMatch}
+                onChange={(e) => setManOfTheMatch(e.target.value)}
+                placeholder="Enter player name"
+                className="w-full px-4 py-3 rounded-xl bg-emerald-600 border border-emerald-400 text-white font-bold outline-none focus:ring-2 focus:ring-white/20 placeholder:text-emerald-300"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <button 
+              onClick={saveResultDetails}
+              className="flex-1 py-4 rounded-xl bg-white text-emerald-600 font-black uppercase tracking-widest text-sm hover:bg-emerald-50 transition-all shadow-lg flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 className="w-5 h-5" /> Save Result Details
+            </button>
+            <button 
+              onClick={() => navigate('/live')}
+              className="px-8 py-4 rounded-xl bg-emerald-600 border border-emerald-400 text-white font-black uppercase tracking-widest text-sm hover:bg-emerald-700 transition-all"
+            >
+              Back to Live Center
+            </button>
+          </div>
         </div>
       )}
 
@@ -908,6 +989,15 @@ export default function MatchScoring() {
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={deleteMatch}
+        title="Delete Match?"
+        message="This will permanently delete this match and all its scoring data. This action cannot be undone."
+        confirmText="Delete Now"
+        isDestructive={true}
+      />
     </div>
   );
 }
