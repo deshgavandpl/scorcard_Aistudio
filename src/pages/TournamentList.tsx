@@ -47,18 +47,27 @@ export default function TournamentList() {
   }, []);
 
   const deleteTournament = async (tournamentId: string) => {
-    if (!window.confirm('Are you sure you want to delete this tournament and all its matches?')) return;
+    if (!canManage) return;
+    if (!window.confirm('Are you sure you want to delete this tournament and all its associated matches? This action cannot be undone.')) return;
+    
     try {
-      // Delete all matches first
+      // 1. Delete all matches associated with this tournament
       const q = query(collection(db, 'matches'), where('tournamentId', '==', tournamentId));
       const matchesSnap = await getDocs(q);
-      for (const matchDoc of matchesSnap.docs) {
-        await deleteDoc(doc(db, 'matches', matchDoc.id));
-      }
-      // Delete tournament
+      
+      const deletePromises = matchesSnap.docs.map(matchDoc => 
+        deleteDoc(doc(db, 'matches', matchDoc.id))
+      );
+      await Promise.all(deletePromises);
+
+      // 2. Delete the tournament itself
       await deleteDoc(doc(db, 'tournaments', tournamentId));
+      
+      alert('Tournament and all associated matches deleted successfully.');
     } catch (error) {
+      console.error("Error deleting tournament:", error);
       handleFirestoreError(error, OperationType.DELETE, `tournaments/${tournamentId}`);
+      alert('Failed to delete tournament. Please check your permissions.');
     }
   };
 
@@ -66,7 +75,12 @@ export default function TournamentList() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Tournaments</h1>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Tournaments</h1>
+            {isAdminMode && !user && (
+              <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest">Admin Mode</span>
+            )}
+          </div>
           <p className="text-slate-500 font-medium">Create and manage your cricket leagues.</p>
         </div>
         {canManage && (
@@ -120,10 +134,10 @@ export default function TournamentList() {
                         e.stopPropagation();
                         deleteTournament(t.id);
                       }}
-                      className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                      className="p-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                       title="Delete Tournament"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   )}
                 </div>

@@ -71,17 +71,25 @@ export default function TournamentDetail() {
   }, [id]);
 
   const deleteTournament = async () => {
-    if (!id || !window.confirm('Are you sure you want to delete this tournament and all its matches?')) return;
+    if (!id || !canManage) return;
+    if (!window.confirm('Are you sure you want to delete this tournament and all its associated matches? This action cannot be undone.')) return;
+    
     try {
-      // Delete all matches first
-      for (const match of matches) {
-        await deleteDoc(doc(db, 'matches', match.id));
-      }
-      // Delete tournament
+      // 1. Delete all matches associated with this tournament
+      const deletePromises = matches.map(match => 
+        deleteDoc(doc(db, 'matches', match.id))
+      );
+      await Promise.all(deletePromises);
+
+      // 2. Delete the tournament itself
       await deleteDoc(doc(db, 'tournaments', id));
+      
+      alert('Tournament and all associated matches deleted successfully.');
       navigate('/tournaments');
     } catch (error) {
+      console.error("Error deleting tournament:", error);
       handleFirestoreError(error, OperationType.DELETE, `tournaments/${id}`);
+      alert('Failed to delete tournament. Please check your permissions.');
     }
   };
 
@@ -165,10 +173,10 @@ export default function TournamentDetail() {
             {canManage && (
               <button 
                 onClick={deleteTournament}
-                className="p-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                className="p-3 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-lg"
                 title="Delete Tournament"
               >
-                <Trash2 className="w-5 h-5" />
+                <Trash2 className="w-6 h-6" />
               </button>
             )}
           </div>
