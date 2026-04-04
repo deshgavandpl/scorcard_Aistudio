@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Play, Trophy, History, Trash2, AlertCircle, LogIn, Globe, RefreshCw } from 'lucide-react';
+import { Plus, Play, Trophy, History, Trash2, AlertCircle, LogIn } from 'lucide-react';
 import { Match } from '../types/cricket';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
-import { fetchExternalMatches, ExternalMatch } from '../services/externalCricketService';
 
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -13,9 +12,6 @@ import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as Fireba
 
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
-  const [externalMatches, setExternalMatches] = useState<ExternalMatch[]>([]);
-  const [loadingExternal, setLoadingExternal] = useState(false);
-  const [externalError, setExternalError] = useState<string | null>(null);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const navigate = useNavigate();
@@ -50,25 +46,8 @@ export default function LiveScore() {
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'matches');
     });
-
-    // Fetch external matches
-    loadExternalMatches();
-
     return () => unsub();
   }, []);
-
-  const loadExternalMatches = async () => {
-    setLoadingExternal(true);
-    setExternalError(null);
-    try {
-      const data = await fetchExternalMatches();
-      setExternalMatches(data);
-    } catch (error: any) {
-      setExternalError(error.message || 'Failed to fetch matches');
-    } finally {
-      setLoadingExternal(false);
-    }
-  };
 
   const groupedMatches = matches.reduce((groups: Record<string, Match[]>, match) => {
     const date = new Date(match.createdAt).toLocaleDateString(undefined, { 
@@ -201,7 +180,7 @@ export default function LiveScore() {
                               to={`/tournament/${match.tournamentId}`}
                               className="bg-red-600 text-white px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-bl-xl shadow-sm hover:bg-red-700 transition-colors"
                             >
-                              Tournament Match
+                              {match.tournamentName || 'Tournament Match'}
                             </Link>
                           ) : (
                             <div className="bg-slate-100 text-slate-500 px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-bl-xl">
@@ -304,82 +283,6 @@ export default function LiveScore() {
                 Extras like Wide and No Ball add 1 run and don't count as a legal ball.
               </li>
             </ul>
-          </div>
-
-          {/* External Matches (IPL & International) */}
-          <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Globe className="w-20 h-20" />
-            </div>
-            <div className="relative z-10">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-blue-400" /> IPL & International
-                </h3>
-                <button 
-                  onClick={loadExternalMatches}
-                  disabled={loadingExternal}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-all disabled:opacity-50"
-                >
-                  <RefreshCw className={cn("w-4 h-4", loadingExternal && "animate-spin")} />
-                </button>
-              </div>
-
-              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                {loadingExternal && externalMatches.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">
-                    Fetching Live Scores...
-                  </div>
-                ) : externalError ? (
-                  <div className="text-center py-8 px-4 bg-red-500/10 rounded-xl border border-red-500/20">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-2">Error</p>
-                    <p className="text-xs font-bold text-red-200 leading-relaxed">{externalError}</p>
-                    <button 
-                      onClick={loadExternalMatches}
-                      className="mt-4 text-[10px] font-black uppercase tracking-widest text-white underline underline-offset-4 hover:text-blue-400 transition-colors"
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                ) : externalMatches.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-                    No Live External Matches
-                  </div>
-                ) : (
-                  externalMatches.map(match => (
-                    <div key={match.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all group">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-400">{match.matchType}</span>
-                        <span className={cn(
-                          "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
-                          match.matchStarted && !match.matchEnded ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-slate-800 text-slate-400"
-                        )}>
-                          {match.status.includes('won') ? 'Finished' : (match.matchStarted ? 'Live' : 'Upcoming')}
-                        </span>
-                      </div>
-                      <p className="text-xs font-black uppercase tracking-tight mb-3 line-clamp-2">{match.name}</p>
-                      
-                      {match.score && match.score.length > 0 ? (
-                        <div className="space-y-1">
-                          {match.score.map((s, idx) => (
-                            <div key={idx} className="flex justify-between items-center bg-black/20 px-3 py-1.5 rounded-lg">
-                              <span className="text-[10px] font-bold text-slate-400 truncate max-w-[100px]">{s.inning}</span>
-                              <span className="text-xs font-black text-white">{s.r}/{s.w} <span className="text-[10px] text-slate-500">({s.o})</span></span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] font-bold text-slate-500 italic">{match.status}</p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              
-              <p className="mt-6 text-[8px] font-bold text-slate-500 uppercase tracking-widest text-center">
-                Powered by CricketData.org
-              </p>
-            </div>
           </div>
         </div>
       </div>

@@ -63,7 +63,7 @@ export default function TournamentSetup() {
     setTeamNames(updated);
   };
 
-  const generateFixtures = (teams: Team[], tournamentId: string): Match[] => {
+  const generateFixtures = (teams: Team[], tournamentId: string, tournamentName: string): Match[] => {
     const matches: Match[] = [];
     for (let i = 0; i < teams.length; i++) {
       for (let j = i + 1; j < teams.length; j++) {
@@ -71,6 +71,7 @@ export default function TournamentSetup() {
           id: Math.random().toString(36).substr(2, 9),
           name: `${teams[i].name} vs ${teams[j].name}`,
           tournamentId,
+          tournamentName,
           teamAId: teams[i].id,
           teamBId: teams[j].id,
           teamAName: teams[i].name,
@@ -98,7 +99,7 @@ export default function TournamentSetup() {
     }));
 
     const tournamentId = Math.random().toString(36).substr(2, 9);
-    const fixtures = generateFixtures(teams, tournamentId);
+    const fixtures = generateFixtures(teams, tournamentId, name);
     
     const tournament: Tournament = {
       id: tournamentId,

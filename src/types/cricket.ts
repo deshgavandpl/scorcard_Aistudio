@@ -72,6 +72,7 @@ export interface Match {
   id: string;
   name?: string;
   tournamentId?: string;
+  tournamentName?: string;
   teamAId: string;
   teamBId: string;
   teamAName: string;

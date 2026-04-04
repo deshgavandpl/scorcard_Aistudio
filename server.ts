@@ -15,35 +15,6 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API Proxy for CricketData.org
-  app.get('/api/external/matches', async (req, res) => {
-    const apiKey = process.env.CRICKET_API_KEY;
-    
-    if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-      return res.status(400).json({ 
-        error: 'CRICKET_API_KEY is missing. Please add it to your Secrets in AI Studio.' 
-      });
-    }
-
-    try {
-      const response = await fetch(`https://api.cricketdata.org/v1/currentMatches?apikey=${apiKey}`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('External API Error:', errorText);
-        return res.status(response.status).json({ 
-          error: `External API returned ${response.status}: ${errorText}` 
-        });
-      }
-
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      console.error('Error fetching external matches:', error);
-      res.status(500).json({ error: 'Failed to connect to the Cricket API. Check your internet connection.' });
-    }
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
