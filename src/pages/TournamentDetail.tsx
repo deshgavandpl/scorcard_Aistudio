@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, Play, CheckCircle, Trash2, Plus, X } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, Play, CheckCircle, Trash2, Plus, X, Edit2 } from 'lucide-react';
 import { Tournament, Match, Team } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -22,6 +22,9 @@ export default function TournamentDetail() {
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [showAddMatch, setShowAddMatch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditTournament, setShowEditTournament] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editStatus, setEditStatus] = useState<'Draft' | 'Live' | 'Finished'>('Draft');
   
   // Add Match Form State
   const [teamAId, setTeamAId] = useState('');
@@ -53,7 +56,10 @@ export default function TournamentDetail() {
     if (!id) return;
     const unsub = onSnapshot(doc(db, 'tournaments', id), (docSnap) => {
       if (docSnap.exists()) {
-        setTournament({ id: docSnap.id, ...docSnap.data() } as Tournament);
+        const data = docSnap.data() as Tournament;
+        setTournament({ id: docSnap.id, ...data } as Tournament);
+        setEditName(data.name);
+        setEditStatus(data.status);
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `tournaments/${id}`);
@@ -138,6 +144,24 @@ export default function TournamentDetail() {
     }
   };
 
+  const updateTournament = async () => {
+    if (!id || !tournament || !editName.trim()) return;
+    
+    const updatedTournament = {
+      ...tournament,
+      name: editName,
+      status: editStatus
+    };
+
+    try {
+      await setDoc(doc(db, 'tournaments', id), updatedTournament);
+      setShowEditTournament(false);
+      toast.success('Tournament updated successfully.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
+    }
+  };
+
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
 
   const pointsTable = tournament.teams.map(team => {
@@ -146,15 +170,54 @@ export default function TournamentDetail() {
     const losses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
     const draws = teamMatches.filter(m => m.winnerId === 'Draw').length;
     
+    let runsScored = 0;
+    let oversFaced = 0;
+    let runsConceded = 0;
+    let oversBowled = 0;
+
+    teamMatches.forEach(m => {
+      const isTeamA = m.teamAId === team.id;
+      const teamInnings = isTeamA ? m.innings1 : m.innings2;
+      const oppInnings = isTeamA ? m.innings2 : m.innings1;
+
+      if (teamInnings) {
+        runsScored += teamInnings.runs;
+        // If all out, count full overs
+        if (teamInnings.wickets === 10) {
+          oversFaced += m.oversLimit;
+        } else {
+          oversFaced += teamInnings.overs + (teamInnings.balls / 6);
+        }
+      }
+
+      if (oppInnings) {
+        runsConceded += oppInnings.runs;
+        // If opponent all out, count full overs
+        if (oppInnings.wickets === 10) {
+          oversBowled += m.oversLimit;
+        } else {
+          oversBowled += oppInnings.overs + (oppInnings.balls / 6);
+        }
+      }
+    });
+
+    const nrr = (oversFaced > 0 && oversBowled > 0) 
+      ? (runsScored / oversFaced) - (runsConceded / oversBowled)
+      : 0;
+
     return {
       name: team.name,
       played: teamMatches.length,
       wins,
       losses,
       draws,
-      points: (wins * 2) + draws
+      points: (wins * 2) + draws,
+      nrr: nrr.toFixed(3)
     };
-  }).sort((a, b) => b.points - a.points);
+  }).sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    return parseFloat(b.nrr) - parseFloat(a.nrr);
+  });
 
   return (
     <div className="space-y-8">
@@ -171,15 +234,26 @@ export default function TournamentDetail() {
             <span className="px-3 py-1 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] inline-block">
               {tournament.status}
             </span>
-            {canManage && (
-              <button 
-                onClick={() => setShowDeleteConfirm(true)}
-                className="p-3 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-lg"
-                title="Delete Tournament"
-              >
-                <Trash2 className="w-6 h-6" />
-              </button>
-            )}
+            <div className="flex gap-2">
+              {canManage && (
+                <button 
+                  onClick={() => setShowEditTournament(true)}
+                  className="p-3 rounded-2xl bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-lg"
+                  title="Edit Tournament"
+                >
+                  <Edit2 className="w-6 h-6" />
+                </button>
+              )}
+              {canManage && (
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-3 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                  title="Delete Tournament"
+                >
+                  <Trash2 className="w-6 h-6" />
+                </button>
+              )}
+            </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight transform -skew-x-6">{tournament.name}</h1>
           <div className="flex gap-6 mt-6">
@@ -300,6 +374,56 @@ export default function TournamentDetail() {
             </div>
           </motion.div>
         )}
+
+        {showEditTournament && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Edit Tournament</h2>
+                <button onClick={() => setShowEditTournament(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tournament Name</label>
+                  <input 
+                    type="text" 
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
+                  <select 
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  >
+                    <option value="Draft">Draft</option>
+                    <option value="Live">Live</option>
+                    <option value="Finished">Finished</option>
+                  </select>
+                </div>
+              </div>
+
+              <button 
+                onClick={updateTournament}
+                className="w-full py-4 rounded-2xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+              >
+                Save Changes
+              </button>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {activeTab === 'fixtures' ? (
@@ -364,6 +488,7 @@ export default function TournamentDetail() {
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">L</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">D</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pts</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">NRR</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -380,6 +505,12 @@ export default function TournamentDetail() {
                     <td className="px-6 py-4 text-center font-bold text-red-500">{team.losses}</td>
                     <td className="px-6 py-4 text-center font-bold text-slate-400">{team.draws}</td>
                     <td className="px-6 py-4 text-center font-black text-blue-900">{team.points}</td>
+                    <td className={cn(
+                      "px-6 py-4 text-center font-bold text-xs",
+                      parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
+                    )}>
+                      {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
+                    </td>
                   </tr>
                 ))}
               </tbody>

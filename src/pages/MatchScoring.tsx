@@ -78,6 +78,15 @@ export default function MatchScoring() {
   const [resultMessage, setResultMessage] = useState('');
   const [manOfTheMatch, setManOfTheMatch] = useState('');
   const [winnerId, setWinnerId] = useState('');
+  const [showFanfare, setShowFanfare] = useState(false);
+
+  useEffect(() => {
+    if (match?.status === 'Finished' && !showFanfare) {
+      setShowFanfare(true);
+      const timer = setTimeout(() => setShowFanfare(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [match?.status]);
 
   useEffect(() => {
     if (match) {
@@ -474,10 +483,25 @@ export default function MatchScoring() {
     const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
     
+    // Bowler logic
+    const isOverStarted = currentInn && currentInn.balls > 0;
+    const previousBowlers = currentInn ? (Object.values(currentInn.bowlingStats) as BowlerStats[]).map(b => b.playerName) : [];
+    
+    // Find the bowler who bowled the *last* over (not the current one if it's in progress)
+    // If balls == 0, it means we are at the start of a new over, so the last ball in history was the previous bowler.
+    let lastOverBowler = '';
+    if (currentInn && currentInn.ballHistory.length > 0) {
+      const lastBall = currentInn.ballHistory[currentInn.ballHistory.length - 1];
+      lastOverBowler = lastBall.bowlerId;
+    }
+
     return (
       <div className="max-w-md mx-auto space-y-6">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-8 space-y-6">
-          <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Select Players</h2>
+          <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">
+            {(!striker || !nonStriker) && !currentInn?.currentBowlerId ? 'New Batsman & Bowler' : 
+             (!striker || !nonStriker) ? 'Enter New Batsman' : 'Enter New Bowler'}
+          </h2>
           
           <div className="space-y-4">
             {error && (
@@ -494,7 +518,7 @@ export default function MatchScoring() {
                   value={strikerName}
                   onChange={(e) => setStrikerName(e.target.value)}
                   placeholder="Enter batter name"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold focus:border-blue-500 outline-none transition-all"
                 />
               </div>
             )}
@@ -507,20 +531,51 @@ export default function MatchScoring() {
                   value={nonStrikerName}
                   onChange={(e) => setNonStrikerName(e.target.value)}
                   placeholder="Enter batter name"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold focus:border-blue-500 outline-none transition-all"
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Bowler</label>
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                {isOverStarted ? 'Current Bowler (Locked)' : 'Enter New Bowler'}
+              </label>
               <input 
                 type="text" 
                 value={bowlerName}
                 onChange={(e) => setBowlerName(e.target.value)}
-                placeholder="Enter bowler name"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                disabled={isOverStarted}
+                placeholder="Enter new bowler name"
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border border-slate-200 font-bold focus:border-blue-500 outline-none transition-all",
+                  isOverStarted && "bg-slate-50 text-slate-400 cursor-not-allowed"
+                )}
               />
+              {!isOverStarted && previousBowlers.length > 0 && (
+                <div className="pt-2 space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Previous Bowlers</p>
+                  <div className="flex flex-wrap gap-2">
+                    {previousBowlers.map((bName) => {
+                      const isLastBowler = bName === lastOverBowler;
+                      return (
+                        <button
+                          key={bName}
+                          disabled={isLastBowler}
+                          onClick={() => setBowlerName(bName)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
+                            bowlerName === bName ? "bg-blue-900 border-blue-900 text-white" : 
+                            isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
+                            "bg-white border-slate-200 text-slate-600 hover:border-blue-300"
+                          )}
+                        >
+                          {bName} {isLastBowler && '(Last Over)'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -545,8 +600,101 @@ export default function MatchScoring() {
   const nonStriker = (Object.values(currentInnings?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
   const bowler = (Object.values(currentInnings?.bowlingStats || {}) as BowlerStats[]).find(b => b.playerName === bowlerName);
 
+  // Auto-generate Man of the Match suggestions
+  const getMoMSuggestions = () => {
+    if (!match.winnerId || match.winnerId === 'Draw') return [];
+    
+    const winningTeamId = match.winnerId;
+    const allPlayers: { name: string; score: number; wickets: number; total: number }[] = [];
+
+    // Check both innings for winning team players
+    [match.innings1, match.innings2].forEach(inn => {
+      if (!inn) return;
+      
+      // Batting
+      if (inn.battingTeamId === winningTeamId) {
+        (Object.values(inn.battingStats) as BatterStats[]).forEach(b => {
+          const existing = allPlayers.find(p => p.name === b.playerName);
+          if (existing) {
+            existing.score += b.runs;
+            existing.total = existing.score + (existing.wickets * 20);
+          } else {
+            allPlayers.push({ name: b.playerName, score: b.runs, wickets: 0, total: b.runs });
+          }
+        });
+      }
+
+      // Bowling
+      if (inn.bowlingTeamId === winningTeamId) {
+        (Object.values(inn.bowlingStats) as BowlerStats[]).forEach(b => {
+          const existing = allPlayers.find(p => p.name === b.playerName);
+          if (existing) {
+            existing.wickets += b.wickets;
+            existing.total = existing.score + (existing.wickets * 20);
+          } else {
+            allPlayers.push({ name: b.playerName, score: 0, wickets: b.wickets, total: b.wickets * 20 });
+          }
+        });
+      }
+    });
+
+    return allPlayers.sort((a, b) => b.total - a.total).slice(0, 2);
+  };
+
+  const momSuggestions = getMoMSuggestions();
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 relative">
+      {/* Fanfare Overlay */}
+      <AnimatePresence>
+        {showFanfare && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] pointer-events-none flex items-center justify-center overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-[2px]"></div>
+            <motion.div 
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              className="relative z-10 bg-white p-12 rounded-[4rem] shadow-2xl border-8 border-blue-900 text-center"
+            >
+              <Trophy className="w-32 h-32 text-amber-500 mx-auto mb-6 animate-bounce" />
+              <h1 className="text-6xl font-black uppercase tracking-tighter text-blue-900 transform -skew-x-6">Congratulations!</h1>
+              <p className="text-2xl font-bold text-slate-600 mt-4 uppercase tracking-widest">
+                {match.winnerId === 'team_a' ? match.teamAName : match.teamBName} Wins!
+              </p>
+            </motion.div>
+            
+            {/* Simple Confetti Particles */}
+            {[...Array(50)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ 
+                  x: Math.random() * window.innerWidth, 
+                  y: -20, 
+                  rotate: 0,
+                  backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'][Math.floor(Math.random() * 5)]
+                }}
+                animate={{ 
+                  y: window.innerHeight + 20,
+                  rotate: 360,
+                  x: (Math.random() - 0.5) * 200 + (Math.random() * window.innerWidth)
+                }}
+                transition={{ 
+                  duration: 2 + Math.random() * 3,
+                  repeat: Infinity,
+                  ease: "linear",
+                  delay: Math.random() * 2
+                }}
+                className="absolute w-3 h-3 rounded-sm opacity-60"
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Wicket Modal */}
       {showWicketModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -677,13 +825,31 @@ export default function MatchScoring() {
 
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-emerald-100">Man of the Match</label>
-              <input 
-                type="text"
-                value={manOfTheMatch}
-                onChange={(e) => setManOfTheMatch(e.target.value)}
-                placeholder="Enter player name"
-                className="w-full px-4 py-3 rounded-xl bg-emerald-600 border border-emerald-400 text-white font-bold outline-none focus:ring-2 focus:ring-white/20 placeholder:text-emerald-300"
-              />
+              <div className="space-y-3">
+                <input 
+                  type="text"
+                  value={manOfTheMatch}
+                  onChange={(e) => setManOfTheMatch(e.target.value)}
+                  placeholder="Enter player name"
+                  className="w-full px-4 py-3 rounded-xl bg-emerald-600 border border-emerald-400 text-white font-bold outline-none focus:ring-2 focus:ring-white/20 placeholder:text-emerald-300"
+                />
+                {momSuggestions.length > 0 && (
+                  <div className="flex gap-2">
+                    {momSuggestions.map(p => (
+                      <button
+                        key={p.name}
+                        onClick={() => setManOfTheMatch(p.name)}
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border",
+                          manOfTheMatch === p.name ? "bg-white text-emerald-600 border-white" : "bg-emerald-700 text-emerald-200 border-emerald-500 hover:bg-emerald-600"
+                        )}
+                      >
+                        {p.name} ({p.score}r, {p.wickets}w)
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

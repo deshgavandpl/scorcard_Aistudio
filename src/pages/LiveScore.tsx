@@ -42,7 +42,15 @@ export default function LiveScore() {
     const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
-      setMatches(matchesData);
+      // Sort: Live first, then Upcoming, then Finished. Within each, sort by createdAt desc.
+      const sortedMatches = matchesData.sort((a, b) => {
+        const statusOrder = { 'Live': 0, 'Upcoming': 1, 'Finished': 2 };
+        if (statusOrder[a.status] !== statusOrder[b.status]) {
+          return statusOrder[a.status] - statusOrder[b.status];
+        }
+        return b.createdAt - a.createdAt;
+      });
+      setMatches(sortedMatches);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'matches');
     });

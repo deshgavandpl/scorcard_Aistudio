@@ -63,8 +63,47 @@ export default function Stats() {
     return Object.values(stats).sort((a: any, b: any) => b.wickets - a.wickets);
   };
 
+  const getTournamentRecords = () => {
+    let highestScore = { runs: 0, player: '-' };
+    let bestBowling = { wickets: 0, runs: 0, player: '-' };
+    let mostSixes = { count: 0, player: '-' };
+
+    const playerSixes: Record<string, number> = {};
+
+    matches.forEach(m => {
+      [m.innings1, m.innings2].forEach(inn => {
+        if (!inn) return;
+        
+        // Batting Records
+        (Object.values(inn.battingStats) as BatterStats[]).forEach(b => {
+          if (b.runs > highestScore.runs) {
+            highestScore = { runs: b.runs, player: b.playerName };
+          }
+          playerSixes[b.playerName] = (playerSixes[b.playerName] || 0) + b.sixes;
+        });
+
+        // Bowling Records
+        (Object.values(inn.bowlingStats) as BowlerStats[]).forEach(b => {
+          if (b.wickets > bestBowling.wickets || (b.wickets === bestBowling.wickets && b.runs < bestBowling.runs)) {
+            bestBowling = { wickets: b.wickets, runs: b.runs, player: b.playerName };
+          }
+        });
+      });
+    });
+
+    // Find player with most sixes
+    Object.entries(playerSixes).forEach(([player, count]) => {
+      if (count > mostSixes.count) {
+        mostSixes = { count, player };
+      }
+    });
+
+    return { highestScore, bestBowling, mostSixes };
+  };
+
   const battingStats = getAggregatedBattingStats();
   const bowlingStats = getAggregatedBowlingStats();
+  const records = getTournamentRecords();
 
   return (
     <div className="space-y-8">
@@ -204,9 +243,21 @@ export default function Stats() {
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
             <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">Tournament Records</h3>
             <div className="space-y-4">
-              <RecordItem label="Highest Score" value="0" player="-" />
-              <RecordItem label="Best Bowling" value="0/0" player="-" />
-              <RecordItem label="Most Sixes" value="0" player="-" />
+              <RecordItem 
+                label="Highest Score" 
+                value={records.highestScore.runs} 
+                player={records.highestScore.player} 
+              />
+              <RecordItem 
+                label="Best Bowling" 
+                value={`${records.bestBowling.wickets}/${records.bestBowling.runs}`} 
+                player={records.bestBowling.player} 
+              />
+              <RecordItem 
+                label="Most Sixes" 
+                value={records.mostSixes.count} 
+                player={records.mostSixes.player} 
+              />
             </div>
           </div>
         </div>
