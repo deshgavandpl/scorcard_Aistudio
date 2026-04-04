@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { Download, Trophy, QrCode, ShieldCheck } from 'lucide-react';
+import { Download, Trophy, QrCode, ShieldCheck, Loader2 } from 'lucide-react';
 import { Match, BatterStats, BowlerStats } from '../types/cricket';
 import { cn } from '../lib/utils';
 
@@ -17,23 +17,40 @@ interface CertificateProps {
 
 export default function Certificate({ match, playerName, performance, onClose }: CertificateProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadCertificate = async () => {
-    if (!certificateRef.current) return;
+    if (!certificateRef.current || isDownloading) return;
     
+    setIsDownloading(true);
     try {
+      // Small delay to ensure any pending renders are done
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: '#fdfbf7',
+        logging: true,
       });
       
-      const link = document.createElement('a');
-      link.download = `Certificate_${playerName.replace(/\s+/g, '_')}_${match.id}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      canvas.toBlob((blob) => {
+        if (!blob) throw new Error('Canvas to Blob failed');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `Certificate_${playerName.replace(/\s+/g, '_')}_${match.id.substring(0, 6)}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
     } catch (error) {
       console.error('Error generating certificate:', error);
+      alert('Failed to generate certificate. Please try again or take a screenshot.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -47,9 +64,18 @@ export default function Certificate({ match, playerName, performance, onClose }:
           <div className="flex gap-2">
             <button 
               onClick={downloadCertificate}
-              className="px-4 py-2 bg-amber-500 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-amber-600 transition-all flex items-center gap-2 shadow-lg"
+              disabled={isDownloading}
+              className="px-4 py-2 bg-amber-500 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-amber-600 transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
             >
-              <Download className="w-4 h-4" /> Download PNG
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" /> Download PNG
+                </>
+              )}
             </button>
             <button 
               onClick={onClose}
@@ -82,18 +108,21 @@ export default function Certificate({ match, playerName, performance, onClose }:
                 src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/200px-Flag_of_India.svg.png" 
                 alt="India Flag" 
                 className="h-12 shadow-sm"
+                crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
               />
               <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/200px-Emblem_of_India.svg.png" 
                 alt="Emblem of India" 
                 className="h-20"
+                crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
               />
               <img 
                 src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/200px-Flag_of_India.svg.png" 
                 alt="India Flag" 
                 className="h-12 shadow-sm transform scale-x-[-1]"
+                crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
               />
             </div>
