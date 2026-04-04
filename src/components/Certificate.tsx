@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { Download, Trophy, QrCode, ShieldCheck, Loader2 } from 'lucide-react';
-import { Match, BatterStats, BowlerStats } from '../types/cricket';
+import { Match } from '../types/cricket';
 import { cn } from '../lib/utils';
 
 interface CertificateProps {
@@ -15,6 +15,21 @@ interface CertificateProps {
   onClose?: () => void;
 }
 
+const IndianFlag = ({ className }: { className?: string }) => (
+  <div className={cn("w-12 h-8 flex flex-col shadow-sm border border-slate-100 shrink-0", className)}>
+    <div className="flex-1 bg-[#FF9933]"></div>
+    <div className="flex-1 bg-white flex items-center justify-center relative overflow-hidden">
+      <div className="w-2.5 h-2.5 rounded-full border-[0.5px] border-[#000080] flex items-center justify-center">
+        <div className="absolute w-px h-full bg-[#000080] rotate-0"></div>
+        <div className="absolute w-px h-full bg-[#000080] rotate-45"></div>
+        <div className="absolute w-px h-full bg-[#000080] rotate-90"></div>
+        <div className="absolute w-px h-full bg-[#000080] rotate-135"></div>
+      </div>
+    </div>
+    <div className="flex-1 bg-[#138808]"></div>
+  </div>
+);
+
 export default function Certificate({ match, playerName, performance, onClose }: CertificateProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -25,30 +40,30 @@ export default function Certificate({ match, playerName, performance, onClose }:
     setIsDownloading(true);
     try {
       // Small delay to ensure any pending renders are done
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#fdfbf7',
-        logging: true,
+      const blob = await domtoimage.toBlob(certificateRef.current, {
+        quality: 1,
+        bgcolor: '#fdfbf7',
+        width: certificateRef.current.offsetWidth,
+        height: certificateRef.current.offsetHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
       });
       
-      canvas.toBlob((blob) => {
-        if (!blob) throw new Error('Canvas to Blob failed');
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `Certificate_${playerName.replace(/\s+/g, '_')}_${match.id.substring(0, 6)}.png`;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 'image/png');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `Certificate_${playerName.replace(/\s+/g, '_')}_${match.id.substring(0, 6)}.png`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error generating certificate:', error);
-      alert('Failed to generate certificate. Please try again or take a screenshot.');
+      alert('Failed to generate certificate. Please take a screenshot of the certificate displayed on your screen.');
     } finally {
       setIsDownloading(false);
     }
@@ -104,13 +119,7 @@ export default function Certificate({ match, playerName, performance, onClose }:
           {/* Header Section */}
           <div className="relative z-10 text-center space-y-6">
             <div className="flex justify-center items-center gap-8 mb-4">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/200px-Flag_of_India.svg.png" 
-                alt="India Flag" 
-                className="h-12 shadow-sm"
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
-              />
+              <IndianFlag />
               <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/200px-Emblem_of_India.svg.png" 
                 alt="Emblem of India" 
@@ -118,13 +127,7 @@ export default function Certificate({ match, playerName, performance, onClose }:
                 crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
               />
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/200px-Flag_of_India.svg.png" 
-                alt="India Flag" 
-                className="h-12 shadow-sm transform scale-x-[-1]"
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
-              />
+              <IndianFlag />
             </div>
 
             <div className="space-y-1">
