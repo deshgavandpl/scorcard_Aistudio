@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Match, BatterStats, BallEvent } from '../types/cricket';
+import { Match, BatterStats, BallEvent, Tournament } from '../types/cricket';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
 export function useCricketScoring(matchId: string | undefined) {
@@ -161,7 +161,7 @@ export function useCricketScoring(matchId: string | undefined) {
         updatedMatch.currentInnings = 2;
         // Initialize 2nd innings
         updatedMatch.innings2 = {
-          battingTeamId: match.teamBId === match.innings1?.battingTeamId ? match.teamAId : match.teamBId,
+          battingTeamId: match.teamBId === (match.innings1?.battingTeamId || '') ? match.teamAId : match.teamBId,
           bowlingTeamId: match.innings1?.battingTeamId || '',
           runs: 0,
           wickets: 0,
@@ -174,8 +174,7 @@ export function useCricketScoring(matchId: string | undefined) {
           ballHistory: []
         };
       } else {
-        updatedMatch.status = 'Finished';
-        // Determine winner
+        // Logically over, but don't set 'Finished' yet
         if (updatedMatch.innings1 && updatedMatch.innings2) {
           const inn1Runs = updatedMatch.innings1.runs;
           const inn2Runs = updatedMatch.innings2.runs;
@@ -197,13 +196,58 @@ export function useCricketScoring(matchId: string | undefined) {
       }
     } else if (match.currentInnings === 2 && updatedMatch.innings1 && newInnings.runs > updatedMatch.innings1.runs) {
         // Target achieved
-        updatedMatch.status = 'Finished';
         updatedMatch.winnerId = newInnings.battingTeamId;
         const battingTeamName = updatedMatch.innings2?.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
         updatedMatch.resultMessage = `${battingTeamName} won by ${10 - newInnings.wickets} wickets`;
     }
 
     await saveMatch(updatedMatch);
+  };
+
+  const finishMatch = async (winnerId: string, resultMessage: string, manOfTheMatch?: string) => {
+    if (!match || !matchId) return;
+    const updatedMatch: Match = { 
+      ...match, 
+      status: 'Finished' as const, 
+      winnerId, 
+      resultMessage,
+      manOfTheMatch
+    };
+    
+    try {
+      await saveMatch(updatedMatch);
+      
+      // If part of a tournament, update the tournament document
+      if (match.tournamentId) {
+        const tournamentRef = doc(db, 'tournaments', match.tournamentId);
+        const tournamentSnap = await getDoc(tournamentRef);
+        if (tournamentSnap.exists()) {
+          const tournamentData = tournamentSnap.data() as Tournament;
+          
+          // Update the match in the tournament's matches array
+          const updatedMatches = tournamentData.matches.map(m => m.id === matchId ? updatedMatch : m);
+          
+          // Update team points
+          const updatedTeams = tournamentData.teams.map(team => {
+            if (team.id === winnerId) {
+              return { ...team, points: (team.points || 0) + 2 };
+            }
+            if (winnerId === 'Draw' && (team.id === match.teamAId || team.id === match.teamBId)) {
+              return { ...team, points: (team.points || 0) + 1 };
+            }
+            return team;
+          });
+
+          await setDoc(tournamentRef, {
+            ...tournamentData,
+            matches: updatedMatches,
+            teams: updatedTeams
+          });
+        }
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `matches/${matchId}`);
+    }
   };
 
   const undoLastBall = async () => {
@@ -332,5 +376,5 @@ export function useCricketScoring(matchId: string | undefined) {
     await saveMatch(updatedMatch);
   };
 
-  return { match, addBall, undoLastBall, swapStrike, setMatch, loading };
+  return { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, loading };
 }

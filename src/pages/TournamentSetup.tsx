@@ -69,6 +69,7 @@ export default function TournamentSetup() {
       for (let j = i + 1; j < teams.length; j++) {
         matches.push({
           id: Math.random().toString(36).substr(2, 9),
+          name: `${teams[i].name} vs ${teams[j].name}`,
           tournamentId,
           teamAId: teams[i].id,
           teamBId: teams[j].id,

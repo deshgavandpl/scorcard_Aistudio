@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Play, Trophy, History, Trash2, AlertCircle, LogIn } from 'lucide-react';
+import { Plus, Play, Trophy, History, Trash2, AlertCircle, LogIn, Globe, RefreshCw } from 'lucide-react';
 import { Match } from '../types/cricket';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { fetchExternalMatches, ExternalMatch } from '../services/externalCricketService';
 
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -12,6 +13,9 @@ import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as Fireba
 
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [externalMatches, setExternalMatches] = useState<ExternalMatch[]>([]);
+  const [loadingExternal, setLoadingExternal] = useState(false);
+  const [externalError, setExternalError] = useState<string | null>(null);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const navigate = useNavigate();
@@ -42,20 +46,46 @@ export default function LiveScore() {
     const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
-      // Sort: Live first, then Upcoming, then Finished. Within each, sort by createdAt desc.
-      const sortedMatches = matchesData.sort((a, b) => {
-        const statusOrder = { 'Live': 0, 'Upcoming': 1, 'Finished': 2 };
-        if (statusOrder[a.status] !== statusOrder[b.status]) {
-          return statusOrder[a.status] - statusOrder[b.status];
-        }
-        return b.createdAt - a.createdAt;
-      });
-      setMatches(sortedMatches);
+      setMatches(matchesData);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'matches');
     });
+
+    // Fetch external matches
+    loadExternalMatches();
+
     return () => unsub();
   }, []);
+
+  const loadExternalMatches = async () => {
+    setLoadingExternal(true);
+    setExternalError(null);
+    try {
+      const data = await fetchExternalMatches();
+      setExternalMatches(data);
+    } catch (error: any) {
+      setExternalError(error.message || 'Failed to fetch matches');
+    } finally {
+      setLoadingExternal(false);
+    }
+  };
+
+  const groupedMatches = matches.reduce((groups: Record<string, Match[]>, match) => {
+    const date = new Date(match.createdAt).toLocaleDateString(undefined, { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    if (!groups[date]) groups[date] = [];
+    groups[date].push(match);
+    return groups;
+  }, {});
+
+  // Sort dates descending
+  const sortedDates = Object.keys(groupedMatches).sort((a, b) => {
+    return new Date(b).getTime() - new Date(a).getTime();
+  });
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -142,61 +172,95 @@ export default function LiveScore() {
               No matches found. Start a new one to see it here.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {matches.map((match) => (
-                <motion.div 
-                  key={match.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
-                        match.status === 'Live' ? "bg-red-100 text-red-600 animate-pulse" : 
-                        match.status === 'Finished' ? "bg-slate-100 text-slate-600" : "bg-blue-100 text-blue-600"
-                      )}>
-                        {match.status}
-                      </span>
-                      <span className="text-slate-400 text-[10px] font-bold uppercase">{new Date(match.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <button 
-                      onClick={() => deleteMatch(match.id)}
-                      className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                      title="Delete Match"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+            <div className="space-y-12">
+              {sortedDates.map(date => (
+                <div key={date} className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-px bg-slate-200 flex-1"></div>
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap">{date}</h3>
+                    <div className="h-px bg-slate-200 flex-1"></div>
                   </div>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    {groupedMatches[date]
+                      .sort((a, b) => {
+                        const statusOrder = { 'Live': 0, 'Upcoming': 1, 'Finished': 2 };
+                        return statusOrder[a.status] - statusOrder[b.status];
+                      })
+                      .map((match) => (
+                      <motion.div 
+                        key={match.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
+                      >
+                        {/* Tournament Label */}
+                        <div className="absolute top-0 right-0">
+                          {match.tournamentId ? (
+                            <Link 
+                              to={`/tournament/${match.tournamentId}`}
+                              className="bg-red-600 text-white px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-bl-xl shadow-sm hover:bg-red-700 transition-colors"
+                            >
+                              Tournament Match
+                            </Link>
+                          ) : (
+                            <div className="bg-slate-100 text-slate-500 px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-bl-xl">
+                              Single Match
+                            </div>
+                          )}
+                        </div>
 
-                  <div className="flex items-center justify-between gap-4 mb-6">
-                    <div className="flex-1 text-center">
-                      <p className="text-lg font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
-                      <p className="text-2xl font-black text-blue-900">
-                        {match.innings1?.battingTeamId === match.teamAId ? match.innings1.runs : match.innings2?.runs || 0}
-                        <span className="text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
-                      </p>
-                    </div>
-                    <div className="text-slate-300 font-black italic text-xl">VS</div>
-                    <div className="flex-1 text-center">
-                      <p className="text-lg font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
-                      <p className="text-2xl font-black text-blue-900">
-                        {match.innings1?.battingTeamId === match.teamBId ? match.innings1.runs : match.innings2?.runs || 0}
-                        <span className="text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
-                      </p>
-                    </div>
-                  </div>
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
+                              match.status === 'Live' ? "bg-red-100 text-red-600 animate-pulse" : 
+                              match.status === 'Finished' ? "bg-slate-100 text-slate-600" : "bg-blue-100 text-blue-600"
+                            )}>
+                              {match.status}
+                            </span>
+                          </div>
+                          {canManage && (
+                            <button 
+                              onClick={() => deleteMatch(match.id)}
+                              className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                              title="Delete Match"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
 
-                  <div className="flex justify-center">
-                    <Link 
-                      to={canManage && match.status !== 'Finished' ? `/admin/match/${match.id}` : `/match/${match.id}`}
-                      className="w-full text-center py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all"
-                    >
-                      {match.status === 'Finished' ? 'View Scorecard' : (canManage ? 'Resume Scoring' : 'View Live Score')}
-                    </Link>
+                        <div className="flex items-center justify-between gap-4 mb-6">
+                          <div className="flex-1 text-center">
+                            <p className="text-lg font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
+                            <p className="text-2xl font-black text-blue-900">
+                              {match.innings1?.battingTeamId === match.teamAId ? match.innings1.runs : match.innings2?.runs || 0}
+                              <span className="text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                            </p>
+                          </div>
+                          <div className="text-slate-300 font-black italic text-xl">VS</div>
+                          <div className="flex-1 text-center">
+                            <p className="text-lg font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
+                            <p className="text-2xl font-black text-blue-900">
+                              {match.innings1?.battingTeamId === match.teamBId ? match.innings1.runs : match.innings2?.runs || 0}
+                              <span className="text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-center">
+                          <Link 
+                            to={canManage && match.status !== 'Finished' ? `/admin/match/${match.id}` : `/match/${match.id}`}
+                            className="w-full text-center py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all"
+                          >
+                            {match.status === 'Finished' ? 'View Scorecard' : (canManage ? 'Resume Scoring' : 'View Live Score')}
+                          </Link>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -240,6 +304,82 @@ export default function LiveScore() {
                 Extras like Wide and No Ball add 1 run and don't count as a legal ball.
               </li>
             </ul>
+          </div>
+
+          {/* External Matches (IPL & International) */}
+          <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Globe className="w-20 h-20" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-blue-400" /> IPL & International
+                </h3>
+                <button 
+                  onClick={loadExternalMatches}
+                  disabled={loadingExternal}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-all disabled:opacity-50"
+                >
+                  <RefreshCw className={cn("w-4 h-4", loadingExternal && "animate-spin")} />
+                </button>
+              </div>
+
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {loadingExternal && externalMatches.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">
+                    Fetching Live Scores...
+                  </div>
+                ) : externalError ? (
+                  <div className="text-center py-8 px-4 bg-red-500/10 rounded-xl border border-red-500/20">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-2">Error</p>
+                    <p className="text-xs font-bold text-red-200 leading-relaxed">{externalError}</p>
+                    <button 
+                      onClick={loadExternalMatches}
+                      className="mt-4 text-[10px] font-black uppercase tracking-widest text-white underline underline-offset-4 hover:text-blue-400 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : externalMatches.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+                    No Live External Matches
+                  </div>
+                ) : (
+                  externalMatches.map(match => (
+                    <div key={match.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all group">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-400">{match.matchType}</span>
+                        <span className={cn(
+                          "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
+                          match.matchStarted && !match.matchEnded ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-slate-800 text-slate-400"
+                        )}>
+                          {match.status.includes('won') ? 'Finished' : (match.matchStarted ? 'Live' : 'Upcoming')}
+                        </span>
+                      </div>
+                      <p className="text-xs font-black uppercase tracking-tight mb-3 line-clamp-2">{match.name}</p>
+                      
+                      {match.score && match.score.length > 0 ? (
+                        <div className="space-y-1">
+                          {match.score.map((s, idx) => (
+                            <div key={idx} className="flex justify-between items-center bg-black/20 px-3 py-1.5 rounded-lg">
+                              <span className="text-[10px] font-bold text-slate-400 truncate max-w-[100px]">{s.inning}</span>
+                              <span className="text-xs font-black text-white">{s.r}/{s.w} <span className="text-[10px] text-slate-500">({s.o})</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] font-bold text-slate-500 italic">{match.status}</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              <p className="mt-6 text-[8px] font-bold text-slate-500 uppercase tracking-widest text-center">
+                Powered by CricketData.org
+              </p>
+            </div>
           </div>
         </div>
       </div>

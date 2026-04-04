@@ -10,6 +10,7 @@ export interface Team {
   id: string;
   name: string;
   players: Player[];
+  points?: number;
 }
 
 export interface MatchInnings {
@@ -69,6 +70,7 @@ export interface BallEvent {
 
 export interface Match {
   id: string;
+  name?: string;
   tournamentId?: string;
   teamAId: string;
   teamBId: string;

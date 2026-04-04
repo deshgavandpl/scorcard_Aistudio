@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, Play, CheckCircle, Trash2, Plus, X, Edit2 } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus } from 'lucide-react';
 import { Tournament, Match, Team } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -17,7 +17,7 @@ export default function TournamentDetail() {
   const navigate = useNavigate();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [activeTab, setActiveTab] = useState<'fixtures' | 'points'>('fixtures');
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams'>('fixtures');
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [showAddMatch, setShowAddMatch] = useState(false);
@@ -25,6 +25,11 @@ export default function TournamentDetail() {
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [editName, setEditName] = useState('');
   const [editStatus, setEditStatus] = useState<'Draft' | 'Live' | 'Finished'>('Draft');
+  
+  // Player Management State
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerRole, setNewPlayerRole] = useState<'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper'>('Batsman');
   
   // Add Match Form State
   const [teamAId, setTeamAId] = useState('');
@@ -109,6 +114,52 @@ export default function TournamentDetail() {
     }
   };
 
+  const addPlayerToTeam = async (teamId: string) => {
+    if (!id || !tournament || !newPlayerName.trim()) return;
+    
+    const updatedTeams = tournament.teams.map(team => {
+      if (team.id === teamId) {
+        return {
+          ...team,
+          players: [
+            ...team.players,
+            { id: Math.random().toString(36).substr(2, 9), name: newPlayerName, role: newPlayerRole }
+          ]
+        };
+      }
+      return team;
+    });
+
+    try {
+      await setDoc(doc(db, 'tournaments', id), { ...tournament, teams: updatedTeams });
+      setNewPlayerName('');
+      toast.success('Player added successfully!');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
+    }
+  };
+
+  const removePlayerFromTeam = async (teamId: string, playerId: string) => {
+    if (!id || !tournament) return;
+    
+    const updatedTeams = tournament.teams.map(team => {
+      if (team.id === teamId) {
+        return {
+          ...team,
+          players: team.players.filter(p => p.id !== playerId)
+        };
+      }
+      return team;
+    });
+
+    try {
+      await setDoc(doc(db, 'tournaments', id), { ...tournament, teams: updatedTeams });
+      toast.success('Player removed.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
+    }
+  };
+
   const addCustomMatch = async () => {
     if (!id || !teamAId || !teamBId || !matchName) return;
     
@@ -120,6 +171,7 @@ export default function TournamentDetail() {
     const matchId = Math.random().toString(36).substr(2, 9);
     const newMatch: Match = {
       id: matchId,
+      name: matchName,
       tournamentId: id,
       teamAId,
       teamBId,
@@ -289,6 +341,15 @@ export default function TournamentDetail() {
           >
             <BarChart2 className="w-4 h-4" /> Points Table
           </button>
+          <button 
+            onClick={() => setActiveTab('teams')}
+            className={cn(
+              "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+              activeTab === 'teams' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+            )}
+          >
+            <Users className="w-4 h-4" /> Teams
+          </button>
         </div>
 
         {canManage && activeTab === 'fixtures' && (
@@ -431,7 +492,10 @@ export default function TournamentDetail() {
           {matches.map((match, idx) => (
             <div key={match.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match {idx + 1}</span>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match {idx + 1}</span>
+                  <span className="text-xs font-black text-blue-600 uppercase tracking-tight">{match.name}</span>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className={cn(
                     "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
@@ -476,7 +540,7 @@ export default function TournamentDetail() {
             </div>
           ))}
         </div>
-      ) : (
+      ) : activeTab === 'points' ? (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -516,6 +580,83 @@ export default function TournamentDetail() {
               </tbody>
             </table>
           </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {tournament.teams.map(team => (
+            <div key={team.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+              <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">{team.name}</h3>
+                <span className="px-3 py-1 rounded-full bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest">
+                  {team.players.length} Players
+                </span>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                {canManage && (
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={selectedTeamId === team.id ? newPlayerName : ''}
+                      onChange={(e) => {
+                        setSelectedTeamId(team.id);
+                        setNewPlayerName(e.target.value);
+                      }}
+                      placeholder="Add player name"
+                      className="flex-1 px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold outline-none focus:bg-white focus:border-blue-500 transition-all"
+                    />
+                    <select 
+                      value={selectedTeamId === team.id ? newPlayerRole : 'Batsman'}
+                      onChange={(e) => {
+                        setSelectedTeamId(team.id);
+                        setNewPlayerRole(e.target.value as any);
+                      }}
+                      className="px-3 py-2 rounded-xl border border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-widest outline-none"
+                    >
+                      <option value="Batsman">Bat</option>
+                      <option value="Bowler">Bowl</option>
+                      <option value="All-Rounder">All</option>
+                      <option value="Wicket-Keeper">WK</option>
+                    </select>
+                    <button 
+                      onClick={() => addPlayerToTeam(team.id)}
+                      className="p-2 rounded-xl bg-blue-900 text-white hover:bg-blue-800 transition-all shadow-md"
+                    >
+                      <UserPlus className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                  {team.players.length === 0 ? (
+                    <p className="text-center py-8 text-slate-400 text-xs font-bold uppercase tracking-widest italic">No players added yet</p>
+                  ) : (
+                    team.players.map(player => (
+                      <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-100">
+                            {player.role.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{player.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{player.role}</p>
+                          </div>
+                        </div>
+                        {canManage && (
+                          <button 
+                            onClick={() => removePlayerFromTeam(team.id, player.id)}
+                            className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

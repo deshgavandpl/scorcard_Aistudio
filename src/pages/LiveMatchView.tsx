@@ -17,7 +17,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import Scorecard from '../components/Scorecard';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function LiveMatchView() {
   const { id } = useParams();
@@ -51,8 +51,116 @@ export default function LiveMatchView() {
   const nonStriker = (Object.values(currentInnings?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
   const bowler = currentInnings?.currentBowlerId ? currentInnings.bowlingStats[currentInnings.currentBowlerId] : null;
 
+  const isTransitioning = match.status === 'Live' && match.currentInnings === 2 && (!match.innings2 || match.innings2.ballHistory.length === 0);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (match.status === 'Finished') {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 pb-20 print:p-0">
+        {/* Champion Banner */}
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-slate-900 rounded-[3rem] p-12 text-center text-white shadow-2xl border-8 border-amber-500 relative overflow-hidden"
+        >
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <Trophy className="w-64 h-64 absolute -top-10 -left-10 rotate-12" />
+            <Trophy className="w-64 h-64 absolute -bottom-10 -right-10 -rotate-12" />
+          </div>
+          
+          <div className="relative z-10 space-y-6">
+            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-amber-500 text-slate-900 font-black uppercase tracking-[0.3em] text-xs shadow-lg">
+              <Trophy className="w-4 h-4" /> Champion
+            </div>
+            
+            <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic transform -skew-x-6 leading-none">
+              {match.winnerId === match.teamAId ? match.teamAName : match.teamBName}
+            </h1>
+            
+            <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 inline-block">
+              <p className="text-2xl font-black uppercase tracking-widest text-amber-400 italic">{match.resultMessage}</p>
+            </div>
+
+            {match.manOfTheMatch && (
+              <div className="pt-4">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Man of the Match</p>
+                <p className="text-3xl font-black uppercase tracking-tight text-white italic">{match.manOfTheMatch}</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Final Scorecard Window */}
+        <div className="space-y-12">
+          <div className="flex items-center justify-between px-4">
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">Final Scorecard</h2>
+            <button 
+              onClick={handlePrint}
+              className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest text-[10px] hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 print:hidden"
+            >
+              <History className="w-4 h-4" /> Download Ball-by-Ball PDF
+            </button>
+          </div>
+          
+          {match.innings1 && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-black uppercase tracking-widest text-slate-900 bg-slate-100 p-4 rounded-2xl border border-slate-200">1st Innings: {match.innings1.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}</h3>
+              <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
+            </div>
+          )}
+
+          {match.innings2 && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-black uppercase tracking-widest text-slate-900 bg-slate-100 p-4 rounded-2xl border border-slate-200">2nd Innings: {match.innings2.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}</h3>
+              <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
+            </div>
+          )}
+        </div>
+
+        {/* Ball History for PDF/Print */}
+        <div className="hidden print:block space-y-8 pt-12 border-t border-slate-200">
+          <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 text-center">Full Ball-by-Ball History</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            {[match.innings1, match.innings2].map((inn, i) => inn && (
+              <div key={i} className="space-y-4">
+                <h3 className="text-xl font-black uppercase tracking-widest border-b-4 border-slate-900 pb-2">
+                  Innings {i + 1}: {inn.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}
+                </h3>
+                <div className="space-y-1">
+                  {inn.ballHistory.map((ball, bi) => (
+                    <div key={bi} className="flex justify-between text-xs font-medium border-b border-slate-100 py-1">
+                      <span>Over {ball.over}.{ball.ball}</span>
+                      <span>{ball.isWicket ? 'WICKET' : ball.runs + (ball.isExtra ? ' (' + ball.extraType + ')' : '')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
+      {/* Transition Message */}
+      <AnimatePresence>
+        {isTransitioning && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-amber-500 text-slate-900 p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] text-sm shadow-lg"
+          >
+            Second innings started soon
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Broadcast Style Header */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-4">
