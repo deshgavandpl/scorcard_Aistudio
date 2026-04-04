@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import domtoimage from 'dom-to-image-more';
+import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { 
   ChevronLeft, 
@@ -12,7 +12,7 @@ import {
   Target,
   CheckCircle2,
   Loader2,
-  FileDown
+  Download
 } from 'lucide-react';
 import { Match, BatterStats, BowlerStats } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
@@ -98,27 +98,25 @@ export default function LiveMatchView() {
       // Small delay to ensure rendering
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const element = certificateRef.current.querySelector('.certificate-content') as HTMLElement;
+      const element = certificateRef.current.querySelector('.certificate-content-inner') as HTMLElement;
       if (!element) throw new Error('Certificate element not found');
 
-      const dataUrl = await domtoimage.toPng(element, {
-        quality: 1,
-        bgcolor: '#fdfbf7',
-        width: element.offsetWidth,
-        height: element.offsetHeight,
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 2, // Higher quality
+        backgroundColor: '#ffffff',
+        width: 595,
+        height: 842,
       });
       
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [element.offsetWidth, element.offsetHeight]
-      });
-      
-      pdf.addImage(dataUrl, 'PNG', 0, 0, element.offsetWidth, element.offsetHeight);
-      pdf.save(`Certificate_${match.manOfTheMatch?.replace(/\s+/g, '_')}.pdf`);
+      const link = document.createElement('a');
+      link.download = `Certificate_${match.manOfTheMatch?.replace(/\s+/g, '_')}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
+      console.error('Error generating PNG:', error);
+      alert('Failed to generate PNG. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -132,7 +130,7 @@ export default function LiveMatchView() {
         {/* Hidden Certificate for Generation */}
         <div className="fixed -left-[9999px] top-0 pointer-events-none" ref={certificateRef}>
           {match.manOfTheMatch && (
-            <div className="certificate-content">
+            <div className="certificate-content-inner" style={{ width: '595px', height: '842px' }}>
               <Certificate 
                 match={match}
                 playerName={match.manOfTheMatch}
@@ -181,12 +179,12 @@ export default function LiveMatchView() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Generating PDF...
+                      Generating PNG...
                     </>
                   ) : (
                     <>
-                      <FileDown className="w-5 h-5" />
-                      Download Official Certificate
+                      <Download className="w-5 h-5" />
+                      Download Official Certificate (PNG)
                     </>
                   )}
                 </button>
