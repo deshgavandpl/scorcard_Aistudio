@@ -17,12 +17,14 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import Scorecard from '../components/Scorecard';
+import Certificate from '../components/Certificate';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function LiveMatchView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { match, setMatch, loading } = useCricketScoring(id);
+  const [showCertificate, setShowCertificate] = useState(false);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -57,9 +59,45 @@ export default function LiveMatchView() {
     window.print();
   };
 
+  const getPlayerPerformance = (playerName: string) => {
+    let runs = 0;
+    let wickets = 0;
+    let balls = 0;
+
+    [match.innings1, match.innings2].forEach(inn => {
+      if (!inn) return;
+      
+      // Find in batting
+      const batter = (Object.values(inn.battingStats) as BatterStats[]).find(b => b.playerName === playerName);
+      if (batter) {
+        runs += batter.runs;
+        balls += batter.balls;
+      }
+
+      // Find in bowling
+      const bowler = (Object.values(inn.bowlingStats) as BowlerStats[]).find(b => b.playerName === playerName);
+      if (bowler) {
+        wickets += bowler.wickets;
+      }
+    });
+
+    const strikeRate = balls > 0 ? ((runs / balls) * 100).toFixed(1) : '0.0';
+    return { runs, wickets, strikeRate };
+  };
+
   if (match.status === 'Finished') {
+    const performance = match.manOfTheMatch ? getPlayerPerformance(match.manOfTheMatch) : { runs: 0, wickets: 0, strikeRate: '0.0' };
+
     return (
       <div className="max-w-4xl mx-auto space-y-8 pb-20 print:p-0">
+        {showCertificate && match.manOfTheMatch && (
+          <Certificate 
+            match={match}
+            playerName={match.manOfTheMatch}
+            performance={performance}
+            onClose={() => setShowCertificate(false)}
+          />
+        )}
         {/* Champion Banner */}
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
@@ -85,9 +123,17 @@ export default function LiveMatchView() {
             </div>
 
             {match.manOfTheMatch && (
-              <div className="pt-4">
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Man of the Match</p>
-                <p className="text-3xl font-black uppercase tracking-tight text-white italic">{match.manOfTheMatch}</p>
+              <div className="pt-4 space-y-4">
+                <div>
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Man of the Match</p>
+                  <p className="text-3xl font-black uppercase tracking-tight text-white italic">{match.manOfTheMatch}</p>
+                </div>
+                <button 
+                  onClick={() => setShowCertificate(true)}
+                  className="px-6 py-3 bg-amber-500 text-slate-900 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-amber-400 transition-all flex items-center gap-2 mx-auto shadow-xl"
+                >
+                  <Trophy className="w-4 h-4" /> Download Official Certificate
+                </button>
               </div>
             )}
           </div>
