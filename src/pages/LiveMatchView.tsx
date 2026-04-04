@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import domtoimage from 'dom-to-image-more';
+import { jsPDF } from 'jspdf';
 import { 
   ChevronLeft, 
   Zap, 
@@ -8,7 +10,9 @@ import {
   Users,
   User,
   Target,
-  CheckCircle2
+  CheckCircle2,
+  Loader2,
+  FileDown
 } from 'lucide-react';
 import { Match, BatterStats, BowlerStats } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
@@ -24,7 +28,8 @@ export default function LiveMatchView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { match, setMatch, loading } = useCricketScoring(id);
-  const [showCertificate, setShowCertificate] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const certificateRef = useRef<HTMLDivElement>(null);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -85,19 +90,59 @@ export default function LiveMatchView() {
     return { runs, wickets, strikeRate };
   };
 
+  const downloadCertificate = async () => {
+    if (!certificateRef.current || isGenerating) return;
+    
+    setIsGenerating(true);
+    try {
+      // Small delay to ensure rendering
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const element = certificateRef.current.querySelector('.certificate-content') as HTMLElement;
+      if (!element) throw new Error('Certificate element not found');
+
+      const dataUrl = await domtoimage.toPng(element, {
+        quality: 1,
+        bgcolor: '#fdfbf7',
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+      });
+      
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [element.offsetWidth, element.offsetHeight]
+      });
+      
+      pdf.addImage(dataUrl, 'PNG', 0, 0, element.offsetWidth, element.offsetHeight);
+      pdf.save(`Certificate_${match.manOfTheMatch?.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (match.status === 'Finished') {
     const performance = match.manOfTheMatch ? getPlayerPerformance(match.manOfTheMatch) : { runs: 0, wickets: 0, strikeRate: '0.0' };
 
     return (
       <div className="max-w-4xl mx-auto space-y-8 pb-20 print:p-0">
-        {showCertificate && match.manOfTheMatch && (
-          <Certificate 
-            match={match}
-            playerName={match.manOfTheMatch}
-            performance={performance}
-            onClose={() => setShowCertificate(false)}
-          />
-        )}
+        {/* Hidden Certificate for Generation */}
+        <div className="fixed -left-[9999px] top-0 pointer-events-none" ref={certificateRef}>
+          {match.manOfTheMatch && (
+            <div className="certificate-content">
+              <Certificate 
+                match={match}
+                playerName={match.manOfTheMatch}
+                performance={performance}
+                isHeadless={true}
+              />
+            </div>
+          )}
+        </div>
+
         {/* Champion Banner */}
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
@@ -129,10 +174,21 @@ export default function LiveMatchView() {
                   <p className="text-3xl font-black uppercase tracking-tight text-white italic">{match.manOfTheMatch}</p>
                 </div>
                 <button 
-                  onClick={() => setShowCertificate(true)}
-                  className="px-6 py-3 bg-amber-500 text-slate-900 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-amber-400 transition-all flex items-center gap-2 mx-auto shadow-xl"
+                  onClick={downloadCertificate}
+                  disabled={isGenerating}
+                  className="px-8 py-4 bg-amber-500 text-slate-900 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-amber-400 transition-all flex items-center gap-3 mx-auto shadow-2xl disabled:opacity-50 active:scale-95"
                 >
-                  <Trophy className="w-4 h-4" /> Download Official Certificate
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="w-5 h-5" />
+                      Download Official Certificate
+                    </>
+                  )}
                 </button>
               </div>
             )}
