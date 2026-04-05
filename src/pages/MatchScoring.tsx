@@ -12,18 +12,40 @@ import {
   AlertCircle,
   X,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  Share2,
+  Flame,
+  Volume2
 } from 'lucide-react';
-import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats } from '../types/cricket';
+import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats, BallEvent } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
-import { doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, deleteDoc, updateDoc, increment } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import Scorecard from '../components/Scorecard';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
+import { toPng } from 'html-to-image';
+
+const getHypeCommentary = (ball: BallEvent) => {
+  if (ball.isWicket) return "Khatam! Tata! Bye Bye! 💀 Gaya Bhai 🚶‍♂️";
+  if (ball.runs === 6) return "Bawaal 6! 🚀🔥 Khatarnak Chhakka!";
+  if (ball.runs === 4) return "Chauka! 💥 Boundary paar!";
+  if (ball.isExtra) return "Faltu Ball! 🙄 (Extra)";
+  if (ball.runs === 0) return "Shanti 🤫 Dot Ball";
+  return `${ball.runs} Run(s) 🏏`;
+};
+
+const speakHype = (text: string) => {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'hi-IN';
+  utterance.rate = 1.1;
+  window.speechSynthesis.speak(utterance);
+};
 
 export default function MatchScoring() {
   const { id } = useParams();
@@ -82,6 +104,48 @@ export default function MatchScoring() {
   const [showInningsOverModal, setShowInningsOverModal] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [lastInnings, setLastInnings] = useState(1);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isHypeMuted, setIsHypeMuted] = useState(false);
+
+  const handleHype = async () => {
+    if (!id || !match) return;
+    try {
+      await updateDoc(doc(db, 'matches', id), {
+        hypeCount: increment(1)
+      });
+    } catch (error) {
+      console.error("Hype failed:", error);
+    }
+  };
+
+  const shareScorecard = async () => {
+    const el = document.getElementById('share-card');
+    if (!el) return;
+    
+    setIsSharing(true);
+    try {
+      const dataUrl = await toPng(el, { quality: 0.95, cacheBust: true });
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'scorecard.png', { type: 'image/png' });
+
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Apna Cricket Scorecard',
+          text: `${match?.teamAName} vs ${match?.teamBName} Live Score!`,
+          files: [file]
+        });
+      } else {
+        const link = document.createElement('a');
+        link.download = 'scorecard.png';
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch (error) {
+      toast.error('Failed to generate scorecard image');
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   useEffect(() => {
     if (match?.status === 'Finished' && !showFanfare) {
@@ -186,6 +250,7 @@ export default function MatchScoring() {
       oversLimit: overs,
       status: 'Live',
       currentInnings: 1,
+      hypeCount: 0,
       createdAt: match?.createdAt || Date.now(),
       innings1: {
         battingTeamId,
@@ -391,6 +456,24 @@ export default function MatchScoring() {
       strikerId: striker.playerId,
       bowlerId: bowler.playerId
     });
+
+    // Hype Feedback
+    const ballEvent: BallEvent = {
+      over: currentInn.overs,
+      ball: currentInn.balls + 1,
+      runs,
+      isExtra,
+      extraType,
+      isWicket,
+      wicketType: wType,
+      fielderName: fName,
+      strikerId: striker.playerId,
+      bowlerId: bowler.playerId
+    };
+    const commentary = getHypeCommentary(ballEvent);
+    if (!isHypeMuted) {
+      speakHype(commentary);
+    }
   };
 
   const saveResultDetails = async () => {
@@ -1009,6 +1092,24 @@ export default function MatchScoring() {
         </div>
         <div className="flex gap-1">
           <button 
+            onClick={() => setIsHypeMuted(!isHypeMuted)}
+            className={cn(
+              "p-1.5 rounded-lg transition-colors",
+              isHypeMuted ? "text-slate-300" : "text-blue-500 bg-blue-50"
+            )}
+            title="Toggle Commentary Audio"
+          >
+            <Volume2 className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={shareScorecard}
+            disabled={isSharing}
+            className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-blue-600"
+            title="Share Scorecard"
+          >
+            <Share2 className={cn("w-4 h-4", isSharing && "animate-spin")} />
+          </button>
+          <button 
             onClick={() => setShowDeleteConfirm(true)}
             className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-red-400" 
             title="Delete Match"
@@ -1367,9 +1468,33 @@ export default function MatchScoring() {
           )}
 
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm h-full flex flex-col">
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-              <History className="w-4 h-4" /> Recent Balls
-            </h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <History className="w-4 h-4" /> Recent Balls
+              </h3>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleHype}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full border border-amber-100 hover:bg-amber-100 transition-all active:scale-90"
+                >
+                  <Flame className="w-4 h-4 fill-amber-500" />
+                  <span className="text-xs font-black">{match.hypeCount || 0}</span>
+                </button>
+              </div>
+            </div>
+            
+            {currentInnings?.ballHistory.length > 0 && (
+              <div className="mb-6 p-4 bg-blue-900 rounded-2xl text-white shadow-inner relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-10">
+                  <Flame className="w-12 h-12" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-300 mb-1">Live Commentary</p>
+                <p className="text-lg font-black italic transform -skew-x-6">
+                  {getHypeCommentary(currentInnings.ballHistory[currentInnings.ballHistory.length - 1])}
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2 overflow-y-auto max-h-[400px]">
               {currentInnings?.ballHistory.slice().reverse().map((ball, idx) => (
                 <div 
@@ -1402,6 +1527,80 @@ export default function MatchScoring() {
         confirmText="Delete Now"
         isDestructive={true}
       />
+
+      {/* Hidden Share Card Template */}
+      <div className="fixed -left-[9999px] top-0">
+        <div 
+          id="share-card" 
+          className="w-[1080px] h-[1080px] bg-slate-900 p-16 flex flex-col justify-between relative overflow-hidden"
+          style={{ fontFamily: 'Inter, sans-serif' }}
+        >
+          {/* Neon Accents */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 blur-[120px] rounded-full"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-600/20 blur-[120px] rounded-full"></div>
+          
+          <div className="relative z-10 flex justify-between items-start">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                <span className="text-white font-black italic text-4xl">A</span>
+              </div>
+              <div>
+                <h1 className="text-white text-3xl font-black uppercase tracking-tighter italic transform -skew-x-6">Apna Cricket</h1>
+                <p className="text-blue-400 text-sm font-black uppercase tracking-widest">Live Match Update</p>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
+              <p className="text-white text-xl font-black uppercase tracking-widest italic">{match.status}</p>
+            </div>
+          </div>
+
+          <div className="relative z-10 text-center space-y-8">
+            <div className="flex justify-center items-center gap-12">
+              <div className="text-right flex-1">
+                <h2 className="text-white text-6xl font-black uppercase tracking-tighter mb-2">{match.teamAName}</h2>
+                {match.currentInnings === 1 && match.innings1 && (
+                  <p className="text-blue-400 text-4xl font-black italic">{match.innings1.runs}/{match.innings1.wickets}</p>
+                )}
+              </div>
+              <div className="w-px h-32 bg-white/20"></div>
+              <div className="text-left flex-1">
+                <h2 className="text-white text-6xl font-black uppercase tracking-tighter mb-2">{match.teamBName}</h2>
+                {match.currentInnings === 2 && match.innings2 && (
+                  <p className="text-blue-400 text-4xl font-black italic">{match.innings2.runs}/{match.innings2.wickets}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-xl p-12 rounded-[3rem] border border-white/10 shadow-2xl">
+              {currentInnings?.ballHistory.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-blue-400 text-2xl font-black uppercase tracking-[0.3em]">Latest Action</p>
+                  <h3 className="text-white text-7xl font-black italic transform -skew-x-6 leading-tight">
+                    {getHypeCommentary(currentInnings.ballHistory[currentInnings.ballHistory.length - 1])}
+                  </h3>
+                </div>
+              ) : (
+                <h3 className="text-white text-5xl font-black italic transform -skew-x-6">Match is heating up! 🔥</h3>
+              )}
+            </div>
+          </div>
+
+          <div className="relative z-10 flex justify-between items-end">
+            <div className="space-y-2">
+              <p className="text-white/40 text-sm font-black uppercase tracking-widest">Powered by</p>
+              <p className="text-white text-xl font-black uppercase tracking-tighter italic">ApnaCricket.co.in</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="px-6 py-3 bg-blue-600 rounded-xl">
+                <p className="text-white font-black uppercase tracking-widest text-sm">#GullyCricket</p>
+              </div>
+              <div className="px-6 py-3 bg-purple-600 rounded-xl">
+                <p className="text-white font-black uppercase tracking-widest text-sm">#CricketHype</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
