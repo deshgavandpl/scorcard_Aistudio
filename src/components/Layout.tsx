@@ -373,7 +373,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <a href="https://ApnaCricket.co.in" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
+              <a href="https://lightgreen-alpaca-673553.hostingersite.com/index.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
                 <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-all">
                   <span className="text-white font-black italic text-xl">A</span>
                 </div>
@@ -541,7 +541,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="bg-slate-900 text-white py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <a href="https://ApnaCricket.co.in" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
+          <a href="https://lightgreen-alpaca-673553.hostingersite.com/index.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center group-hover:scale-110 transition-all">
               <span className="text-white font-black italic text-sm">A</span>
             </div>
