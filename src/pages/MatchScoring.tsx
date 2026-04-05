@@ -514,11 +514,7 @@ export default function MatchScoring() {
 
   if (isSettingUp) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 mb-8 font-bold uppercase text-xs tracking-widest transition-colors">
-          <ChevronLeft className="w-4 h-4" /> Back to Live
-        </button>
-
+      <div className="max-w-2xl mx-auto pt-8">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
           <div className="bg-blue-900 p-8 text-white">
             <h1 className="text-3xl font-black uppercase tracking-tighter transform -skew-x-6">New Match Setup</h1>
@@ -637,15 +633,9 @@ export default function MatchScoring() {
 
                 <div className="flex gap-4 pt-4">
                   <button 
-                    onClick={() => setSetupStep(1)}
-                    className="flex-1 py-4 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
-                  >
-                    Back
-                  </button>
-                  <button 
                     disabled={!tossWinner}
                     onClick={startMatch}
-                    className="flex-[2] py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg disabled:opacity-50"
+                    className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg disabled:opacity-50"
                   >
                     Start Match
                   </button>
