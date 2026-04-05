@@ -206,97 +206,112 @@ export default function MatchScoring() {
     const currentInn = updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2;
     if (!currentInn) return;
 
+    // Deep copy stats to avoid mutation issues
+    currentInn.battingStats = { ...currentInn.battingStats };
+    currentInn.bowlingStats = { ...currentInn.bowlingStats };
+
     const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const nonStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
     const bowlerId = currentInn.currentBowlerId;
 
-    // Sequential Validation
+    let hasError = false;
+
+    // 1. Handle Striker
     if (!striker) {
-      if (!strikerName) {
+      if (!strikerName.trim()) {
         setError("Please enter striker name");
-        return;
-      }
-      if (currentInn.battingStats[strikerName]?.isOut) {
+        hasError = true;
+      } else if (currentInn.battingStats[strikerName]?.isOut) {
         setError(`${strikerName} is already out`);
-        return;
-      }
-      // Add striker
-      currentInn.battingStats[strikerName] = {
-        playerId: strikerName,
-        playerName: strikerName,
-        runs: 0,
-        balls: 0,
-        fours: 0,
-        sixes: 0,
-        isOut: false,
-        isStriker: true
-      };
-      setStrikerName(''); // Clear for next use
-    } else if (!nonStriker) {
-      if (!nonStrikerName) {
-        setError("Please enter non-striker name");
-        return;
-      }
-      if (nonStrikerName === striker.playerName) {
-        setError("Striker and Non-Striker cannot be the same person");
-        return;
-      }
-      if (currentInn.battingStats[nonStrikerName]?.isOut) {
-        setError(`${nonStrikerName} is already out`);
-        return;
-      }
-      // Add non-striker
-      currentInn.battingStats[nonStrikerName] = {
-        playerId: nonStrikerName,
-        playerName: nonStrikerName,
-        runs: 0,
-        balls: 0,
-        fours: 0,
-        sixes: 0,
-        isOut: false,
-        isStriker: false
-      };
-      setNonStrikerName(''); // Clear for next use
-    } else if (!bowlerId) {
-      if (!bowlerName) {
-        setError("Please enter bowler name");
-        return;
-      }
-      // Check if bowler bowled the last over
-      if (currentInn.ballHistory.length > 0) {
-        const lastBall = currentInn.ballHistory[currentInn.ballHistory.length - 1];
-        if (lastBall.bowlerId === bowlerName && currentInn.balls === 0) {
-          setError(`${bowlerName} cannot bowl consecutive overs`);
-          return;
-        }
-      }
-      // Add bowler
-      currentInn.currentBowlerId = bowlerName;
-      if (!currentInn.bowlingStats[bowlerName]) {
-        currentInn.bowlingStats[bowlerName] = {
-          playerId: bowlerName,
-          playerName: bowlerName,
-          overs: 0,
-          balls: 0,
+        hasError = true;
+      } else {
+        currentInn.battingStats[strikerName] = {
+          playerId: strikerName,
+          playerName: strikerName,
           runs: 0,
-          wickets: 0,
-          maiden: 0
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          isOut: false,
+          isStriker: true
         };
       }
-      setBowlerName(''); // Clear for next use
     }
+
+    if (hasError) return;
+
+    // 2. Handle Non-Striker
+    if (!nonStriker) {
+      const currentStrikerName = striker?.playerName || strikerName;
+      if (!nonStrikerName.trim()) {
+        setError("Please enter non-striker name");
+        hasError = true;
+      } else if (nonStrikerName === currentStrikerName) {
+        setError("Striker and Non-Striker cannot be the same person");
+        hasError = true;
+      } else if (currentInn.battingStats[nonStrikerName]?.isOut) {
+        setError(`${nonStrikerName} is already out`);
+        hasError = true;
+      } else {
+        currentInn.battingStats[nonStrikerName] = {
+          playerId: nonStrikerName,
+          playerName: nonStrikerName,
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          isOut: false,
+          isStriker: false
+        };
+      }
+    }
+
+    if (hasError) return;
+
+    // 3. Handle Bowler
+    if (!bowlerId) {
+      if (!bowlerName.trim()) {
+        setError("Please enter bowler name");
+        hasError = true;
+      } else {
+        // Check if bowler bowled the last over
+        if (currentInn.ballHistory.length > 0) {
+          const lastBall = currentInn.ballHistory[currentInn.ballHistory.length - 1];
+          if (lastBall.bowlerId === bowlerName && currentInn.balls === 0) {
+            setError(`${bowlerName} cannot bowl consecutive overs`);
+            hasError = true;
+          }
+        }
+        
+        if (!hasError) {
+          currentInn.currentBowlerId = bowlerName;
+          if (!currentInn.bowlingStats[bowlerName]) {
+            currentInn.bowlingStats[bowlerName] = {
+              playerId: bowlerName,
+              playerName: bowlerName,
+              overs: 0,
+              balls: 0,
+              runs: 0,
+              wickets: 0,
+              maiden: 0
+            };
+          }
+        }
+      }
+    }
+
+    if (hasError) return;
 
     try {
       await setDoc(doc(db, 'matches', match.id), updatedMatch);
-      // Only close modal if all players are now set
-      const finalStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
-      const finalNonStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
-      const finalBowlerId = currentInn.currentBowlerId;
       
-      if (finalStriker && finalNonStriker && finalBowlerId) {
-        setIsSelectingPlayers(false);
-      }
+      // Clear local states
+      setStrikerName('');
+      setNonStrikerName('');
+      setBowlerName('');
       setError(null);
+      
+      // The useEffect will handle closing the modal via setIsSelectingPlayers(false)
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `matches/${match.id}`);
     }
@@ -816,12 +831,25 @@ export default function MatchScoring() {
               </div>
               <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-2">Innings Over</h2>
               <p className="text-slate-500 font-bold mb-8">First inning is over now. Completed successfully.</p>
-              <button 
-                onClick={() => setShowInningsOverModal(false)}
-                className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
-              >
-                Start Second Innings
-              </button>
+              <div className="space-y-3">
+                <button 
+                  onClick={() => setShowInningsOverModal(false)}
+                  className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+                >
+                  Start Second Innings
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowInningsOverModal(false);
+                    // Scroll to scorecard section
+                    const el = document.getElementById('full-scorecard');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
+                >
+                  Review Scorecard
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -941,8 +969,17 @@ export default function MatchScoring() {
             <ChevronLeft className="w-6 h-6 text-slate-600" />
           </button>
           <div>
-            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none">{match.teamAName} vs {match.teamBName}</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{match.oversLimit} Overs Match • {match.status}</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none">{match.teamAName} vs {match.teamBName}</h2>
+              {match.name && (
+                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest">
+                  {match.name}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+              {match.tournamentId ? 'Tournament Match' : 'Friendly Match'} • {match.oversLimit} Overs • {match.status}
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -1283,7 +1320,7 @@ export default function MatchScoring() {
           )}
 
           {/* Full Scorecard View */}
-          <div className="space-y-8">
+          <div id="full-scorecard" className="space-y-8">
             <div className="flex items-center gap-4">
               <div className="h-px flex-1 bg-slate-200"></div>
               <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Full Scorecard</h2>

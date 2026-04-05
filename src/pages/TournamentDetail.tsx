@@ -488,55 +488,84 @@ export default function TournamentDetail() {
       </AnimatePresence>
 
       {activeTab === 'fixtures' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {matches.map((match, idx) => (
-            <div key={match.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match {idx + 1}</span>
-                  <span className="text-xs font-black text-blue-600 uppercase tracking-tight">{match.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
-                    match.status === 'Live' ? "bg-red-100 text-red-600 animate-pulse" : 
-                    match.status === 'Finished' ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"
-                  )}>
-                    {match.status}
-                  </span>
-                  {canManage && (
-                    <button 
-                      onClick={() => deleteMatch(match.id)}
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                      title="Delete Match"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between gap-4 mb-6">
-                <div className="flex-1 text-center font-black uppercase text-slate-900 truncate">{match.teamAName}</div>
-                <div className="text-slate-300 font-black italic">VS</div>
-                <div className="flex-1 text-center font-black uppercase text-slate-900 truncate">{match.teamBName}</div>
-              </div>
+        <div className="space-y-8">
+          {Object.entries(
+            matches.reduce((acc, match) => {
+              const stage = match.name || 'League Stage';
+              if (!acc[stage]) acc[stage] = [];
+              acc[stage].push(match);
+              return acc;
+            }, {} as Record<string, Match[]>)
+          ).map(([stage, stageMatches]) => (
+            <div key={stage} className="space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 border-l-4 border-blue-900 pl-3">{stage}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(stageMatches as Match[]).map((match, idx) => (
+                  <div key={match.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match {idx + 1}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
+                          match.status === 'Live' ? "bg-red-100 text-red-600 animate-pulse" : 
+                          match.status === 'Finished' ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"
+                        )}>
+                          {match.status}
+                        </span>
+                        {canManage && (
+                          <button 
+                            onClick={() => deleteMatch(match.id)}
+                            className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                            title="Delete Match"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between gap-4 mb-6">
+                      <div className="flex-1 text-center">
+                        <div className="font-black uppercase text-slate-900 truncate">{match.teamAName}</div>
+                        {match.status !== 'Upcoming' && match.innings1 && (
+                          <div className="text-xs font-bold text-blue-600 mt-1">
+                            {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
+                             match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-slate-300 font-black italic">VS</div>
+                      <div className="flex-1 text-center">
+                        <div className="font-black uppercase text-slate-900 truncate">{match.teamBName}</div>
+                        {match.status !== 'Upcoming' && match.innings1 && (
+                          <div className="text-xs font-bold text-blue-600 mt-1">
+                            {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
+                             match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-              {match.status !== 'Finished' ? (
-                <Link 
-                  to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
-                  className="w-full py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-blue-900 transition-all"
-                >
-                  <Play className="w-3 h-3 fill-white" /> {match.status === 'Live' ? (canManage ? 'Resume Scoring' : 'View Live Score') : (canManage ? 'Start Scoring' : 'View Match')}
-                </Link>
-              ) : (
-                <Link 
-                  to={`/match/${match.id}`}
-                  className="w-full py-3 rounded-xl bg-emerald-50 text-emerald-700 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
-                >
-                  <CheckCircle className="w-3 h-3" /> Match Completed
-                </Link>
-              )}
+                    {match.status !== 'Finished' ? (
+                      <Link 
+                        to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
+                        className="w-full py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-blue-900 transition-all"
+                      >
+                        <Play className="w-3 h-3 fill-white" /> {match.status === 'Live' ? (canManage ? 'Resume Scoring' : 'View Live Score') : (canManage ? 'Start Scoring' : 'View Match')}
+                      </Link>
+                    ) : (
+                      <Link 
+                        to={`/match/${match.id}`}
+                        className="w-full py-3 rounded-xl bg-emerald-50 text-emerald-700 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle className="w-3 h-3" /> Match Completed
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
