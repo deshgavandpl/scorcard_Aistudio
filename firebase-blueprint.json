@@ -63,6 +63,18 @@
         "players": { "type": "array" }
       },
       "required": ["id", "name"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application settings.",
+      "type": "object",
+      "properties": {
+        "youtube": { "type": "string" },
+        "instagram": { "type": "string" },
+        "facebook": { "type": "string" },
+        "website": { "type": "string" },
+        "linkedin": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -77,6 +89,10 @@
     "/teams/{teamId}": {
       "schema": "Team",
       "description": "Individual team documents."
+    },
+    "/settings/{settingId}": {
+      "schema": "Settings",
+      "description": "Global settings documents."
     }
   }
 }

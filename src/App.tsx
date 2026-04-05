@@ -11,6 +11,7 @@ import TournamentDetail from './pages/TournamentDetail';
 import LiveMatchView from './pages/LiveMatchView';
 import Stats from './pages/Stats';
 import Teams from './pages/Teams';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/tournament/:id" element={<TournamentDetail />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/teams" element={<Teams />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>
     </Router>
