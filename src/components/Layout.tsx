@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User } from 'lucide-react';
+import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User, Mail, Shield, Phone, MessageSquare, Send } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
+import { motion, AnimatePresence } from 'motion/react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { toast } from 'sonner';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,9 +18,16 @@ export default function Layout({ children }: LayoutProps) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [adminId, setAdminId] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  // Contact Form State
+  const [contactForm, setContactForm] = useState({ name: '', mobile: '', issue: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -64,6 +74,30 @@ export default function Layout({ children }: LayoutProps) {
     localStorage.removeItem('isAdminMode');
   };
 
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.mobile || !contactForm.issue) {
+      toast.error('Please fill all fields');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, 'contacts'), {
+        ...contactForm,
+        createdAt: serverTimestamp(),
+        userId: user?.uid || 'anonymous'
+      });
+      toast.success('Message sent! We will contact you soon.');
+      setContactForm({ name: '', mobile: '', issue: '' });
+      setShowContact(false);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'Live Score', path: '/live', icon: PlayCircle },
@@ -74,48 +108,265 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Admin Login Modal */}
-      {showAdminLogin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Admin Login</h2>
-              <button onClick={() => setShowAdminLogin(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <form onSubmit={handleAdminLogin} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Admin ID</label>
-                <input 
-                  type="text" 
-                  value={adminId}
-                  onChange={(e) => setAdminId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold"
-                  placeholder="Enter ID"
-                />
+      <AnimatePresence>
+        {/* Admin Login Modal */}
+        {showAdminLogin && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Admin Login</h2>
+                <button onClick={() => setShowAdminLogin(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">PIN</label>
-                <input 
-                  type="password" 
-                  value={adminPass}
-                  onChange={(e) => setAdminPass(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold"
-                  placeholder="Enter PIN"
-                />
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Admin ID</label>
+                  <input 
+                    type="text" 
+                    value={adminId}
+                    onChange={(e) => setAdminId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold"
+                    placeholder="Enter ID"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">PIN</label>
+                  <input 
+                    type="password" 
+                    value={adminPass}
+                    onChange={(e) => setAdminPass(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold"
+                    placeholder="Enter PIN"
+                  />
+                </div>
+                {loginError && <p className="text-red-500 text-xs font-bold uppercase">{loginError}</p>}
+                <button 
+                  type="submit"
+                  className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+                >
+                  Unlock Admin Mode
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Contact Modal */}
+        {showContact && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none">Contact Us</h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Apna Cricket System</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowContact(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-              {loginError && <p className="text-red-500 text-xs font-bold uppercase">{loginError}</p>}
+              
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <User className="w-3 h-3" /> Full Name
+                  </label>
+                  <input 
+                    type="text" 
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm(s => ({ ...s, name: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold text-sm"
+                    placeholder="Your Name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <Phone className="w-3 h-3" /> Mobile Number
+                  </label>
+                  <input 
+                    type="tel" 
+                    value={contactForm.mobile}
+                    onChange={(e) => setContactForm(s => ({ ...s, mobile: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold text-sm"
+                    placeholder="+91 00000 00000"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <MessageSquare className="w-3 h-3" /> Describe Issue
+                  </label>
+                  <textarea 
+                    value={contactForm.issue}
+                    onChange={(e) => setContactForm(s => ({ ...s, issue: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold text-sm min-h-[100px] resize-none"
+                    placeholder="Tell us what's happening..."
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Sending...' : <><Send className="w-4 h-4" /> Send Message</>}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Privacy Modal */}
+        {showPrivacy && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl space-y-6 max-h-[80vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center sticky top-0 bg-white pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none">Privacy Policy</h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Official Policy</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowPrivacy(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-6 text-slate-600">
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">1. Data Collection</h3>
+                  <p className="text-xs leading-relaxed font-medium">
+                    We collect minimal data required for your cricket experience, including your name, email, and match statistics. This data is used solely to power the Apna Cricket System features.
+                  </p>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">2. Data Usage</h3>
+                  <p className="text-xs leading-relaxed font-medium">
+                    Your data helps us manage tournaments, track player performance, and provide real-time scoring. We never sell your personal information to third parties.
+                  </p>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">3. Security</h3>
+                  <p className="text-xs leading-relaxed font-medium">
+                    We use industry-standard encryption and secure Firebase infrastructure to protect your data. Your privacy is our top priority.
+                  </p>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">4. Your Rights</h3>
+                  <p className="text-xs leading-relaxed font-medium">
+                    You have the right to access, update, or request deletion of your data at any time through your account settings or by contacting our support team.
+                  </p>
+                </section>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase text-center">
+                    Last Updated: April 2026 • © Apna Cricket System
+                  </p>
+                </div>
+              </div>
+
               <button 
-                type="submit"
-                className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+                onClick={() => setShowPrivacy(false)}
+                className="w-full py-4 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
               >
-                Unlock Admin Mode
+                I Understand
               </button>
-            </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* About Modal */}
+        {showAbout && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-900 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-black italic text-xl">A</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none">About Us</h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Apna Cricket System</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowAbout(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4 text-slate-600">
+                <p className="text-sm font-medium leading-relaxed">
+                  <span className="font-black text-blue-900">Apna Cricket System</span> is the ultimate digital companion for local tennis cricket in India. 
+                </p>
+                <p className="text-sm font-medium leading-relaxed">
+                  We empower village leagues and local legends with professional-grade scoring, real-time auctions, and comprehensive tournament management tools.
+                </p>
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <p className="text-xs font-bold text-blue-900 uppercase tracking-widest text-center">
+                    Powering every village cricket league of India.
+                  </p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowAbout(false)}
+                className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
@@ -298,9 +549,9 @@ export default function Layout({ children }: LayoutProps) {
           </a>
           <p className="text-slate-400 text-sm">© 2026 Apna Cricket. Built for local legends.</p>
           <div className="flex gap-4">
-            <a href="#" className="text-slate-400 hover:text-white transition-colors">About</a>
-            <a href="#" className="text-slate-400 hover:text-white transition-colors">Contact</a>
-            <a href="#" className="text-slate-400 hover:text-white transition-colors">Privacy</a>
+            <button onClick={() => setShowAbout(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">About</button>
+            <button onClick={() => setShowContact(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Contact</button>
+            <button onClick={() => setShowPrivacy(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Privacy</button>
           </div>
         </div>
       </footer>

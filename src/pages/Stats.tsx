@@ -106,17 +106,17 @@ export default function Stats() {
   const records = getTournamentRecords();
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 px-2 md:px-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-2 md:px-0">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Player Stats</h1>
-          <p className="text-slate-500 font-medium">Performance tracking for all local legends.</p>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Player Stats</h1>
+          <p className="text-slate-500 text-xs md:text-sm font-medium uppercase tracking-wider">Performance tracking for local legends.</p>
         </div>
-        <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
           <button 
             onClick={() => setActiveTab('batting')}
             className={cn(
-              "px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+              "flex-1 md:flex-none px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
               activeTab === 'batting' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
@@ -125,7 +125,7 @@ export default function Stats() {
           <button 
             onClick={() => setActiveTab('bowling')}
             className={cn(
-              "px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+              "flex-1 md:flex-none px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
               activeTab === 'bowling' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
@@ -134,132 +134,149 @@ export default function Stats() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Leaderboard */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Player</th>
-                    {activeTab === 'batting' ? (
-                      <>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Runs</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Balls</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">S/R</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">4s/6s</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Wkts</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Overs</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Econ</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Runs</th>
-                      </>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {(activeTab === 'batting' ? battingStats : bowlingStats).map((s, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-black text-slate-300 w-4">{idx + 1}</span>
-                          <span className="font-bold text-slate-900 uppercase tracking-tight group-hover:text-blue-600 transition-colors">{s.name}</span>
-                        </div>
-                      </td>
-                      {activeTab === 'batting' ? (
-                        <>
-                          <td className="px-6 py-4 text-center font-black text-slate-900">{s.runs}</td>
-                          <td className="px-6 py-4 text-center text-slate-500 font-medium">{s.balls}</td>
-                          <td className="px-6 py-4 text-center font-bold text-blue-600">
-                            {s.balls > 0 ? ((s.runs / s.balls) * 100).toFixed(1) : '0.0'}
-                          </td>
-                          <td className="px-6 py-4 text-center text-slate-400 text-xs font-bold">{s.fours}/{s.sixes}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-6 py-4 text-center font-black text-emerald-600">{s.wickets}</td>
-                          <td className="px-6 py-4 text-center text-slate-500 font-medium">{s.overs}.{s.balls}</td>
-                          <td className="px-6 py-4 text-center font-bold text-amber-600">
-                            {s.overs > 0 ? (s.runs / (s.overs + s.balls/6)).toFixed(2) : '0.00'}
-                          </td>
-                          <td className="px-6 py-4 text-center text-slate-400 font-bold">{s.runs}</td>
-                        </>
-                      )}
-                    </tr>
-                  ))}
-                  {(activeTab === 'batting' ? battingStats : bowlingStats).length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No data available yet.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+      {/* Top Highlights Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Top Performer / Leading Scorer */}
+        <div className="bg-blue-900 rounded-2xl p-5 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <TrendingUp className="w-16 h-16" />
           </div>
-        </div>
-
-        {/* Sidebar Highlights */}
-        <div className="space-y-6">
-          <div className="bg-blue-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <TrendingUp className="w-20 h-20" />
-            </div>
-            <h3 className="text-lg font-black uppercase tracking-tight mb-6 flex items-center gap-2 relative z-10">
-              <Zap className="w-5 h-5 fill-amber-400 text-amber-400" /> Top Performer
-            </h3>
-            
-            {battingStats.length > 0 ? (
-              <div className="space-y-6 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-blue-800 rounded-2xl flex items-center justify-center border border-blue-700 shadow-lg">
-                    <User className="w-8 h-8 text-blue-300" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black uppercase tracking-tight leading-none">{battingStats[0].name}</p>
-                    <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mt-1">Leading Scorer</p>
-                  </div>
+          <h3 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
+            <Zap className="w-4 h-4 fill-amber-400 text-amber-400" /> Top Performer
+          </h3>
+          
+          {(activeTab === 'batting' ? battingStats : bowlingStats).length > 0 ? (
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-800 rounded-xl flex items-center justify-center border border-blue-700 shadow-lg">
+                  <User className="w-6 h-6 text-blue-300" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-800/50 p-4 rounded-2xl border border-blue-700">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-1">Total Runs</p>
-                    <p className="text-2xl font-black">{battingStats[0].runs}</p>
-                  </div>
-                  <div className="bg-blue-800/50 p-4 rounded-2xl border border-blue-700">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-1">Strike Rate</p>
-                    <p className="text-2xl font-black">
-                      {((battingStats[0].runs / battingStats[0].balls) * 100).toFixed(1)}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-xl font-black uppercase tracking-tight leading-none">{(activeTab === 'batting' ? battingStats : bowlingStats)[0].name}</p>
+                  <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest mt-1">
+                    {activeTab === 'batting' ? 'Leading Scorer' : 'Top Wicket Taker'}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <p className="text-blue-300 italic text-sm">Waiting for match results...</p>
-            )}
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">Tournament Records</h3>
-            <div className="space-y-4">
-              <RecordItem 
-                label="Highest Score" 
-                value={records.highestScore.runs} 
-                player={records.highestScore.player} 
-              />
-              <RecordItem 
-                label="Best Bowling" 
-                value={`${records.bestBowling.wickets}/${records.bestBowling.runs}`} 
-                player={records.bestBowling.player} 
-              />
-              <RecordItem 
-                label="Most Sixes" 
-                value={records.mostSixes.count} 
-                player={records.mostSixes.player} 
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-blue-800/50 p-3 rounded-xl border border-blue-700">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">
+                    {activeTab === 'batting' ? 'Total Runs' : 'Wickets'}
+                  </p>
+                  <p className="text-xl font-black">
+                    {activeTab === 'batting' ? battingStats[0].runs : bowlingStats[0].wickets}
+                  </p>
+                </div>
+                <div className="bg-blue-800/50 p-3 rounded-xl border border-blue-700">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">
+                    {activeTab === 'batting' ? 'Strike Rate' : 'Economy'}
+                  </p>
+                  <p className="text-xl font-black">
+                    {activeTab === 'batting' 
+                      ? ((battingStats[0].runs / battingStats[0].balls) * 100).toFixed(1)
+                      : (bowlingStats[0].overs > 0 ? (bowlingStats[0].runs / (bowlingStats[0].overs + bowlingStats[0].balls/6)).toFixed(2) : '0.00')
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
+          ) : (
+            <p className="text-blue-300 italic text-xs">Waiting for match results...</p>
+          )}
+        </div>
+
+        {/* Tournament Records */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500" /> Tournament Records
+          </h3>
+          <div className="grid grid-cols-1 gap-2">
+            <RecordItem 
+              label="Highest Score" 
+              value={records.highestScore.runs} 
+              player={records.highestScore.player} 
+            />
+            <RecordItem 
+              label="Best Bowling" 
+              value={`${records.bestBowling.wickets}/${records.bestBowling.runs}`} 
+              player={records.bestBowling.player} 
+            />
+            <RecordItem 
+              label="Most Sixes" 
+              value={records.mostSixes.count} 
+              player={records.mostSixes.player} 
+            />
           </div>
+        </div>
+      </div>
+
+      {/* All Player List - Moved to Bottom */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+          <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">All Player Rankings</h3>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            {(activeTab === 'batting' ? battingStats : bowlingStats).length} Players
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/30">
+                <th className="px-3 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Player</th>
+                {activeTab === 'batting' ? (
+                  <>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Runs</th>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Balls</th>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">S/R</th>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">4s/6s</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Wkts</th>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Overs</th>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Econ</th>
+                    <th className="px-2 md:px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Runs</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {(activeTab === 'batting' ? battingStats : bowlingStats).map((s, idx) => (
+                <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-3 md:px-6 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-300 w-3">{idx + 1}</span>
+                      <span className="text-xs font-bold text-slate-900 uppercase tracking-tight group-hover:text-blue-600 transition-colors truncate max-w-[80px] md:max-w-none">{s.name}</span>
+                    </div>
+                  </td>
+                  {activeTab === 'batting' ? (
+                    <>
+                      <td className="px-2 md:px-6 py-3 text-center text-xs font-black text-slate-900">{s.runs}</td>
+                      <td className="px-2 md:px-6 py-3 text-center text-[10px] text-slate-500 font-bold">{s.balls}</td>
+                      <td className="px-2 md:px-6 py-3 text-center text-[10px] font-black text-blue-600">
+                        {s.balls > 0 ? ((s.runs / s.balls) * 100).toFixed(1) : '0.0'}
+                      </td>
+                      <td className="px-2 md:px-6 py-3 text-center text-slate-400 text-[10px] font-black">{s.fours}/{s.sixes}</td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-2 md:px-6 py-3 text-center text-xs font-black text-emerald-600">{s.wickets}</td>
+                      <td className="px-2 md:px-6 py-3 text-center text-[10px] text-slate-500 font-bold">{s.overs}.{s.balls}</td>
+                      <td className="px-2 md:px-6 py-3 text-center text-[10px] font-black text-amber-600">
+                        {s.overs > 0 ? (s.runs / (s.overs + s.balls/6)).toFixed(2) : '0.00'}
+                      </td>
+                      <td className="px-2 md:px-6 py-3 text-center text-slate-400 text-[10px] font-black">{s.runs}</td>
+                    </>
+                  )}
+                </tr>
+              ))}
+              {(activeTab === 'batting' ? battingStats : bowlingStats).length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs italic uppercase tracking-widest">No data available yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

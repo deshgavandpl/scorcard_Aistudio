@@ -877,11 +877,11 @@ export default function MatchScoring() {
             <motion.div 
               initial={{ scale: 0, rotate: -20 }}
               animate={{ scale: 1, rotate: 0 }}
-              className="relative z-10 bg-white p-12 rounded-[4rem] shadow-2xl border-8 border-blue-900 text-center"
+              className="relative z-10 bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[4rem] shadow-2xl border-4 md:border-8 border-blue-900 text-center max-w-[90%] md:max-w-none"
             >
-              <Trophy className="w-32 h-32 text-amber-500 mx-auto mb-6 animate-bounce" />
-              <h1 className="text-6xl font-black uppercase tracking-tighter text-blue-900 transform -skew-x-6">Congratulations!</h1>
-              <p className="text-2xl font-bold text-slate-600 mt-4 uppercase tracking-widest">
+              <Trophy className="w-16 h-16 md:w-32 md:h-32 text-amber-500 mx-auto mb-4 md:mb-6 animate-bounce" />
+              <h1 className="text-3xl md:text-6xl font-black uppercase tracking-tighter text-blue-900 transform -skew-x-6">Congratulations!</h1>
+              <p className="text-lg md:text-2xl font-bold text-slate-600 mt-2 md:mt-4 uppercase tracking-widest">
                 {match.winnerId === 'team_a' ? match.teamAName : match.teamBName} Wins!
               </p>
             </motion.div>
