@@ -127,6 +127,15 @@ export default function MatchScoring() {
   };
 
   useEffect(() => {
+    if (match?.status === 'Upcoming') {
+      setIsSettingUp(true);
+      setTeamA(match.teamAName || '');
+      setTeamB(match.teamBName || '');
+      setOvers(match.oversLimit || 6);
+    }
+  }, [match?.status, match?.teamAName, match?.teamBName, match?.oversLimit]);
+
+  useEffect(() => {
     if (match && !isSettingUp) {
       const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
       if (!currentInn) return;
@@ -963,67 +972,67 @@ export default function MatchScoring() {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/live')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <ChevronLeft className="w-6 h-6 text-slate-600" />
+      <div className="flex justify-between items-center bg-white p-2 sm:p-3 rounded-xl border border-slate-200 shadow-sm mb-2">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button onClick={() => navigate('/live')} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
+            <ChevronLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none">{match.teamAName} vs {match.teamBName}</h2>
+              <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight leading-none">{match.teamAName} vs {match.teamBName}</h2>
               {match.name && (
-                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest">
+                <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest">
                   {match.name}
                 </span>
               )}
             </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              {match.tournamentId ? 'Tournament Match' : 'Friendly Match'} • {match.oversLimit} Overs • {match.status}
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              {match.tournamentId ? 'Tournament' : 'Friendly'} • {match.oversLimit} Overs • {match.status}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <button 
             onClick={() => setShowDeleteConfirm(true)}
-            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-400" 
+            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-red-400" 
             title="Delete Match"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4" />
           </button>
-          <button onClick={() => setIsSelectingPlayers(true)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" title="Change Players">
-            <User className="w-5 h-5" />
+          <button onClick={() => setIsSelectingPlayers(true)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" title="Change Players">
+            <User className="w-4 h-4" />
           </button>
           <button 
             onClick={() => window.open(`#/match/${match.id}`, '_blank')} 
-            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-400" 
+            className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-blue-400" 
             title="View Public Live Score"
           >
-            <Zap className="w-5 h-5" />
+            <Zap className="w-4 h-4" />
           </button>
-          <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400">
-            <Settings className="w-5 h-5" />
+          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400">
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {match.status === 'Finished' && canManage && (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-          <div className="bg-emerald-600 p-6 text-white flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Settings className="w-6 h-6" />
-              <h2 className="text-xl font-black uppercase tracking-tight italic transform -skew-x-6">Match Result Settings</h2>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden mb-4">
+          <div className="bg-emerald-600 p-3 text-white flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <h2 className="text-sm font-black uppercase tracking-tight italic transform -skew-x-6">Match Result Settings</h2>
             </div>
-            <CheckCircle2 className="w-6 h-6 opacity-50" />
+            <CheckCircle2 className="w-4 h-4 opacity-50" />
           </div>
           
-          <div className="p-8 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Winner</label>
+          <div className="p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Winner</label>
                 <select 
                   value={winnerId}
                   onChange={(e) => setWinnerId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-black uppercase tracking-tight text-sm outline-none focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-black uppercase tracking-tight text-xs outline-none focus:border-blue-500 transition-all"
                 >
                   <option value="">Select Winner</option>
                   <option value={match.teamAId}>{match.teamAName}</option>
@@ -1031,38 +1040,38 @@ export default function MatchScoring() {
                   <option value="Draw">Draw</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Result Message</label>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Result Message</label>
                 <input 
                   type="text" 
                   value={resultMessage}
                   onChange={(e) => setResultMessage(e.target.value)}
                   placeholder="e.g. Team A won by 10 runs"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-blue-500 transition-all"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Man of the Match</label>
-                <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Man of the Match</label>
+                <div className="space-y-2">
                   <input 
                     type="text" 
                     value={manOfTheMatch}
                     onChange={(e) => setManOfTheMatch(e.target.value)}
                     placeholder="Enter player name"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-blue-500 transition-all"
                   />
                   {momSuggestions.length > 0 && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       {momSuggestions.map(p => (
                         <button
                           key={p.name}
                           onClick={() => setManOfTheMatch(p.name)}
                           className={cn(
-                            "flex-1 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border",
+                            "flex-1 px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest transition-all border",
                             manOfTheMatch === p.name ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100"
                           )}
                         >
-                          {p.name} ({p.score}r, {p.wickets}w)
+                          {p.name}
                         </button>
                       ))}
                     </div>
@@ -1071,12 +1080,12 @@ export default function MatchScoring() {
               </div>
             </div>
 
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-2 pt-2">
               <button 
                 onClick={updateMatchResult}
-                className="flex-1 py-4 rounded-2xl bg-emerald-600 text-white font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all shadow-lg flex items-center justify-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4" /> Update Result
+                <CheckCircle2 className="w-3 h-3" /> Update Result
               </button>
               <button 
                 onClick={() => {
@@ -1084,15 +1093,15 @@ export default function MatchScoring() {
                     setMatch({ ...match, status: 'Live' });
                   }
                 }}
-                className="px-8 py-4 rounded-2xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+                className="px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
               >
-                Resume Scoring
+                Resume
               </button>
               <button 
                 onClick={() => navigate('/live')}
-                className="px-8 py-4 rounded-2xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+                className="px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
               >
-                Back to Live
+                Back
               </button>
             </div>
           </div>
@@ -1100,144 +1109,115 @@ export default function MatchScoring() {
       )}
 
       {/* Main Scoreboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="lg:col-span-2 space-y-3">
           {/* Live Score Card */}
-          <div className="bg-blue-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Zap className="w-32 h-32 text-white" />
+          <div className="bg-blue-900 rounded-2xl p-4 sm:p-6 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-10">
+              <Zap className="w-16 h-16 text-white" />
             </div>
             
             <div className="relative z-10">
-              <div className="flex justify-between items-start mb-8">
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-800 border border-blue-700 text-[10px] font-black uppercase tracking-[0.2em] text-blue-200 mb-4">
-                    <span className={cn("w-2 h-2 rounded-full bg-red-500", match.status === 'Live' && "animate-pulse")}></span>
-                    {match.status === 'Live' ? 'Live Scoring' : 'Final Score'}
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-800 border border-blue-700 text-[8px] font-black uppercase tracking-[0.1em] text-blue-200 mb-2">
+                    <span className={cn("w-1.5 h-1.5 rounded-full bg-red-500", match.status === 'Live' && "animate-pulse")}></span>
+                    {match.status === 'Live' ? 'Live' : 'Final'}
                   </span>
-                  <h3 className="text-2xl font-black uppercase tracking-tight text-blue-100">{battingTeamName}</h3>
-                  <h1 className="text-6xl font-black tracking-tighter leading-none mt-2">
-                    {currentInnings?.runs}<span className="text-3xl text-blue-400">/{currentInnings?.wickets}</span>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-blue-100 leading-tight">{battingTeamName}</h3>
+                  <h1 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none mt-1">
+                    {currentInnings?.runs}<span className="text-2xl text-blue-400">/{currentInnings?.wickets}</span>
                   </h1>
-                  <p className="text-xl font-bold text-blue-300 mt-2">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-sm opacity-50">/ {match.oversLimit} ov</span></p>
+                  <p className="text-sm font-bold text-blue-300 mt-1">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[10px] opacity-50">/ {match.oversLimit} ov</span></p>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1">Run Rate</div>
-                  <div className="text-2xl font-black">
+                  <div className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Run Rate</div>
+                  <div className="text-lg font-black">
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
                   </div>
                   {match.currentInnings === 2 && match.innings1 && (
-                    <div className="mt-4">
-                      <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1">Target</div>
-                      <div className="text-2xl font-black">{match.innings1.runs + 1}</div>
+                    <div className="mt-2">
+                      <div className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Target</div>
+                      <div className="text-lg font-black">{match.innings1.runs + 1}</div>
                     </div>
                   )}
                 </div>
               </div>
 
               {match.currentInnings === 2 && match.innings1 && (
-                <div className="bg-blue-800/50 rounded-2xl p-4 border border-blue-700/50 mb-8">
-                  <p className="text-sm font-bold text-center">
+                <div className="bg-blue-800/50 rounded-xl p-2 border border-blue-700/50 mb-2">
+                  <p className="text-[10px] font-bold text-center">
                     {match.teamAId === match.innings2?.battingTeamId ? match.teamAName : match.teamBName} needs {match.innings1.runs + 1 - (match.innings2?.runs || 0)} runs in {(match.oversLimit * 6) - ((match.innings2?.overs || 0) * 6 + (match.innings2?.balls || 0))} balls
                   </p>
                 </div>
               )}
-
-              {/* Target for 2nd Innings */}
-              {match.currentInnings === 2 && match.innings1 && (
-                <div className="mb-6 p-4 rounded-2xl bg-blue-800/50 border border-blue-700 flex justify-between items-center">
-                  <span className="text-xs font-black uppercase tracking-widest text-blue-300">Target: {match.innings1.runs + 1}</span>
-                  <span className="text-xs font-black uppercase tracking-widest text-blue-300">Need {match.innings1.runs + 1 - (currentInnings?.runs || 0)} runs</span>
-                </div>
-              )}
-
             </div>
           </div>
 
           {/* Scoring Controls */}
           {match.status === 'Live' && (
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-8">
-              {/* Active Players Summary */}
-              <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-lg space-y-3">
+              {/* Active Players Summary - Compact Row */}
+              <div className="grid grid-cols-3 gap-2">
                 <motion.div 
                   initial={false}
                   animate={{ backgroundColor: striker?.isStriker ? 'rgb(239 246 255)' : 'rgb(248 250 252)' }}
                   className={cn(
-                    "p-4 rounded-2xl border transition-all",
-                    striker?.isStriker ? "border-blue-200 ring-2 ring-blue-500/20 shadow-sm" : "border-slate-100"
+                    "p-2 rounded-xl border transition-all",
+                    striker?.isStriker ? "border-blue-200 ring-1 ring-blue-500/20 shadow-sm" : "border-slate-100"
                   )}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Striker</span>
-                    {striker?.isStriker && <Zap className="w-3 h-3 text-blue-500 fill-blue-500" />}
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Striker</span>
+                    {striker?.isStriker && <Zap className="w-2.5 h-2.5 text-blue-500 fill-blue-500" />}
                   </div>
-                  <p className="text-lg font-black text-slate-900 truncate">{striker?.playerName || 'Select Batter'}</p>
-                  <p className="text-xs font-bold text-blue-600 mt-1">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
+                  <p className="text-xs font-black text-slate-900 truncate">{striker?.playerName || 'Batter'}</p>
+                  <p className="text-[10px] font-bold text-blue-600 mt-0.5">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
                 </motion.div>
 
                 <motion.div 
                   initial={false}
                   animate={{ backgroundColor: nonStriker?.isStriker ? 'rgb(239 246 255)' : 'rgb(248 250 252)' }}
                   className={cn(
-                    "p-4 rounded-2xl border transition-all",
-                    nonStriker?.isStriker ? "border-blue-200 ring-2 ring-blue-500/20 shadow-sm" : "border-slate-100"
+                    "p-2 rounded-xl border transition-all",
+                    nonStriker?.isStriker ? "border-blue-200 ring-1 ring-blue-500/20 shadow-sm" : "border-slate-100"
                   )}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
-                    {nonStriker?.isStriker && <Zap className="w-3 h-3 text-blue-500 fill-blue-500" />}
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
+                    {nonStriker?.isStriker && <Zap className="w-2.5 h-2.5 text-blue-500 fill-blue-500" />}
                   </div>
-                  <p className="text-lg font-black text-slate-900 truncate">{nonStriker?.playerName || 'Select Batter'}</p>
-                  <p className="text-xs font-bold text-blue-600 mt-1">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
+                  <p className="text-xs font-black text-slate-900 truncate">{nonStriker?.playerName || 'Batter'}</p>
+                  <p className="text-[10px] font-bold text-blue-600 mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
                 </motion.div>
-              </div>
 
-              {/* Bowler & Strike Swap */}
-              <div className="flex gap-4">
-                <div className="flex-1 p-4 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Current Bowler</span>
-                    <p className="text-lg font-black">{bowler?.playerName || 'Select Bowler'}</p>
-                    <p className="text-xs font-bold text-slate-400 mt-1">{bowler?.wickets || 0} - {bowler?.runs || 0} <span className="opacity-50">({bowler?.overs || 0}.{bowler?.balls || 0})</span></p>
+                <div className="p-2 rounded-xl bg-slate-900 text-white flex flex-col justify-center">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Bowler</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Econ</p>
-                    <p className="text-xl font-black">
-                      {bowler && (bowler.overs > 0 || bowler.balls > 0) 
-                        ? (bowler.runs / (bowler.overs + bowler.balls/6)).toFixed(2)
-                        : '0.00'}
-                    </p>
-                  </div>
+                  <p className="text-xs font-black truncate">{bowler?.playerName || 'Bowler'}</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">{bowler?.wickets || 0}-{bowler?.runs || 0} <span className="opacity-50">({bowler?.overs || 0}.{bowler?.balls || 0})</span></p>
                 </div>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={swapStrike}
-                  className="px-6 rounded-2xl bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex flex-col items-center justify-center gap-1"
-                  title="Swap Strike"
-                >
-                  <RotateCcw className="w-5 h-5 rotate-180" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Swap</span>
-                </motion.button>
               </div>
 
-              {/* Main Scoring Grid */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-4 gap-3">
+              {/* Scoring Grid - Compact */}
+              <div className="space-y-2">
+                <div className="grid grid-cols-4 gap-2">
                   {[0, 1, 2, 3].map((run) => (
                     <motion.button
                       key={run}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleBall(run)}
-                      className="h-20 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-2xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
+                      className="h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-base hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
                     >
                       {run}
                     </motion.button>
                   ))}
                 </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-5 gap-2">
                   {[4, 6].map((run) => (
                     <motion.button
                       key={run}
@@ -1245,7 +1225,7 @@ export default function MatchScoring() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleBall(run)}
                       className={cn(
-                        "h-20 rounded-2xl border-2 font-black text-2xl transition-all shadow-md flex items-center justify-center",
+                        "h-10 rounded-xl border-2 font-black text-base transition-all shadow-md flex items-center justify-center",
                         run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" : 
                         "bg-purple-50 border-purple-500 text-purple-700 hover:bg-purple-600 hover:text-white"
                       )}
@@ -1257,7 +1237,7 @@ export default function MatchScoring() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowWicketModal(true)}
-                    className="h-20 rounded-2xl bg-red-50 border-2 border-red-500 text-red-600 font-black text-2xl hover:bg-red-600 hover:text-white transition-all shadow-md flex items-center justify-center"
+                    className="h-10 rounded-xl bg-red-50 border-2 border-red-500 text-red-600 font-black text-base hover:bg-red-600 hover:text-white transition-all shadow-md flex items-center justify-center"
                   >
                     W
                   </motion.button>
@@ -1265,17 +1245,25 @@ export default function MatchScoring() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={undoLastBall}
-                    className="h-20 rounded-2xl bg-amber-50 border-2 border-amber-500 text-amber-600 font-black text-2xl hover:bg-amber-600 hover:text-white transition-all shadow-md flex items-center justify-center"
+                    className="h-10 rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-600 font-black text-base hover:bg-amber-600 hover:text-white transition-all shadow-md flex items-center justify-center"
                   >
-                    <RotateCcw className="w-8 h-8" />
+                    <RotateCcw className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={swapStrike}
+                    className="h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center"
+                    title="Swap Strike"
+                  >
+                    <RotateCcw className="w-4 h-4 rotate-180" />
                   </motion.button>
                 </div>
               </div>
 
-              {/* Extras Section */}
-              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-6">
+              {/* Extras Section - Compact */}
+              <div className="bg-slate-50 rounded-2xl p-2 border border-slate-100 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Extras & Penalties</h3>
+                  <h3 className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Extras</h3>
                   <div className="flex gap-1">
                     {[0, 1, 2, 3, 4].map((num) => (
                       <motion.button
@@ -1283,7 +1271,7 @@ export default function MatchScoring() {
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setExtraRuns(num)}
                         className={cn(
-                          "w-8 h-8 rounded-lg font-black text-xs transition-all",
+                          "w-6 h-6 rounded-md font-black text-[10px] transition-all",
                           extraRuns === num ? "bg-blue-900 text-white" : "bg-white text-slate-400 border border-slate-200"
                         )}
                       >
@@ -1293,22 +1281,22 @@ export default function MatchScoring() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-4 gap-2">
                   {[
-                    { label: 'Wide', type: 'Wd', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-                    { label: 'No Ball', type: 'Nb', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-                    { label: 'Bye', type: 'By', color: 'bg-slate-200 text-slate-700 border-slate-300' },
-                    { label: 'Leg Bye', type: 'Lb', color: 'bg-slate-200 text-slate-700 border-slate-300' }
+                    { label: 'WD', type: 'Wd', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+                    { label: 'NB', type: 'Nb', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+                    { label: 'BYE', type: 'By', color: 'bg-slate-200 text-slate-700 border-slate-300' },
+                    { label: 'LB', type: 'Lb', color: 'bg-slate-200 text-slate-700 border-slate-300' }
                   ].map((extra) => (
                     <motion.button
                       key={extra.type}
-                      whileHover={{ y: -2 }}
+                      whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleBall(extraRuns, true, extra.type as any)}
                       className={cn(
-                        "py-4 rounded-xl font-black text-[10px] transition-all uppercase tracking-widest border",
+                        "py-1.5 rounded-lg font-black text-[8px] transition-all uppercase tracking-widest border",
                         extra.color,
-                        "hover:shadow-md"
+                        "hover:shadow-sm"
                       )}
                     >
                       {extra.label}
