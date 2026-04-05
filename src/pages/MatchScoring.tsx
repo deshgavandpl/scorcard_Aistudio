@@ -145,17 +145,23 @@ export default function MatchScoring() {
       const bowlerId = currentInn.currentBowlerId;
       
       // Sync local names for the modal
-      if (striker && striker.playerName !== strikerName) setStrikerName(striker.playerName);
-      if (nonStriker && nonStriker.playerName !== nonStrikerName) setNonStrikerName(nonStriker.playerName);
-      if (bowlerId && bowlerId !== bowlerName) setBowlerName(bowlerId);
+      if (striker) setStrikerName(striker.playerName);
+      if (nonStriker) setNonStrikerName(nonStriker.playerName);
+      if (bowlerId) setBowlerName(bowlerId);
 
-      if (!striker || !nonStriker || !bowlerId) {
+      const needsSomething = !striker || !nonStriker || !bowlerId;
+      
+      if (needsSomething && !isSelectingPlayers) {
+        // Clear inputs when we need new ones
+        if (!striker) setStrikerName('');
+        if (!nonStriker) setNonStrikerName('');
+        if (!bowlerId) setBowlerName('');
         setIsSelectingPlayers(true);
-      } else {
+      } else if (!needsSomething) {
         setIsSelectingPlayers(false);
       }
     }
-  }, [match, isSettingUp]);
+  }, [match, isSettingUp, isSelectingPlayers]);
 
   const startMatch = async () => {
     if (!canManage) return;
@@ -573,8 +579,8 @@ export default function MatchScoring() {
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
+    const bowlerId = currentInn?.currentBowlerId;
     
-    // Bowler logic
     const isOverStarted = currentInn && currentInn.balls > 0;
     const previousBowlers = currentInn ? (Object.values(currentInn.bowlingStats) as BowlerStats[]).map(b => b.playerName) : [];
     
@@ -584,120 +590,130 @@ export default function MatchScoring() {
       lastOverBowler = lastBall.bowlerId;
     }
 
-    const getBatsmanLabel = () => {
-      if (!striker && !nonStriker && currentInn?.wickets === 0) return "First Opener";
-      if (striker && !nonStriker && currentInn?.wickets === 0) return "Second Opener";
-      if (!striker || !nonStriker) {
-        const wickets = currentInn?.wickets || 0;
-        const downs = ["Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh"];
-        const index = wickets + 1; // if 1 wicket down, it's the 3rd batter (index 0 in downs is "Third")
-        return `${downs[wickets - 1] || (wickets + 2) + 'th'} Down`;
-      }
-      return "New Bowler";
+    const needsStriker = !striker;
+    const needsNonStriker = striker && !nonStriker;
+    const needsBowler = striker && nonStriker && !bowlerId;
+
+    const getTitle = () => {
+      if (needsStriker) return currentInn?.wickets === 0 ? "First Opener" : "New Batter";
+      if (needsNonStriker) return currentInn?.wickets === 0 ? "Second Opener" : "Next Batter";
+      if (needsBowler) return currentInn?.balls === 0 && currentInn?.overs > 0 ? "Next Over" : "New Bowler";
+      return "Select Player";
     };
 
-    const needsBatter = !striker || !nonStriker;
-    const needsBowler = !currentInn?.currentBowlerId;
+    const getInstruction = () => {
+      if (needsStriker) return "Who is taking the strike now?";
+      if (needsNonStriker) return "Who is at the other end?";
+      if (needsBowler) return "Who will bowl this over?";
+      return "Please enter the name below.";
+    };
 
     return (
-      <div className="max-w-md mx-auto space-y-6">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-8 space-y-6">
-          <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">
-            {getBatsmanLabel()}
-          </h2>
-          
-          <div className="space-y-4">
-            {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                {error}
-              </div>
-            )}
-
-            {/* Sequential Entry: Only show one input at a time if possible, or clear labels */}
-            {!striker && (
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                  {currentInn?.wickets === 0 ? 'First Opener' : `${(currentInn?.wickets || 0) + 2}th Batter`}
-                </label>
-                <input 
-                  type="text" 
-                  value={strikerName}
-                  onChange={(e) => setStrikerName(e.target.value)}
-                  placeholder="Enter batter name"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-            )}
-            
-            {striker && !nonStriker && (
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                  {currentInn?.wickets === 0 ? 'Second Opener' : 'Next Batsman'}
-                </label>
-                <input 
-                  type="text" 
-                  value={nonStrikerName}
-                  onChange={(e) => setNonStrikerName(e.target.value)}
-                  placeholder="Enter batter name"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-            )}
-
-            {/* Bowler selection is separate or shown when batters are set */}
-            {striker && nonStriker && needsBowler && (
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                  {isOverStarted ? 'Current Bowler (Locked)' : 'Enter New Bowler'}
-                </label>
-                <input 
-                  type="text" 
-                  value={bowlerName}
-                  onChange={(e) => setBowlerName(e.target.value)}
-                  disabled={isOverStarted}
-                  placeholder="Enter new bowler name"
-                  className={cn(
-                    "w-full px-4 py-3 rounded-xl border border-slate-200 font-bold focus:border-blue-500 outline-none transition-all",
-                    isOverStarted && "bg-slate-50 text-slate-400 cursor-not-allowed"
-                  )}
-                />
-                {!isOverStarted && previousBowlers.length > 0 && (
-                  <div className="pt-2 space-y-2">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Previous Bowlers</p>
-                    <div className="flex flex-wrap gap-2">
-                      {previousBowlers.map((bName) => {
-                        const isLastBowler = bName === lastOverBowler;
-                        return (
-                          <button
-                            key={bName}
-                            disabled={isLastBowler}
-                            onClick={() => setBowlerName(bName)}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                              bowlerName === bName ? "bg-blue-900 border-blue-900 text-white" : 
-                              isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
-                              "bg-white border-slate-200 text-slate-600 hover:border-blue-300"
-                            )}
-                          >
-                            {bName} {isLastBowler && '(Last Over)'}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 backdrop-blur-xl p-4">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl space-y-8"
+        >
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <User className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">
+              {getTitle()}
+            </h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+              {getInstruction()}
+            </p>
           </div>
+          
+          <div className="space-y-6">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-xs font-black uppercase tracking-widest flex items-center gap-3"
+              >
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                {error}
+              </motion.div>
+            )}
 
-          <button 
-            onClick={confirmPlayers}
-            className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
-          >
-            Confirm & Continue
-          </button>
-        </div>
+            <div className="space-y-4">
+              {needsStriker && (
+                <div className="space-y-2">
+                  <input 
+                    type="text" 
+                    autoFocus
+                    value={strikerName}
+                    onChange={(e) => setStrikerName(e.target.value)}
+                    placeholder="ENTER BATTER NAME"
+                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-blue-500 outline-none transition-all text-center text-xl"
+                  />
+                </div>
+              )}
+              
+              {needsNonStriker && (
+                <div className="space-y-2">
+                  <input 
+                    type="text" 
+                    autoFocus
+                    value={nonStrikerName}
+                    onChange={(e) => setNonStrikerName(e.target.value)}
+                    placeholder="ENTER BATTER NAME"
+                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-blue-500 outline-none transition-all text-center text-xl"
+                  />
+                </div>
+              )}
+
+              {needsBowler && (
+                <div className="space-y-4">
+                  <input 
+                    type="text" 
+                    autoFocus
+                    value={bowlerName}
+                    onChange={(e) => setBowlerName(e.target.value)}
+                    placeholder="ENTER BOWLER NAME"
+                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-blue-500 outline-none transition-all text-center text-xl"
+                  />
+                  
+                  {previousBowlers.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quick Select Previous Bowler</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {previousBowlers.map((bName) => {
+                          const isLastBowler = bName === lastOverBowler;
+                          return (
+                            <button
+                              key={bName}
+                              disabled={isLastBowler}
+                              onClick={() => setBowlerName(bName)}
+                              className={cn(
+                                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
+                                bowlerName === bName ? "bg-blue-900 border-blue-900 text-white shadow-lg scale-105" : 
+                                isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
+                                "bg-white border-slate-100 text-slate-600 hover:border-blue-300"
+                              )}
+                            >
+                              {bName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={confirmPlayers}
+              className="w-full py-5 rounded-2xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-xl text-sm transform active:scale-95"
+            >
+              Confirm & Continue
+            </button>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -1202,30 +1218,35 @@ export default function MatchScoring() {
                 </div>
               </div>
 
-              {/* Scoring Grid - Compact */}
-              <div className="space-y-2">
-                <div className="grid grid-cols-4 gap-2">
+              {/* Scoring Grid - Simplified for Admin */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Live Feed Input</p>
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight italic transform -skew-x-6">Tap to add runs</h3>
+                </div>
+
+                <div className="grid grid-cols-4 gap-3">
                   {[0, 1, 2, 3].map((run) => (
                     <motion.button
                       key={run}
                       whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.9 }}
                       onClick={() => handleBall(run)}
-                      className="h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-base hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
+                      className="aspect-square rounded-2xl bg-slate-50 border-2 border-slate-100 text-slate-900 font-black text-2xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
                     >
                       {run}
                     </motion.button>
                   ))}
                 </div>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-5 gap-3">
                   {[4, 6].map((run) => (
                     <motion.button
                       key={run}
                       whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.9 }}
                       onClick={() => handleBall(run)}
                       className={cn(
-                        "h-10 rounded-xl border-2 font-black text-base transition-all shadow-md flex items-center justify-center",
+                        "aspect-square rounded-2xl border-4 font-black text-2xl transition-all shadow-lg flex items-center justify-center",
                         run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" : 
                         "bg-purple-50 border-purple-500 text-purple-700 hover:bg-purple-600 hover:text-white"
                       )}
@@ -1235,27 +1256,27 @@ export default function MatchScoring() {
                   ))}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setShowWicketModal(true)}
-                    className="h-10 rounded-xl bg-red-50 border-2 border-red-500 text-red-600 font-black text-base hover:bg-red-600 hover:text-white transition-all shadow-md flex items-center justify-center"
+                    className="aspect-square rounded-2xl bg-red-50 border-4 border-red-500 text-red-600 font-black text-2xl hover:bg-red-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
                   >
                     W
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={undoLastBall}
-                    className="h-10 rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-600 font-black text-base hover:bg-amber-600 hover:text-white transition-all shadow-md flex items-center justify-center"
+                    className="aspect-square rounded-2xl bg-amber-50 border-4 border-amber-500 text-amber-600 font-black text-2xl hover:bg-amber-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
                   >
-                    <RotateCcw className="w-4 h-4" />
+                    <RotateCcw className="w-6 h-6" />
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={swapStrike}
-                    className="h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center"
+                    className="aspect-square rounded-2xl bg-slate-100 border-2 border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center shadow-sm"
                     title="Swap Strike"
                   >
-                    <RotateCcw className="w-4 h-4 rotate-180" />
+                    <RotateCcw className="w-6 h-6 rotate-180" />
                   </motion.button>
                 </div>
               </div>
