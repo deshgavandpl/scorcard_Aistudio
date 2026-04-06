@@ -321,12 +321,12 @@ export default function TournamentDetail() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm w-fit">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm w-full md:w-fit overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setActiveTab('fixtures')}
             className={cn(
-              "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+              "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
               activeTab === 'fixtures' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
@@ -335,16 +335,16 @@ export default function TournamentDetail() {
           <button 
             onClick={() => setActiveTab('points')}
             className={cn(
-              "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+              "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
               activeTab === 'points' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
-            <BarChart2 className="w-4 h-4" /> Points Table
+            <BarChart2 className="w-4 h-4" /> Points
           </button>
           <button 
             onClick={() => setActiveTab('teams')}
             className={cn(
-              "px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
+              "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
               activeTab === 'teams' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
@@ -355,7 +355,7 @@ export default function TournamentDetail() {
         {canManage && activeTab === 'fixtures' && (
           <button 
             onClick={() => setShowAddMatch(true)}
-            className="px-6 py-3 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
+            className="w-full md:w-auto px-6 py-3 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
           >
             <Plus className="w-4 h-4" /> Add Stage Match
           </button>
@@ -571,35 +571,35 @@ export default function TournamentDetail() {
         </div>
       ) : activeTab === 'points' ? (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[600px] md:min-w-0">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Team</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">P</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">W</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">L</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">D</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pts</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">NRR</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Team</th>
+                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">P</th>
+                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">W</th>
+                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">L</th>
+                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">D</th>
+                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pts</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">NRR</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {pointsTable.map((team, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-black text-slate-300 w-4">{idx + 1}</span>
-                        <span className="font-bold text-slate-900 uppercase tracking-tight">{team.name}</span>
+                    <td className="px-4 md:px-6 py-4">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <span className="text-[10px] md:text-xs font-black text-slate-300 w-4">{idx + 1}</span>
+                        <span className="font-bold text-slate-900 uppercase tracking-tight text-xs md:text-sm">{team.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-600">{team.played}</td>
-                    <td className="px-6 py-4 text-center font-bold text-emerald-600">{team.wins}</td>
-                    <td className="px-6 py-4 text-center font-bold text-red-500">{team.losses}</td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-400">{team.draws}</td>
-                    <td className="px-6 py-4 text-center font-black text-blue-900">{team.points}</td>
+                    <td className="px-2 md:px-6 py-4 text-center font-bold text-slate-600 text-xs md:text-sm">{team.played}</td>
+                    <td className="px-2 md:px-6 py-4 text-center font-bold text-emerald-600 text-xs md:text-sm">{team.wins}</td>
+                    <td className="px-2 md:px-6 py-4 text-center font-bold text-red-500 text-xs md:text-sm">{team.losses}</td>
+                    <td className="px-2 md:px-6 py-4 text-center font-bold text-slate-400 text-xs md:text-sm">{team.draws}</td>
+                    <td className="px-2 md:px-6 py-4 text-center font-black text-blue-900 text-xs md:text-sm">{team.points}</td>
                     <td className={cn(
-                      "px-6 py-4 text-center font-bold text-xs",
+                      "px-4 md:px-6 py-4 text-center font-bold text-[10px] md:text-xs",
                       parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
                     )}>
                       {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}

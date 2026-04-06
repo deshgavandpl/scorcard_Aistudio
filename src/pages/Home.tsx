@@ -52,7 +52,7 @@ export default function Home() {
   return (
     <div className="relative min-h-[calc(100vh-4rem)]">
       {/* Floating Social Sidebar */}
-      <div className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1.5 pr-1.5 md:pr-3">
+      <div className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1 md:gap-1.5 pr-1 md:pr-3">
         {socialLinks.map((social, idx) => (
           <motion.a
             key={social.id}
@@ -63,27 +63,27 @@ export default function Home() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.5 + idx * 0.1 }}
             className={cn(
-              "w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1",
+              "w-7 h-7 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1",
               social.color,
               social.hover
             )}
             title={social.label}
           >
-            <social.icon className="w-4 h-4 md:w-5 md:h-5" />
+            <social.icon className="w-3.5 h-3.5 md:w-5 md:h-5" />
           </motion.a>
         ))}
         <Link 
           to="/settings" 
-          className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center bg-slate-800 text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1 mt-2"
+          className="w-7 h-7 md:w-10 md:h-10 rounded-lg flex items-center justify-center bg-slate-800 text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1 mt-1 md:mt-2"
           title="Admin Settings"
         >
-          <Settings className="w-4 h-4 md:w-5 md:h-5" />
+          <Settings className="w-3.5 h-3.5 md:w-5 md:h-5" />
         </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8 md:space-y-12">
         {/* Hero Section - Reverted to Old Style from Photo */}
-        <section className="relative overflow-hidden rounded-3xl bg-blue-900 text-white p-8 md:p-16 shadow-2xl">
+        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-blue-900 text-white p-6 md:p-16 shadow-2xl">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
           </div>
@@ -92,7 +92,7 @@ export default function Home() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-800/50 border border-blue-700 text-blue-200 font-black text-[10px] tracking-[0.2em] uppercase mb-8"
+              className="inline-flex items-center gap-2 px-3 md:px-4 py-1 md:py-1.5 rounded-full bg-blue-800/50 border border-blue-700 text-blue-200 font-black text-[8px] md:text-[10px] tracking-[0.2em] uppercase mb-6 md:mb-8"
             >
               <Zap className="w-3 h-3 fill-blue-400 text-blue-400" />
               Local Cricket Revolution
@@ -102,18 +102,18 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter uppercase transform -skew-x-6"
+              className="text-4xl sm:text-6xl md:text-8xl font-black mb-6 md:mb-8 leading-[0.9] md:leading-[0.85] tracking-tighter uppercase transform -skew-x-6"
             >
               Every Run <br />
               <span className="text-blue-400">Counts.</span>
             </motion.h1>
             
-            <div className="space-y-8 max-w-2xl">
+            <div className="space-y-6 md:space-y-8 max-w-2xl">
               <motion.p 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-lg md:text-xl text-blue-100 font-medium leading-relaxed"
+                className="text-base md:text-xl text-blue-100 font-medium leading-relaxed"
               >
                 The ultimate scoring platform for local tennis cricket. Track your matches, manage tournaments, and become a local legend.
               </motion.p>
@@ -123,31 +123,31 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 pt-2"
+                className="grid grid-cols-1 md:grid-cols-2 gap-y-3 md:gap-y-4 gap-x-8 pt-2"
               >
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-3 h-3 text-blue-400" />
                   </div>
-                  <span className="text-sm font-bold text-blue-200 uppercase tracking-tight">Live ball-by-ball. Chase the glory.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Live ball-by-ball. Chase the glory.</span>
                 </div>
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-3 h-3 text-blue-400" />
                   </div>
-                  <span className="text-sm font-bold text-blue-200 uppercase tracking-tight">Universal registration. Level up your profile.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Universal registration. Level up your profile.</span>
                 </div>
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-3 h-3 text-blue-400" />
                   </div>
-                  <span className="text-sm font-bold text-blue-200 uppercase tracking-tight">Real-time auctions. Build your dream team.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Real-time auctions. Build your dream team.</span>
                 </div>
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-3 h-3 text-blue-400" />
                   </div>
-                  <span className="text-sm font-bold text-blue-200 uppercase tracking-tight">Match & Tournament management. Main character energy.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Match & Tournament management. Main character energy.</span>
                 </div>
               </motion.div>
             </div>
@@ -156,17 +156,17 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="flex flex-wrap gap-4 pt-10"
+              className="flex flex-wrap gap-3 md:gap-4 pt-8 md:pt-10"
             >
               <Link 
                 to="/live" 
-                className="px-8 py-4 rounded-xl bg-white text-blue-900 font-black uppercase tracking-wider hover:bg-blue-50 transition-all shadow-lg flex items-center gap-2"
+                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-white text-blue-900 font-black uppercase tracking-wider hover:bg-blue-50 transition-all shadow-lg flex items-center justify-center gap-2 text-sm md:text-base"
               >
-                Start Scoring <ArrowRight className="w-5 h-5" />
+                Start Scoring <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </Link>
               <Link 
                 to="/tournaments" 
-                className="px-8 py-4 rounded-xl bg-blue-800 text-white font-black uppercase tracking-wider hover:bg-blue-700 transition-all border border-blue-700"
+                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-blue-800 text-white font-black uppercase tracking-wider hover:bg-blue-700 transition-all border border-blue-700 text-sm md:text-base text-center"
               >
                 Tournaments
               </Link>

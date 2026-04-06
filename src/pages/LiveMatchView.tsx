@@ -293,41 +293,41 @@ export default function LiveMatchView() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-emerald-600 rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden"
+          className="bg-emerald-600 rounded-3xl md:rounded-[40px] p-6 md:p-10 text-white shadow-2xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Trophy className="w-64 h-64 text-white" />
+            <Trophy className="w-32 h-32 md:w-64 md:h-64 text-white" />
           </div>
           
-          <div className="relative z-10 text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 border border-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-50 mb-4">
-              <Trophy className="w-4 h-4" /> Final Result
+          <div className="relative z-10 text-center space-y-4 md:space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-emerald-500 border border-emerald-400 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-emerald-50 mb-2 md:mb-4">
+              <Trophy className="w-3 h-3 md:w-4 md:h-4" /> Final Result
             </div>
             
-            <h1 className="text-6xl font-black tracking-tighter uppercase leading-none">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase leading-none">
               {match.winnerId === 'Draw' ? "Match Drawn" : (
                 <>
-                  <span className="text-emerald-200 block text-2xl mb-2">Champion</span>
-                  {match.winnerId === 'team_a' ? match.teamAName : match.teamBName}
+                  <span className="text-emerald-200 block text-lg md:text-2xl mb-1 md:mb-2">Champion</span>
+                  {match.winnerId === match.teamAId ? match.teamAName : match.teamBName}
                 </>
               )}
             </h1>
 
             {match.resultMessage && (
-              <p className="text-2xl font-bold text-emerald-100 italic">
+              <p className="text-lg md:text-2xl font-bold text-emerald-100 italic">
                 "{match.resultMessage}"
               </p>
             )}
 
             {match.manOfTheMatch && (
-              <div className="pt-8 border-t border-emerald-500/30 inline-block">
-                <div className="flex items-center justify-center gap-4">
-                  <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <User className="w-6 h-6 text-white" />
+              <div className="pt-6 md:pt-8 border-t border-emerald-500/30 inline-block">
+                <div className="flex items-center justify-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
+                    <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
                   <div className="text-left">
-                    <p className="text-[10px] font-black text-emerald-200 uppercase tracking-widest">Man of the Match</p>
-                    <p className="text-2xl font-black text-white">{match.manOfTheMatch}</p>
+                    <p className="text-[8px] md:text-[10px] font-black text-emerald-200 uppercase tracking-widest">Man of the Match</p>
+                    <p className="text-xl md:text-2xl font-black text-white">{match.manOfTheMatch}</p>
                   </div>
                 </div>
               </div>
@@ -337,24 +337,24 @@ export default function LiveMatchView() {
       )}
 
       {/* Main Score Display */}
-      <div className="bg-slate-900 rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-slate-900 rounded-3xl md:rounded-[40px] p-6 md:p-10 text-white shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-5">
           <Zap className="w-64 h-64 text-white" />
         </div>
         
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="space-y-6">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+          <div className="space-y-4 md:space-y-6">
             <div>
-              <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mb-2">{battingTeamName} is Batting</p>
-              <h1 className="text-8xl font-black tracking-tighter leading-none">
-                {currentInnings?.runs}<span className="text-4xl text-slate-500">/{currentInnings?.wickets}</span>
+              <p className="text-blue-400 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-2">{battingTeamName} is Batting</p>
+              <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-none">
+                {currentInnings?.runs}<span className="text-2xl md:text-4xl text-slate-500">/{currentInnings?.wickets}</span>
               </h1>
               <div className="flex items-center gap-4 mt-4">
-                <p className="text-3xl font-black text-slate-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-sm font-bold opacity-50 uppercase tracking-widest">Overs</span></p>
+                <p className="text-2xl md:text-3xl font-black text-slate-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[10px] md:text-sm font-bold opacity-50 uppercase tracking-widest">Overs</span></p>
                 <div className="h-8 w-px bg-slate-800"></div>
                 <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Run Rate</p>
-                  <p className="text-xl font-black text-blue-400">
+                  <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">Run Rate</p>
+                  <p className="text-lg md:text-xl font-black text-blue-400">
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
@@ -364,52 +364,52 @@ export default function LiveMatchView() {
             </div>
 
             {match.currentInnings === 2 && match.innings1 && (
-              <div className="p-6 rounded-3xl bg-blue-900/40 border border-blue-800/50 backdrop-blur-sm">
+              <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-blue-900/40 border border-blue-800/50 backdrop-blur-sm">
                 <div className="flex items-center gap-3 mb-2">
-                  <Target className="w-5 h-5 text-amber-400" />
-                  <span className="text-xs font-black uppercase tracking-widest text-blue-200">Target: {match.innings1.runs + 1}</span>
+                  <Target className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-blue-200">Target: {match.innings1.runs + 1}</span>
                 </div>
-                <p className="text-xl font-black text-white">
+                <p className="text-lg md:text-xl font-black text-white">
                   Need {match.innings1.runs + 1 - (currentInnings?.runs || 0)} runs in {(match.oversLimit * 6) - ((currentInnings?.overs || 0) * 6 + (currentInnings?.balls || 0))} balls
                 </p>
               </div>
             )}
           </div>
 
-          <div className="flex flex-col justify-end space-y-6">
+          <div className="flex flex-col justify-end space-y-4 md:space-y-6">
             {/* Active Batter Stats */}
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2 md:gap-3">
               <div className={cn(
-                "p-4 rounded-2xl border transition-all flex justify-between items-center",
+                "p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
                 striker?.isStriker ? "bg-blue-900/40 border-blue-700 ring-1 ring-blue-500/50" : "bg-slate-800/40 border-slate-700"
               )}>
-                <div className="flex items-center gap-3">
-                  {striker?.isStriker && <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />}
-                  <p className="text-lg font-black">{striker?.playerName || 'Batter'}</p>
+                <div className="flex items-center gap-2 md:gap-3">
+                  {striker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-amber-400 fill-amber-400" />}
+                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{striker?.playerName || 'Batter'}</p>
                 </div>
-                <p className="text-xl font-black">{striker?.runs || 0} <span className="text-sm font-bold text-slate-500">({striker?.balls || 0})</span></p>
+                <p className="text-lg md:text-xl font-black">{striker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({striker?.balls || 0})</span></p>
               </div>
               <div className={cn(
-                "p-4 rounded-2xl border transition-all flex justify-between items-center",
+                "p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
                 nonStriker?.isStriker ? "bg-blue-900/40 border-blue-700 ring-1 ring-blue-500/50" : "bg-slate-800/40 border-slate-700"
               )}>
-                <div className="flex items-center gap-3">
-                  {nonStriker?.isStriker && <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />}
-                  <p className="text-lg font-black">{nonStriker?.playerName || 'Batter'}</p>
+                <div className="flex items-center gap-2 md:gap-3">
+                  {nonStriker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-amber-400 fill-amber-400" />}
+                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{nonStriker?.playerName || 'Batter'}</p>
                 </div>
-                <p className="text-xl font-black">{nonStriker?.runs || 0} <span className="text-sm font-bold text-slate-500">({nonStriker?.balls || 0})</span></p>
+                <p className="text-lg md:text-xl font-black">{nonStriker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({nonStriker?.balls || 0})</span></p>
               </div>
             </div>
 
             {/* Current Bowler */}
-            <div className="p-4 rounded-2xl bg-amber-500 text-slate-900 flex justify-between items-center shadow-lg">
+            <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-amber-500 text-slate-900 flex justify-between items-center shadow-lg">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Bowling Now</span>
-                <p className="text-lg font-black">{bowler?.playerName || 'Bowler'}</p>
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-60">Bowling Now</span>
+                <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{bowler?.playerName || 'Bowler'}</p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-black">{bowler?.wickets || 0}-{bowler?.runs || 0}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{bowler?.overs || 0}.{bowler?.balls || 0} Overs</p>
+                <p className="text-xl md:text-2xl font-black">{bowler?.wickets || 0}-{bowler?.runs || 0}</p>
+                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-60">{bowler?.overs || 0}.{bowler?.balls || 0} Overs</p>
               </div>
             </div>
           </div>
@@ -417,42 +417,44 @@ export default function LiveMatchView() {
       </div>
 
       {/* Recent Balls Timeline */}
-      <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-6">
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <History className="w-4 h-4" /> Recent Balls
+          <h3 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <History className="w-4 h-4" /> Recent Balls (Over {currentInnings?.overs})
           </h3>
-          <div className="flex gap-2">
-            {currentInnings?.ballHistory.slice(-12).map((ball, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2",
-                  ball.isWicket ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-200" :
-                  ball.runs === 4 ? "bg-emerald-500 border-emerald-500 text-white" :
-                  ball.runs === 6 ? "bg-purple-600 border-purple-600 text-white" :
-                  ball.isExtra ? "bg-amber-100 border-amber-200 text-amber-700" :
-                  "bg-slate-50 border-slate-100 text-slate-600"
-                )}
-              >
-                {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
-              </motion.div>
-            ))}
+          <div className="flex flex-wrap justify-end gap-1.5 md:gap-2">
+            {currentInnings?.ballHistory
+              .filter(ball => ball.over === currentInnings.overs)
+              .map((ball, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className={cn(
+                    "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-black text-xs border-2",
+                    ball.isWicket ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-200" :
+                    ball.runs === 4 ? "bg-emerald-500 border-emerald-500 text-white" :
+                    ball.runs === 6 ? "bg-purple-600 border-purple-600 text-white" :
+                    ball.isExtra ? "bg-amber-100 border-amber-200 text-amber-700" :
+                    "bg-slate-50 border-slate-100 text-slate-600"
+                  )}
+                >
+                  {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
+                </motion.div>
+              ))}
           </div>
         </div>
       </div>
 
       {/* Full Scorecard */}
-      <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-8">
+      <div className="bg-white rounded-3xl p-4 md:p-8 border border-slate-200 shadow-sm space-y-6 md:space-y-8">
         <div className="flex items-center gap-4">
           <div className="h-px flex-1 bg-slate-100"></div>
-          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Match Scorecard</h2>
+          <h2 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Match Scorecard</h2>
           <div className="h-px flex-1 bg-slate-100"></div>
         </div>
         
-        <div className="space-y-12">
+        <div className="space-y-8 md:space-y-12">
           {match.innings1 && (
             <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
           )}

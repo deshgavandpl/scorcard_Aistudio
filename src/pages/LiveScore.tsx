@@ -210,20 +210,20 @@ export default function LiveScore() {
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 mb-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                           <div className="flex-1 text-center">
-                            <p className="text-lg font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
-                            <p className="text-2xl font-black text-blue-900">
+                            <p className="text-base md:text-lg font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
+                            <p className="text-xl md:text-2xl font-black text-blue-900">
                               {match.innings1?.battingTeamId === match.teamAId ? match.innings1.runs : match.innings2?.runs || 0}
-                              <span className="text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                              <span className="text-xs md:text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
                             </p>
                           </div>
-                          <div className="text-slate-300 font-black italic text-xl">VS</div>
+                          <div className="text-slate-300 font-black italic text-lg md:text-xl transform sm:rotate-0 rotate-90">VS</div>
                           <div className="flex-1 text-center">
-                            <p className="text-lg font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
-                            <p className="text-2xl font-black text-blue-900">
+                            <p className="text-base md:text-lg font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
+                            <p className="text-xl md:text-2xl font-black text-blue-900">
                               {match.innings1?.battingTeamId === match.teamBId ? match.innings1.runs : match.innings2?.runs || 0}
-                              <span className="text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                              <span className="text-xs md:text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
                             </p>
                           </div>
                         </div>

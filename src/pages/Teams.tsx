@@ -172,19 +172,19 @@ export default function Teams() {
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Teams</h1>
           <p className="text-slate-500 font-medium">Manage your local franchises and rosters.</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <input 
             type="text" 
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
             disabled={!canManage}
             placeholder={canManage ? "New Team Name" : "Admin access required"}
-            className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-bold disabled:bg-slate-50 disabled:text-slate-400"
+            className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-bold disabled:bg-slate-50 disabled:text-slate-400 text-sm"
           />
           <button 
             onClick={addTeam}
             disabled={!canManage || !newTeamName.trim()}
-            className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             <Plus className="w-5 h-5" /> Add
           </button>
