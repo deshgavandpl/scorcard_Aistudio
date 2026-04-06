@@ -139,7 +139,7 @@ export default function MatchScoring() {
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
   // Scoring State
-  const { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, loading } = useCricketScoring(id === 'new' ? undefined : id);
+  const { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, startSecondInnings, loading } = useCricketScoring(id === 'new' ? undefined : id);
   
   const [strikerName, setStrikerName] = useState('');
   const [nonStrikerName, setNonStrikerName] = useState('');
@@ -211,11 +211,16 @@ export default function MatchScoring() {
   }, [match?.status]);
 
   useEffect(() => {
-    if (match?.currentInnings === 2 && lastInnings === 1) {
-      setShowInningsOverModal(true);
-      setLastInnings(2);
+    if (match?.currentInnings === 1 && match.innings1) {
+      const isOver = match.innings1.wickets === 10 || match.innings1.overs === match.oversLimit;
+      if (isOver && !showInningsOverModal && lastInnings === 1) {
+        setShowInningsOverModal(true);
+        setLastInnings(2);
+      } else if (!isOver && lastInnings === 2) {
+        setLastInnings(1);
+      }
     }
-  }, [match?.currentInnings, lastInnings]);
+  }, [match?.innings1, match?.oversLimit, showInningsOverModal, lastInnings]);
 
   useEffect(() => {
     if (match) {
@@ -1058,7 +1063,10 @@ export default function MatchScoring() {
 
               <div className="space-y-3">
                 <button 
-                  onClick={() => setShowInningsOverModal(false)}
+                  onClick={() => {
+                    startSecondInnings();
+                    setShowInningsOverModal(false);
+                  }}
                   className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
                 >
                   Start Second Innings

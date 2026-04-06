@@ -155,51 +155,49 @@ export function useCricketScoring(matchId: string | undefined) {
     if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
     else updatedMatch.innings2 = newInnings;
 
-    // Check for innings end
-    if (newInnings.wickets === 10 || newInnings.overs === match.oversLimit) {
-      if (match.currentInnings === 1) {
-        updatedMatch.currentInnings = 2;
-        // Initialize 2nd innings
-        updatedMatch.innings2 = {
-          battingTeamId: match.teamBId === (match.innings1?.battingTeamId || '') ? match.teamAId : match.teamBId,
-          bowlingTeamId: match.innings1?.battingTeamId || '',
-          runs: 0,
-          wickets: 0,
-          overs: 0,
-          balls: 0,
-          extras: { wide: 0, noBall: 0, bye: 0, legBye: 0 },
-          battingStats: {},
-          bowlingStats: {},
-          fallOfWickets: [],
-          ballHistory: []
-        };
-      } else {
-        // Logically over, but don't set 'Finished' yet
-        if (updatedMatch.innings1 && updatedMatch.innings2) {
-          const inn1Runs = updatedMatch.innings1.runs;
-          const inn2Runs = updatedMatch.innings2.runs;
-          const inn2Wickets = updatedMatch.innings2.wickets;
-          const battingTeamName = updatedMatch.innings2.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
-          const bowlingTeamName = updatedMatch.innings2.bowlingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+    // Check for match end (Innings 2 only)
+    if (match.currentInnings === 2 && updatedMatch.innings1 && updatedMatch.innings2) {
+      const inn1Runs = updatedMatch.innings1.runs;
+      const inn2Runs = updatedMatch.innings2.runs;
+      const inn2Wickets = updatedMatch.innings2.wickets;
+      const battingTeamName = updatedMatch.innings2.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+      const bowlingTeamName = updatedMatch.innings2.bowlingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
 
-          if (inn2Runs > inn1Runs) {
-            updatedMatch.winnerId = updatedMatch.innings2.battingTeamId;
-            updatedMatch.resultMessage = `${battingTeamName} won by ${10 - inn2Wickets} wickets`;
-          } else if (inn1Runs > inn2Runs) {
-            updatedMatch.winnerId = updatedMatch.innings1.battingTeamId;
-            updatedMatch.resultMessage = `${bowlingTeamName} won by ${inn1Runs - inn2Runs} runs`;
-          } else {
-            updatedMatch.winnerId = 'Draw';
-            updatedMatch.resultMessage = 'Match Draw';
-          }
+      if (inn2Runs > inn1Runs) {
+        updatedMatch.winnerId = updatedMatch.innings2.battingTeamId;
+        updatedMatch.resultMessage = `${battingTeamName} won by ${10 - inn2Wickets} wickets`;
+      } else if (inn2Wickets === 10 || newInnings.overs === match.oversLimit) {
+        if (inn1Runs > inn2Runs) {
+          updatedMatch.winnerId = updatedMatch.innings1.battingTeamId;
+          updatedMatch.resultMessage = `${bowlingTeamName} won by ${inn1Runs - inn2Runs} runs`;
+        } else {
+          updatedMatch.winnerId = 'Draw';
+          updatedMatch.resultMessage = 'Match Draw';
         }
       }
-    } else if (match.currentInnings === 2 && updatedMatch.innings1 && newInnings.runs > updatedMatch.innings1.runs) {
-        // Target achieved
-        updatedMatch.winnerId = newInnings.battingTeamId;
-        const battingTeamName = updatedMatch.innings2?.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
-        updatedMatch.resultMessage = `${battingTeamName} won by ${10 - newInnings.wickets} wickets`;
     }
+
+    await saveMatch(updatedMatch);
+  };
+
+  const startSecondInnings = async () => {
+    if (!match || match.currentInnings !== 1) return;
+    
+    const updatedMatch = { ...match };
+    updatedMatch.currentInnings = 2;
+    updatedMatch.innings2 = {
+      battingTeamId: match.teamBId === (match.innings1?.battingTeamId || '') ? match.teamAId : match.teamBId,
+      bowlingTeamId: match.innings1?.battingTeamId || '',
+      runs: 0,
+      wickets: 0,
+      overs: 0,
+      balls: 0,
+      extras: { wide: 0, noBall: 0, bye: 0, legBye: 0 },
+      battingStats: {},
+      bowlingStats: {},
+      fallOfWickets: [],
+      ballHistory: []
+    };
 
     await saveMatch(updatedMatch);
   };
@@ -376,5 +374,5 @@ export function useCricketScoring(matchId: string | undefined) {
     await saveMatch(updatedMatch);
   };
 
-  return { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, loading };
+  return { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, startSecondInnings, loading };
 }
