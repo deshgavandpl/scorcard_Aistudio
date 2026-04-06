@@ -928,7 +928,23 @@ export default function MatchScoring() {
                 <CheckCircle2 className="w-10 h-10 text-blue-600" />
               </div>
               <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-2">Innings Over</h2>
-              <p className="text-slate-500 font-bold mb-8">First inning is over now. Completed successfully.</p>
+              <div className="bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">1st Innings Score</p>
+                <p className="text-2xl font-black text-blue-900">{match.innings1?.runs}/{match.innings1?.wickets}</p>
+                <p className="text-[10px] font-bold text-slate-500 mt-1">in {match.innings1?.overs}.{match.innings1?.balls} overs</p>
+              </div>
+              
+              <div className="bg-blue-900 p-6 rounded-3xl mb-8 text-white shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-10">
+                  <Trophy className="w-12 h-12" />
+                </div>
+                <p className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-1">Target for 2nd Innings</p>
+                <p className="text-4xl font-black italic transform -skew-x-6">{match.innings1 ? match.innings1.runs + 1 : 0}</p>
+                <p className="text-[10px] font-bold text-blue-400 mt-2 uppercase tracking-widest">
+                  Req. RR: {match.innings1 ? ((match.innings1.runs + 1) / match.oversLimit).toFixed(2) : '0.00'}
+                </p>
+              </div>
+
               <div className="space-y-3">
                 <button 
                   onClick={() => setShowInningsOverModal(false)}
@@ -1218,47 +1234,87 @@ export default function MatchScoring() {
       {/* Main Scoreboard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 space-y-3">
-          {/* Live Score Card */}
-          <div className="bg-blue-900 rounded-2xl p-4 sm:p-6 text-white shadow-xl relative overflow-hidden">
+          {/* Live Score Card - Reduced Size */}
+          <div className="bg-blue-900 rounded-2xl p-3 sm:p-4 text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-10">
-              <Zap className="w-16 h-16 text-white" />
+              <Zap className="w-12 h-12 text-white" />
             </div>
             
             <div className="relative z-10">
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-800 border border-blue-700 text-[8px] font-black uppercase tracking-[0.1em] text-blue-200 mb-2">
-                    <span className={cn("w-1.5 h-1.5 rounded-full bg-red-500", match.status === 'Live' && "animate-pulse")}></span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-800 border border-blue-700 text-[7px] font-black uppercase tracking-[0.1em] text-blue-200 mb-1">
+                    <span className={cn("w-1 h-1 rounded-full bg-red-500", match.status === 'Live' && "animate-pulse")}></span>
                     {match.status === 'Live' ? 'Live' : 'Final'}
                   </span>
-                  <h3 className="text-lg font-black uppercase tracking-tight text-blue-100 leading-tight">{battingTeamName}</h3>
-                  <h1 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none mt-1">
-                    {currentInnings?.runs}<span className="text-2xl text-blue-400">/{currentInnings?.wickets}</span>
+                  <h3 className="text-base font-black uppercase tracking-tight text-blue-100 leading-tight">{battingTeamName}</h3>
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tighter leading-none mt-0.5">
+                    {currentInnings?.runs}<span className="text-xl text-blue-400">/{currentInnings?.wickets}</span>
                   </h1>
-                  <p className="text-sm font-bold text-blue-300 mt-1">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[10px] opacity-50">/ {match.oversLimit} ov</span></p>
+                  <p className="text-xs font-bold text-blue-300 mt-0.5">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[9px] opacity-50">/ {match.oversLimit} ov</span></p>
                 </div>
                 <div className="text-right">
-                  <div className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Run Rate</div>
-                  <div className="text-lg font-black">
+                  <div className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Run Rate</div>
+                  <div className="text-base font-black">
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
                   </div>
                   {match.currentInnings === 2 && match.innings1 && (
-                    <div className="mt-2">
-                      <div className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Target</div>
-                      <div className="text-lg font-black">{match.innings1.runs + 1}</div>
+                    <div className="mt-1">
+                      <div className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Target</div>
+                      <div className="text-base font-black">{match.innings1.runs + 1}</div>
                     </div>
                   )}
                 </div>
               </div>
 
               {match.currentInnings === 2 && match.innings1 && (
-                <div className="bg-blue-800/50 rounded-xl p-2 border border-blue-700/50 mb-2">
-                  <p className="text-[10px] font-bold text-center">
+                <div className="bg-blue-800/50 rounded-lg p-1.5 border border-blue-700/50 mb-1">
+                  <p className="text-[9px] font-bold text-center">
                     {match.teamAId === match.innings2?.battingTeamId ? match.teamAName : match.teamBName} needs {match.innings1.runs + 1 - (match.innings2?.runs || 0)} runs in {(match.oversLimit * 6) - ((match.innings2?.overs || 0) * 6 + (match.innings2?.balls || 0))} balls
                   </p>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Balls (Mobile Only) */}
+          <div className="lg:hidden bg-white rounded-2xl p-3 border border-slate-200 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-[8px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1">
+                <History className="w-3 h-3" /> Recent Balls (Over {currentInnings?.overs})
+              </h3>
+              <button 
+                onClick={handleHype}
+                className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100 active:scale-90"
+              >
+                <Flame className="w-3 h-3 fill-amber-500" />
+                <span className="text-[8px] font-black">{match.hypeCount || 0}</span>
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {currentInnings?.ballHistory
+                .filter(ball => ball.over === currentInnings.overs)
+                .slice()
+                .reverse()
+                .map((ball, idx) => (
+                  <div 
+                    key={idx}
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border",
+                      ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
+                      ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
+                      ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
+                      ball.isExtra ? "bg-amber-100 border-amber-500 text-amber-600" :
+                      "bg-slate-50 border-slate-200 text-slate-600"
+                    )}
+                  >
+                    {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
+                  </div>
+                ))}
+              {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
+                <p className="text-slate-300 italic text-[8px] py-1">No balls in this over yet.</p>
               )}
             </div>
           </div>
@@ -1309,68 +1365,68 @@ export default function MatchScoring() {
                 </div>
               </div>
 
-              {/* Scoring Grid - Simplified for Admin */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Live Feed Input</p>
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight italic transform -skew-x-6">Tap to add runs</h3>
-                </div>
-
-                <div className="grid grid-cols-4 gap-3">
-                  {[0, 1, 2, 3].map((run) => (
-                    <motion.button
-                      key={run}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleBall(run)}
-                      className="aspect-square rounded-2xl bg-slate-50 border-2 border-slate-100 text-slate-900 font-black text-2xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
-                    >
-                      {run}
-                    </motion.button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-5 gap-3">
-                  {[4, 6].map((run) => (
-                    <motion.button
-                      key={run}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleBall(run)}
-                      className={cn(
-                        "aspect-square rounded-2xl border-4 font-black text-2xl transition-all shadow-lg flex items-center justify-center",
-                        run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" : 
-                        "bg-purple-50 border-purple-500 text-purple-700 hover:bg-purple-600 hover:text-white"
-                      )}
-                    >
-                      {run}
-                    </motion.button>
-                  ))}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowWicketModal(true)}
-                    className="aspect-square rounded-2xl bg-red-50 border-4 border-red-500 text-red-600 font-black text-2xl hover:bg-red-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
-                  >
-                    W
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={undoLastBall}
-                    className="aspect-square rounded-2xl bg-amber-50 border-4 border-amber-500 text-amber-600 font-black text-2xl hover:bg-amber-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
-                  >
-                    <RotateCcw className="w-6 h-6" />
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={swapStrike}
-                    className="aspect-square rounded-2xl bg-slate-100 border-2 border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center shadow-sm"
-                    title="Swap Strike"
-                  >
-                    <RotateCcw className="w-6 h-6 rotate-180" />
-                  </motion.button>
-                </div>
+            {/* Scoring Grid - Simplified for Admin - Compact */}
+            <div className="space-y-2">
+              <div className="text-center">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Live Feed Input</p>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic transform -skew-x-6">Tap to add runs</h3>
               </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                {[0, 1, 2, 3].map((run) => (
+                  <motion.button
+                    key={run}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleBall(run)}
+                    className="aspect-square rounded-xl bg-slate-50 border-2 border-slate-100 text-slate-900 font-black text-xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
+                  >
+                    {run}
+                  </motion.button>
+                ))}
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {[4, 6].map((run) => (
+                  <motion.button
+                    key={run}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleBall(run)}
+                    className={cn(
+                      "aspect-square rounded-xl border-2 font-black text-xl transition-all shadow-lg flex items-center justify-center",
+                      run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" : 
+                      "bg-purple-50 border-purple-500 text-purple-700 hover:bg-purple-600 hover:text-white"
+                    )}
+                  >
+                    {run}
+                  </motion.button>
+                ))}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowWicketModal(true)}
+                  className="aspect-square rounded-xl bg-red-50 border-2 border-red-500 text-red-600 font-black text-xl hover:bg-red-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
+                >
+                  W
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={undoLastBall}
+                  className="aspect-square rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-600 font-black text-xl hover:bg-amber-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={swapStrike}
+                  className="aspect-square rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center shadow-sm"
+                  title="Swap Strike"
+                >
+                  <RotateCcw className="w-5 h-5 rotate-180" />
+                </motion.button>
+              </div>
+            </div>
 
               {/* Extras Section - Compact */}
               <div className="bg-slate-50 rounded-2xl p-2 border border-slate-100 space-y-2">
@@ -1486,23 +1542,27 @@ export default function MatchScoring() {
             )}
 
             <div className="flex flex-wrap gap-2 overflow-y-auto max-h-[400px]">
-              {currentInnings?.ballHistory.slice().reverse().map((ball, idx) => (
-                <div 
-                  key={idx}
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2",
-                    ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
-                    ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
-                    ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
-                    ball.isExtra ? "bg-amber-100 border-amber-500 text-amber-600" :
-                    "bg-slate-50 border-slate-200 text-slate-600"
-                  )}
-                >
-                  {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
-                </div>
-              ))}
-              {(!currentInnings?.ballHistory || currentInnings.ballHistory.length === 0) && (
-                <p className="text-slate-300 italic text-sm py-4">No balls bowled yet.</p>
+              {currentInnings?.ballHistory
+                .filter(ball => ball.over === currentInnings.overs)
+                .slice()
+                .reverse()
+                .map((ball, idx) => (
+                  <div 
+                    key={idx}
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2",
+                      ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
+                      ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
+                      ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
+                      ball.isExtra ? "bg-amber-100 border-amber-500 text-amber-600" :
+                      "bg-slate-50 border-slate-200 text-slate-600"
+                    )}
+                  >
+                    {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
+                  </div>
+                ))}
+              {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
+                <p className="text-slate-300 italic text-sm py-4">No balls in this over yet.</p>
               )}
             </div>
           </div>
