@@ -1,6 +1,7 @@
 import React from 'react';
 import { Match, MatchInnings, BatterStats, BowlerStats } from '../types/cricket';
 import { cn } from '../lib/utils';
+import { Zap } from 'lucide-react';
 
 interface ScorecardProps {
   match: Match;
@@ -36,27 +37,32 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
               </tr>
             </thead>
             <tbody>
-              {batsmen.map((b) => (
-                <tr key={b.playerId} className="border-b border-slate-100 last:border-0">
-                  <td className="py-3 pr-4">
-                    <div className="flex flex-col">
-                      <span className={cn("font-bold text-sm", b.isStriker && "text-brand-red")}>
-                        {b.playerName}{b.isStriker ? '*' : ''}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium italic">
-                        {b.isOut ? (b.howOut || 'Out') : 'Not Out'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 text-right font-black text-sm">{b.runs}</td>
-                  <td className="py-3 text-right text-slate-500 text-xs">{b.balls}</td>
-                  <td className="py-3 text-right text-slate-500 text-xs">{b.fours}</td>
-                  <td className="py-3 text-right text-slate-500 text-xs">{b.sixes}</td>
-                  <td className="py-3 text-right text-slate-500 text-xs">
-                    {b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0'}
-                  </td>
-                </tr>
-              ))}
+              {batsmen.map((b) => {
+                const isNonStriker = !b.isStriker && !b.isOut;
+                
+                return (
+                  <tr key={b.playerId} className={cn("border-b border-slate-100 last:border-0", (b.isStriker || isNonStriker) && "bg-red-50/30")}>
+                    <td className="py-3 pr-4">
+                      <div className="flex flex-col">
+                        <span className={cn("font-bold text-sm flex items-center gap-1", b.isStriker ? "text-brand-red" : isNonStriker ? "text-slate-900" : "text-slate-600")}>
+                          {b.playerName}{b.isStriker ? '*' : ''}
+                          {b.isStriker && <Zap className="w-3 h-3 fill-brand-red" />}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium italic">
+                          {b.isOut ? (b.howOut || 'Out') : 'Not Out'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 text-right font-black text-sm">{b.runs}</td>
+                    <td className="py-3 text-right text-slate-500 text-xs">{b.balls}</td>
+                    <td className="py-3 text-right text-slate-500 text-xs">{b.fours}</td>
+                    <td className="py-3 text-right text-slate-500 text-xs">{b.sixes}</td>
+                    <td className="py-3 text-right text-slate-500 text-xs">
+                      {b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0'}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -91,18 +97,24 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
               </tr>
             </thead>
             <tbody>
-              {bowlers.map((b) => (
-                <tr key={b.playerId} className="border-b border-slate-100 last:border-0">
-                  <td className="py-3 pr-4 font-bold text-sm">{b.playerName}</td>
-                  <td className="py-3 text-right text-slate-500 text-xs">{b.overs}.{b.balls}</td>
-                  <td className="py-3 text-right text-slate-500 text-xs">{b.maiden}</td>
-                  <td className="py-3 text-right font-black text-sm">{b.runs}</td>
-                  <td className="py-3 text-right font-black text-sm text-red-600">{b.wickets}</td>
-                  <td className="py-3 text-right text-slate-500 text-xs">
-                    {b.overs > 0 || b.balls > 0 ? (b.runs / (b.overs + b.balls/6)).toFixed(2) : '0.00'}
-                  </td>
-                </tr>
-              ))}
+              {bowlers.map((b) => {
+                const isCurrentBowler = innings.currentBowlerId === b.playerId;
+                return (
+                  <tr key={b.playerId} className={cn("border-b border-slate-100 last:border-0", isCurrentBowler && "bg-slate-900/5")}>
+                    <td className="py-3 pr-4 font-bold text-sm flex items-center gap-2">
+                      {b.playerName}
+                      {isCurrentBowler && <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse"></span>}
+                    </td>
+                    <td className="py-3 text-right text-slate-500 text-xs">{b.overs}.{b.balls}</td>
+                    <td className="py-3 text-right text-slate-500 text-xs">{b.maiden}</td>
+                    <td className="py-3 text-right font-black text-sm">{b.runs}</td>
+                    <td className="py-3 text-right font-black text-sm text-red-600">{b.wickets}</td>
+                    <td className="py-3 text-right text-slate-500 text-xs">
+                      {b.overs > 0 || b.balls > 0 ? (b.runs / (b.overs + b.balls/6)).toFixed(2) : '0.00'}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

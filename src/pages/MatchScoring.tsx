@@ -1544,6 +1544,30 @@ export default function MatchScoring() {
                       </div>
                     )}
                   </div>
+
+                  {/* Quick Active Players Info */}
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-red-800/50">
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col">
+                        <span className="text-[7px] font-black text-red-400 uppercase tracking-widest">Batting</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-white flex items-center gap-1">
+                            {striker?.playerName}* <span className="text-[8px] text-red-300">({striker?.runs})</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-red-300">
+                            {nonStriker?.playerName} <span className="text-[8px] opacity-70">({nonStriker?.runs})</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-px h-6 bg-red-800/50"></div>
+                    <div className="flex flex-col">
+                      <span className="text-[7px] font-black text-red-400 uppercase tracking-widest">Bowling</span>
+                      <span className="text-[10px] font-black text-white">
+                        {bowler?.playerName} <span className="text-[8px] text-red-300">({bowler?.wickets}-{bowler?.runs})</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-[7px] font-black text-red-400 uppercase tracking-widest mb-0.5">Run Rate</div>
@@ -1618,43 +1642,57 @@ export default function MatchScoring() {
               <div className="grid grid-cols-3 gap-2">
                 <motion.div 
                   initial={false}
-                  animate={{ backgroundColor: striker?.isStriker ? 'rgb(254 242 242)' : 'rgb(248 250 252)' }}
-                  className={cn(
-                    "p-2 rounded-xl border transition-all",
-                    striker?.isStriker ? "border-red-200 ring-1 ring-brand-red/20 shadow-sm" : "border-slate-100"
-                  )}
+                  animate={{ 
+                    backgroundColor: 'rgb(254 242 242)',
+                    borderColor: 'rgb(239 68 68)'
+                  }}
+                  className="p-2 rounded-xl border-2 shadow-sm relative overflow-hidden group"
                 >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Striker</span>
-                    {striker?.isStriker && <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red" />}
+                  <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Zap className="w-8 h-8 text-brand-red" />
                   </div>
-                  <p className="text-xs font-black text-slate-900 truncate">{striker?.playerName || 'Batsman'}</p>
-                  <p className="text-[10px] font-bold text-brand-red mt-0.5">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
+                  <div className="flex items-center justify-between mb-0.5 relative z-10">
+                    <span className="text-[8px] font-black text-brand-red uppercase tracking-widest flex items-center gap-1">
+                      <span className="w-1 h-1 rounded-full bg-brand-red animate-pulse"></span>
+                      Striker
+                    </span>
+                    <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red animate-bounce" />
+                  </div>
+                  <p className="text-xs font-black text-slate-900 truncate relative z-10">{striker?.playerName || 'Batsman'}</p>
+                  <p className="text-[10px] font-bold text-brand-red mt-0.5 relative z-10">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
                 </motion.div>
 
                 <motion.div 
                   initial={false}
-                  animate={{ backgroundColor: nonStriker?.isStriker ? 'rgb(254 242 242)' : 'rgb(248 250 252)' }}
-                  className={cn(
-                    "p-2 rounded-xl border transition-all",
-                    nonStriker?.isStriker ? "border-red-200 ring-1 ring-brand-red/20 shadow-sm" : "border-slate-100"
-                  )}
+                  className="p-2 rounded-xl border border-slate-200 bg-slate-50/50 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
-                    {nonStriker?.isStriker && <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red" />}
                   </div>
                   <p className="text-xs font-black text-slate-900 truncate">{nonStriker?.playerName || 'Batsman'}</p>
-                  <p className="text-[10px] font-bold text-brand-red mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
+                  <p className="text-[10px] font-bold text-slate-500 mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
                 </motion.div>
 
-                <div className="p-2 rounded-xl bg-slate-900 text-white flex flex-col justify-center">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Bowler</span>
+                <motion.div 
+                  initial={false}
+                  animate={{ 
+                    borderColor: 'rgb(15 23 42)',
+                    backgroundColor: 'rgb(15 23 42)'
+                  }}
+                  className="p-2 rounded-xl border-2 text-white flex flex-col justify-center shadow-lg relative overflow-hidden group"
+                >
+                  <div className="absolute top-0 right-0 p-1 opacity-20">
+                    <Flame className="w-8 h-8 text-red-500" />
                   </div>
-                  <p className="text-xs font-black truncate">{bowler?.playerName || 'Bowler'}</p>
-                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">{bowler?.wickets || 0}-{bowler?.runs || 0} <span className="opacity-50">({bowler?.overs || 0}.{bowler?.balls || 0})</span></p>
-                </div>
+                  <div className="flex items-center justify-between mb-0.5 relative z-10">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                      <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></span>
+                      Bowler
+                    </span>
+                  </div>
+                  <p className="text-xs font-black truncate relative z-10">{bowler?.playerName || 'Bowler'}</p>
+                  <p className="text-[10px] font-bold text-slate-300 mt-0.5 relative z-10">{bowler?.wickets || 0}-{bowler?.runs || 0} <span className="opacity-50">({bowler?.overs || 0}.{bowler?.balls || 0})</span></p>
+                </motion.div>
               </div>
 
             {/* Scoring Grid - Simplified for Admin - Compact */}
