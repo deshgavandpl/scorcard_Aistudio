@@ -269,7 +269,14 @@ export default function LiveMatchView() {
           </button>
           <div>
             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">{match.teamAName} <span className="text-slate-300 mx-2 italic">vs</span> {match.teamBName}</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{match.oversLimit} Overs Match • {match.status}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{match.oversLimit} Overs Match • {match.status}</p>
+              {match.umpireName && (
+                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                  <User className="w-2 h-2" /> Umpire: {match.umpireName}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">

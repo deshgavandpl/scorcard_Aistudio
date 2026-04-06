@@ -36,6 +36,7 @@ export default function TournamentDetail() {
   const [teamBId, setTeamBId] = useState('');
   const [matchName, setMatchName] = useState('');
   const [overs, setOvers] = useState(6);
+  const [umpireName, setUmpireName] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -177,6 +178,7 @@ export default function TournamentDetail() {
       teamBId,
       teamAName: teamA.name,
       teamBName: teamB.name,
+      umpireName: umpireName,
       tossWinnerId: '',
       tossDecision: 'Bat',
       oversLimit: overs,
@@ -191,6 +193,7 @@ export default function TournamentDetail() {
       setTeamAId('');
       setTeamBId('');
       setMatchName('');
+      setUmpireName('');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `matches/${matchId}`);
     }
@@ -421,6 +424,17 @@ export default function TournamentDetail() {
                     type="number" 
                     value={overs}
                     onChange={(e) => setOvers(parseInt(e.target.value) || 6)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Umpire Name</label>
+                  <input 
+                    type="text" 
+                    value={umpireName}
+                    onChange={(e) => setUmpireName(e.target.value)}
+                    placeholder="e.g. Nitin Menon"
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
                   />
                 </div>

@@ -135,6 +135,7 @@ export default function MatchScoring() {
   const [teamA, setTeamA] = useState('');
   const [teamB, setTeamB] = useState('');
   const [overs, setOvers] = useState(6);
+  const [umpireName, setUmpireName] = useState('');
   const [tossWinner, setTossWinner] = useState('');
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
@@ -336,6 +337,7 @@ export default function MatchScoring() {
       teamBId: tBId,
       teamAName: teamA,
       teamBName: teamB,
+      umpireName: umpireName,
       tossWinnerId: tossWinner === teamA ? tAId : tBId,
       tossDecision,
       oversLimit: overs,
@@ -637,6 +639,17 @@ export default function MatchScoring() {
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Umpire Name</label>
+                  <input 
+                    type="text" 
+                    value={umpireName}
+                    onChange={(e) => setUmpireName(e.target.value)}
+                    placeholder="e.g. Nitin Menon"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -1370,7 +1383,14 @@ export default function MatchScoring() {
                   <h1 className="text-3xl sm:text-4xl font-black tracking-tighter leading-none mt-0.5">
                     {currentInnings?.runs}<span className="text-xl text-blue-400">/{currentInnings?.wickets}</span>
                   </h1>
-                  <p className="text-xs font-bold text-blue-300 mt-0.5">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[9px] opacity-50">/ {match.oversLimit} ov</span></p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs font-bold text-blue-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[9px] opacity-50">/ {match.oversLimit} ov</span></p>
+                    {match.umpireName && (
+                      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-800/50 border border-blue-700/50 text-[8px] font-black uppercase tracking-widest text-blue-400">
+                        <User className="w-2 h-2" /> {match.umpireName}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Run Rate</div>

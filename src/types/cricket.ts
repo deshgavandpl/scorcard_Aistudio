@@ -87,6 +87,7 @@ export interface Match {
   winnerId?: string;
   resultMessage?: string;
   manOfTheMatch?: string;
+  umpireName?: string;
   hypeCount?: number;
   createdAt: number;
 }
