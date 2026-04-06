@@ -47,6 +47,61 @@ const speakHype = (text: string) => {
   window.speechSynthesis.speak(utterance);
 };
 
+const calculateManOfTheMatch = (match: Match, winningTeamId: string) => {
+  if (winningTeamId === 'Draw') return 'N/A';
+  
+  const points: Record<string, { name: string; score: number }> = {};
+
+  const processBatting = (innings: MatchInnings | undefined) => {
+    if (!innings || innings.battingTeamId !== winningTeamId) return;
+    Object.values(innings.battingStats).forEach(stat => {
+      if (!points[stat.playerId]) points[stat.playerId] = { name: stat.playerName, score: 0 };
+      points[stat.playerId].score += stat.runs;
+    });
+  };
+
+  const processBowlingAndFielding = (innings: MatchInnings | undefined) => {
+    if (!innings || innings.bowlingTeamId !== winningTeamId) return;
+    
+    // Bowling
+    Object.values(innings.bowlingStats).forEach(stat => {
+      if (!points[stat.playerId]) points[stat.playerId] = { name: stat.playerName, score: 0 };
+      points[stat.playerId].score += stat.wickets * 10;
+    });
+
+    // Fielding
+    innings.ballHistory.forEach(ball => {
+      if (ball.isWicket && ball.wicketType === 'Caught' && ball.fielderName) {
+        const fielderName = ball.fielderName;
+        let found = false;
+        Object.keys(points).forEach(id => {
+          if (points[id].name === fielderName) {
+            points[id].score += 5;
+            found = true;
+          }
+        });
+        if (!found) {
+          points[`name_${fielderName}`] = { name: fielderName, score: 5 };
+        }
+      }
+    });
+  };
+
+  processBatting(match.innings1);
+  processBatting(match.innings2);
+  processBowlingAndFielding(match.innings1);
+  processBowlingAndFielding(match.innings2);
+
+  let bestPlayer = { name: 'N/A', score: -1 };
+  Object.values(points).forEach(p => {
+    if (p.score > bestPlayer.score) {
+      bestPlayer = p;
+    }
+  });
+
+  return bestPlayer.name;
+};
+
 export default function MatchScoring() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -177,7 +232,30 @@ export default function MatchScoring() {
       if (inn1 && inn2) {
         const isOver = inn2.wickets === 10 || inn2.overs === match.oversLimit || inn2.runs > inn1.runs;
         if (isOver && !showFinishConfirm) {
-          setShowFinishConfirm(true);
+          // Calculate winner and MoM automatically
+          let finalWinnerId = '';
+          let finalResultMessage = '';
+          const battingTeamName = inn2.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
+          const bowlingTeamName = inn2.bowlingTeamId === match.teamAId ? match.teamAName : match.teamBName;
+
+          if (inn2.runs > inn1.runs) {
+            finalWinnerId = inn2.battingTeamId;
+            finalResultMessage = `${battingTeamName} won by ${10 - inn2.wickets} wickets`;
+          } else if (inn1.runs > inn2.runs && (inn2.overs === match.oversLimit || inn2.wickets === 10)) {
+            finalWinnerId = inn1.battingTeamId;
+            finalResultMessage = `${bowlingTeamName} won by ${inn1.runs - inn2.runs} runs`;
+          } else if (inn1.runs === inn2.runs && (inn2.overs === match.oversLimit || inn2.wickets === 10)) {
+            finalWinnerId = 'Draw';
+            finalResultMessage = 'Match Draw';
+          }
+
+          if (finalWinnerId) {
+            setWinnerId(finalWinnerId);
+            setResultMessage(finalResultMessage);
+            const mom = calculateManOfTheMatch(match, finalWinnerId);
+            setManOfTheMatch(mom);
+            setShowFinishConfirm(true);
+          }
         }
       }
     }
@@ -200,9 +278,17 @@ export default function MatchScoring() {
   }, [match?.status, match?.teamAName, match?.teamBName, match?.oversLimit]);
 
   useEffect(() => {
-    if (match && !isSettingUp) {
+    if (match && !isSettingUp && match.status === 'Live') {
       const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
       if (!currentInn) return;
+
+      // Check if match/innings is over
+      let isOver = currentInn.wickets === 10 || currentInn.overs === match.oversLimit;
+      if (match.currentInnings === 2 && match.innings1 && currentInn.runs > match.innings1.runs) {
+        isOver = true;
+      }
+
+      if (isOver) return;
 
       const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
       const nonStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
@@ -423,7 +509,8 @@ export default function MatchScoring() {
       }
     }
 
-    await finishMatch(finalWinnerId, finalResultMessage, manOfTheMatch);
+    const finalMoM = manOfTheMatch || calculateManOfTheMatch(match, finalWinnerId);
+    await finishMatch(finalWinnerId, finalResultMessage, finalMoM);
     setShowFinishConfirm(false);
     toast.success('Match finished successfully!');
   };
@@ -873,7 +960,11 @@ export default function MatchScoring() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Winner</label>
                   <select 
                     value={winnerId}
-                    onChange={(e) => setWinnerId(e.target.value)}
+                    onChange={(e) => {
+                      setWinnerId(e.target.value);
+                      const mom = calculateManOfTheMatch(match, e.target.value);
+                      setManOfTheMatch(mom);
+                    }}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 font-black uppercase tracking-tight text-sm outline-none focus:border-blue-500 transition-all"
                   >
                     <option value="">Select Winner</option>
@@ -891,6 +982,26 @@ export default function MatchScoring() {
                     placeholder="e.g. Team A won by 10 runs"
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all"
                   />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Man of the Match</label>
+                  <input 
+                    type="text" 
+                    value={manOfTheMatch}
+                    onChange={(e) => setManOfTheMatch(e.target.value)}
+                    placeholder="Player Name"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-left">
+                  <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-2">MoM Selection Rules:</p>
+                  <ul className="text-[9px] font-bold text-blue-700 space-y-1 list-disc pl-4">
+                    <li>1 Run = 1 Point</li>
+                    <li>1 Wicket = 10 Points</li>
+                    <li>1 Catch = 5 Points</li>
+                    <li>Selected from the winning team</li>
+                  </ul>
                 </div>
               </div>
 
