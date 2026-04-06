@@ -610,9 +610,9 @@ export default function MatchScoring() {
     return (
       <div className="max-w-2xl mx-auto pt-8">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-          <div className="bg-blue-900 p-8 text-white">
+          <div className="bg-brand-red p-8 text-white">
             <h1 className="text-3xl font-black uppercase tracking-tighter transform -skew-x-6">New Match Setup</h1>
-            <p className="text-blue-300 text-sm font-medium mt-1 uppercase tracking-widest">Step {setupStep} of 2</p>
+            <p className="text-red-200 text-sm font-medium mt-1 uppercase tracking-widest">Step {setupStep} of 2</p>
           </div>
 
           <div className="p-8 space-y-8">
@@ -626,7 +626,7 @@ export default function MatchScoring() {
                       value={teamA}
                       onChange={(e) => setTeamA(e.target.value)}
                       placeholder="e.g. AP11"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
                     />
                   </div>
                   <div className="space-y-2">
@@ -636,7 +636,7 @@ export default function MatchScoring() {
                       value={teamB}
                       onChange={(e) => setTeamB(e.target.value)}
                       placeholder="e.g. Cotton11"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
                     />
                   </div>
                 </div>
@@ -648,7 +648,7 @@ export default function MatchScoring() {
                     value={umpireName}
                     onChange={(e) => setUmpireName(e.target.value)}
                     placeholder="e.g. Nitin Menon"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
                   />
                 </div>
 
@@ -661,7 +661,7 @@ export default function MatchScoring() {
                         onClick={() => setOvers(num)}
                         className={cn(
                           "flex-1 py-3 rounded-xl font-black transition-all",
-                          overs === num ? "bg-blue-900 text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          overs === num ? "bg-brand-red text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                         )}
                       >
                         {num}
@@ -679,7 +679,7 @@ export default function MatchScoring() {
                 <button 
                   disabled={!teamA || !teamB}
                   onClick={() => setSetupStep(2)}
-                  className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next Step
                 </button>
@@ -693,7 +693,7 @@ export default function MatchScoring() {
                       onClick={() => setTossWinner(teamA)}
                       className={cn(
                         "py-4 rounded-xl font-black uppercase tracking-widest transition-all border-2",
-                        tossWinner === teamA ? "bg-blue-50 border-blue-900 text-blue-900" : "bg-white border-slate-100 text-slate-400"
+                        tossWinner === teamA ? "bg-red-50 border-brand-red text-brand-red" : "bg-white border-slate-100 text-slate-400"
                       )}
                     >
                       {teamA}
@@ -702,7 +702,7 @@ export default function MatchScoring() {
                       onClick={() => setTossWinner(teamB)}
                       className={cn(
                         "py-4 rounded-xl font-black uppercase tracking-widest transition-all border-2",
-                        tossWinner === teamB ? "bg-blue-50 border-blue-900 text-blue-900" : "bg-white border-slate-100 text-slate-400"
+                        tossWinner === teamB ? "bg-red-50 border-brand-red text-brand-red" : "bg-white border-slate-100 text-slate-400"
                       )}
                     >
                       {teamB}
@@ -718,7 +718,7 @@ export default function MatchScoring() {
                         onClick={() => setTossDecision('Bat')}
                         className={cn(
                           "py-4 rounded-xl font-black uppercase tracking-widest transition-all border-2",
-                          tossDecision === 'Bat' ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "bg-white border-slate-100 text-slate-400"
+                          tossDecision === 'Bat' ? "bg-red-50 border-brand-red text-brand-red" : "bg-white border-slate-100 text-slate-400"
                         )}
                       >
                         Batting
@@ -727,7 +727,7 @@ export default function MatchScoring() {
                         onClick={() => setTossDecision('Bowl')}
                         className={cn(
                           "py-4 rounded-xl font-black uppercase tracking-widest transition-all border-2",
-                          tossDecision === 'Bowl' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-white border-slate-100 text-slate-400"
+                          tossDecision === 'Bowl' ? "bg-red-50 border-brand-red text-brand-red" : "bg-white border-slate-100 text-slate-400"
                         )}
                       >
                         Bowling
@@ -740,7 +740,7 @@ export default function MatchScoring() {
                   <button 
                     disabled={!tossWinner}
                     onClick={startMatch}
-                    className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg disabled:opacity-50"
+                    className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50"
                   >
                     Start Match
                   </button>
@@ -794,8 +794,8 @@ export default function MatchScoring() {
           className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl space-y-8"
         >
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <User className="w-8 h-8 text-blue-600" />
+            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <User className="w-8 h-8 text-brand-red" />
             </div>
             <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">
               {getTitle()}
@@ -826,7 +826,7 @@ export default function MatchScoring() {
                     value={strikerName}
                     onChange={(e) => setStrikerName(e.target.value)}
                     placeholder="ENTER BATTER NAME"
-                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-blue-500 outline-none transition-all text-center text-xl"
+                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
                   />
                 </div>
               )}
@@ -839,7 +839,7 @@ export default function MatchScoring() {
                     value={nonStrikerName}
                     onChange={(e) => setNonStrikerName(e.target.value)}
                     placeholder="ENTER BATTER NAME"
-                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-blue-500 outline-none transition-all text-center text-xl"
+                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
                   />
                 </div>
               )}
@@ -852,7 +852,7 @@ export default function MatchScoring() {
                     value={bowlerName}
                     onChange={(e) => setBowlerName(e.target.value)}
                     placeholder="ENTER BOWLER NAME"
-                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-blue-500 outline-none transition-all text-center text-xl"
+                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
                   />
                   
                   {previousBowlers.length > 0 && (
@@ -868,9 +868,9 @@ export default function MatchScoring() {
                               onClick={() => setBowlerName(bName)}
                               className={cn(
                                 "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
-                                bowlerName === bName ? "bg-blue-900 border-blue-900 text-white shadow-lg scale-105" : 
+                                bowlerName === bName ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
                                 isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
-                                "bg-white border-slate-100 text-slate-600 hover:border-blue-300"
+                                "bg-white border-slate-100 text-slate-600 hover:border-red-300"
                               )}
                             >
                               {bName}
@@ -886,7 +886,7 @@ export default function MatchScoring() {
 
             <button 
               onClick={confirmPlayers}
-              className="w-full py-5 rounded-2xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-xl text-sm transform active:scale-95"
+              className="w-full py-5 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-brand-red/90 transition-all shadow-xl text-sm transform active:scale-95"
             >
               Confirm & Continue
             </button>
@@ -965,8 +965,8 @@ export default function MatchScoring() {
               animate={{ scale: 1, y: 0 }}
               className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6 text-center"
             >
-              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
-                <Trophy className="w-10 h-10 text-amber-600" />
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+                <Trophy className="w-10 h-10 text-brand-red" />
               </div>
               <div className="space-y-2">
                 <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">Match Over!</h2>
@@ -983,7 +983,7 @@ export default function MatchScoring() {
                       const mom = calculateManOfTheMatch(match, e.target.value);
                       setManOfTheMatch(mom);
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-black uppercase tracking-tight text-sm outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-black uppercase tracking-tight text-sm outline-none focus:border-brand-red transition-all"
                   >
                     <option value="">Select Winner</option>
                     <option value={match?.teamAId}>{match?.teamAName}</option>
@@ -998,7 +998,7 @@ export default function MatchScoring() {
                     value={resultMessage}
                     onChange={(e) => setResultMessage(e.target.value)}
                     placeholder="e.g. Team A won by 10 runs"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-brand-red transition-all"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1008,13 +1008,13 @@ export default function MatchScoring() {
                     value={manOfTheMatch}
                     onChange={(e) => setManOfTheMatch(e.target.value)}
                     placeholder="Player Name"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-brand-red transition-all"
                   />
                 </div>
 
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-left">
-                  <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-2">MoM Selection Rules:</p>
-                  <ul className="text-[9px] font-bold text-blue-700 space-y-1 list-disc pl-4">
+                <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-left">
+                  <p className="text-[10px] font-black text-brand-red uppercase tracking-widest mb-2">MoM Selection Rules:</p>
+                  <ul className="text-[9px] font-bold text-red-700 space-y-1 list-disc pl-4">
                     <li>1 Run = 1 Point</li>
                     <li>1 Wicket = 10 Points</li>
                     <li>1 Catch = 5 Points</li>
@@ -1033,7 +1033,7 @@ export default function MatchScoring() {
                 <button 
                   disabled={!winnerId}
                   onClick={onFinishConfirm}
-                  className="flex-1 py-4 rounded-2xl bg-blue-900 text-white font-black uppercase tracking-widest text-xs hover:bg-blue-800 transition-all shadow-lg disabled:opacity-50"
+                  className="flex-1 py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50"
                 >
                   Confirm Win
                 </button>
@@ -1051,25 +1051,25 @@ export default function MatchScoring() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-2xl border-4 border-blue-900"
+              className="bg-white rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-2xl border-4 border-brand-red"
             >
-              <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="w-10 h-10 text-blue-600" />
+              <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="w-10 h-10 text-brand-red" />
               </div>
               <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-2">Innings Over</h2>
               <div className="bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">1st Innings Score</p>
-                <p className="text-2xl font-black text-blue-900">{match.innings1?.runs}/{match.innings1?.wickets}</p>
+                <p className="text-2xl font-black text-brand-red">{match.innings1?.runs}/{match.innings1?.wickets}</p>
                 <p className="text-[10px] font-bold text-slate-500 mt-1">in {match.innings1?.overs}.{match.innings1?.balls} overs</p>
               </div>
               
-              <div className="bg-blue-900 p-6 rounded-3xl mb-8 text-white shadow-xl relative overflow-hidden">
+              <div className="bg-brand-red p-6 rounded-3xl mb-8 text-white shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10">
                   <Trophy className="w-12 h-12" />
                 </div>
-                <p className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-1">Target for 2nd Innings</p>
+                <p className="text-[10px] font-black text-red-200 uppercase tracking-widest mb-1">Target for 2nd Innings</p>
                 <p className="text-4xl font-black italic transform -skew-x-6">{match.innings1 ? match.innings1.runs + 1 : 0}</p>
-                <p className="text-[10px] font-bold text-blue-400 mt-2 uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-red-300 mt-2 uppercase tracking-widest">
                   Req. RR: {match.innings1 ? ((match.innings1.runs + 1) / match.oversLimit).toFixed(2) : '0.00'}
                 </p>
               </div>
@@ -1080,7 +1080,7 @@ export default function MatchScoring() {
                     startSecondInnings();
                     setShowInningsOverModal(false);
                   }}
-                  className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+                  className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-brand-red/90 transition-all shadow-lg"
                 >
                   Start Second Innings
                 </button>
@@ -1110,14 +1110,14 @@ export default function MatchScoring() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] pointer-events-none flex items-center justify-center overflow-hidden"
           >
-            <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-[2px]"></div>
+            <div className="absolute inset-0 bg-brand-red/20 backdrop-blur-[2px]"></div>
             <motion.div 
               initial={{ scale: 0, rotate: -20 }}
               animate={{ scale: 1, rotate: 0 }}
-              className="relative z-10 bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[4rem] shadow-2xl border-4 md:border-8 border-blue-900 text-center max-w-[90%] md:max-w-none"
+              className="relative z-10 bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[4rem] shadow-2xl border-4 md:border-8 border-brand-red text-center max-w-[90%] md:max-w-none"
             >
-              <Trophy className="w-16 h-16 md:w-32 md:h-32 text-amber-500 mx-auto mb-4 md:mb-6 animate-bounce" />
-              <h1 className="text-3xl md:text-6xl font-black uppercase tracking-tighter text-blue-900 transform -skew-x-6">Congratulations!</h1>
+              <Trophy className="w-16 h-16 md:w-32 md:h-32 text-red-500 mx-auto mb-4 md:mb-6 animate-bounce" />
+              <h1 className="text-3xl md:text-6xl font-black uppercase tracking-tighter text-brand-red transform -skew-x-6">Congratulations!</h1>
               <p className="text-lg md:text-2xl font-bold text-slate-600 mt-2 md:mt-4 uppercase tracking-widest">
                 {match.winnerId === 'team_a' ? match.teamAName : match.teamBName} Wins!
               </p>
@@ -1218,7 +1218,7 @@ export default function MatchScoring() {
             <div className="flex items-center gap-2">
               <h2 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight leading-none">{match.teamAName} vs {match.teamBName}</h2>
               {match.name && (
-                <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest">
+                <span className="px-1.5 py-0.5 rounded bg-red-100 text-brand-red text-[8px] font-black uppercase tracking-widest">
                   {match.name}
                 </span>
               )}
@@ -1233,7 +1233,7 @@ export default function MatchScoring() {
             onClick={() => setIsHypeMuted(!isHypeMuted)}
             className={cn(
               "p-1.5 rounded-lg transition-colors",
-              isHypeMuted ? "text-slate-300" : "text-blue-500 bg-blue-50"
+              isHypeMuted ? "text-slate-300" : "text-brand-red bg-red-50"
             )}
             title="Toggle Commentary Audio"
           >
@@ -1242,7 +1242,7 @@ export default function MatchScoring() {
           <button 
             onClick={shareScorecard}
             disabled={isSharing}
-            className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-blue-600"
+            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-brand-red"
             title="Share Scorecard"
           >
             <Share2 className={cn("w-4 h-4", isSharing && "animate-spin")} />
@@ -1259,7 +1259,7 @@ export default function MatchScoring() {
           </button>
           <button 
             onClick={() => window.open(`#/match/${match.id}`, '_blank')} 
-            className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-blue-400" 
+            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-brand-red" 
             title="View Public Live Score"
           >
             <Zap className="w-4 h-4" />
@@ -1287,7 +1287,7 @@ export default function MatchScoring() {
                 <select 
                   value={winnerId}
                   onChange={(e) => setWinnerId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-black uppercase tracking-tight text-xs outline-none focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-black uppercase tracking-tight text-xs outline-none focus:border-brand-red transition-all"
                 >
                   <option value="">Select Winner</option>
                   <option value={match.teamAId}>{match.teamAName}</option>
@@ -1302,7 +1302,7 @@ export default function MatchScoring() {
                   value={resultMessage}
                   onChange={(e) => setResultMessage(e.target.value)}
                   placeholder="e.g. Team A won by 10 runs"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-brand-red transition-all"
                 />
               </div>
               <div className="space-y-1">
@@ -1313,7 +1313,7 @@ export default function MatchScoring() {
                     value={manOfTheMatch}
                     onChange={(e) => setManOfTheMatch(e.target.value)}
                     placeholder="Enter player name"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-brand-red transition-all"
                   />
                   {momSuggestions.length > 0 && (
                     <div className="flex gap-1">
@@ -1367,7 +1367,7 @@ export default function MatchScoring() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 space-y-3">
           {/* Live Score Card - Reduced Size */}
-          <div className="bg-blue-900 rounded-2xl p-3 sm:p-4 text-white shadow-xl relative overflow-hidden">
+          <div className="bg-brand-red rounded-2xl p-3 sm:p-4 text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-10">
               <Zap className="w-12 h-12 text-white" />
             </div>
@@ -1375,25 +1375,25 @@ export default function MatchScoring() {
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-800 border border-blue-700 text-[7px] font-black uppercase tracking-[0.1em] text-blue-200 mb-1">
-                    <span className={cn("w-1 h-1 rounded-full bg-red-500", match.status === 'Live' && "animate-pulse")}></span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-800 border border-red-700 text-[7px] font-black uppercase tracking-[0.1em] text-red-200 mb-1">
+                    <span className={cn("w-1 h-1 rounded-full bg-white", match.status === 'Live' && "animate-pulse")}></span>
                     {match.status === 'Live' ? 'Live' : 'Final'}
                   </span>
-                  <h3 className="text-base font-black uppercase tracking-tight text-blue-100 leading-tight">{battingTeamName}</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight text-red-100 leading-tight">{battingTeamName}</h3>
                   <h1 className="text-3xl sm:text-4xl font-black tracking-tighter leading-none mt-0.5">
-                    {currentInnings?.runs}<span className="text-xl text-blue-400">/{currentInnings?.wickets}</span>
+                    {currentInnings?.runs}<span className="text-xl text-red-400">/{currentInnings?.wickets}</span>
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs font-bold text-blue-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[9px] opacity-50">/ {match.oversLimit} ov</span></p>
+                    <p className="text-xs font-bold text-red-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[9px] opacity-50">/ {match.oversLimit} ov</span></p>
                     {match.umpireName && (
-                      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-800/50 border border-blue-700/50 text-[8px] font-black uppercase tracking-widest text-blue-400">
+                      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-800/50 border border-red-700/50 text-[8px] font-black uppercase tracking-widest text-red-400">
                         <User className="w-2 h-2" /> {match.umpireName}
                       </div>
                     )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Run Rate</div>
+                  <div className="text-[7px] font-black text-red-400 uppercase tracking-widest mb-0.5">Run Rate</div>
                   <div className="text-base font-black">
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
@@ -1401,7 +1401,7 @@ export default function MatchScoring() {
                   </div>
                   {match.currentInnings === 2 && match.innings1 && (
                     <div className="mt-1">
-                      <div className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Target</div>
+                      <div className="text-[7px] font-black text-red-400 uppercase tracking-widest mb-0.5">Target</div>
                       <div className="text-base font-black">{match.innings1.runs + 1}</div>
                     </div>
                   )}
@@ -1409,7 +1409,7 @@ export default function MatchScoring() {
               </div>
 
               {match.currentInnings === 2 && match.innings1 && (
-                <div className="bg-blue-800/50 rounded-lg p-1.5 border border-blue-700/50 mb-1">
+                <div className="bg-red-800/50 rounded-lg p-1.5 border border-red-700/50 mb-1">
                   <p className="text-[9px] font-bold text-center">
                     {match.teamAId === match.innings2?.battingTeamId ? match.teamAName : match.teamBName} needs {match.innings1.runs + 1 - (match.innings2?.runs || 0)} runs in {(match.oversLimit * 6) - ((match.innings2?.overs || 0) * 6 + (match.innings2?.balls || 0))} balls
                   </p>
@@ -1426,9 +1426,9 @@ export default function MatchScoring() {
               </h3>
               <button 
                 onClick={handleHype}
-                className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100 active:scale-90"
+                className="flex items-center gap-1 px-2 py-1 bg-red-50 text-brand-red rounded-full border border-red-100 active:scale-90"
               >
-                <Flame className="w-3 h-3 fill-amber-500" />
+                <Flame className="w-3 h-3 fill-brand-red" />
                 <span className="text-[8px] font-black">{match.hypeCount || 0}</span>
               </button>
             </div>
@@ -1465,34 +1465,34 @@ export default function MatchScoring() {
               <div className="grid grid-cols-3 gap-2">
                 <motion.div 
                   initial={false}
-                  animate={{ backgroundColor: striker?.isStriker ? 'rgb(239 246 255)' : 'rgb(248 250 252)' }}
+                  animate={{ backgroundColor: striker?.isStriker ? 'rgb(254 242 242)' : 'rgb(248 250 252)' }}
                   className={cn(
                     "p-2 rounded-xl border transition-all",
-                    striker?.isStriker ? "border-blue-200 ring-1 ring-blue-500/20 shadow-sm" : "border-slate-100"
+                    striker?.isStriker ? "border-red-200 ring-1 ring-brand-red/20 shadow-sm" : "border-slate-100"
                   )}
                 >
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Striker</span>
-                    {striker?.isStriker && <Zap className="w-2.5 h-2.5 text-blue-500 fill-blue-500" />}
+                    {striker?.isStriker && <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red" />}
                   </div>
                   <p className="text-xs font-black text-slate-900 truncate">{striker?.playerName || 'Batter'}</p>
-                  <p className="text-[10px] font-bold text-blue-600 mt-0.5">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
+                  <p className="text-[10px] font-bold text-brand-red mt-0.5">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
                 </motion.div>
 
                 <motion.div 
                   initial={false}
-                  animate={{ backgroundColor: nonStriker?.isStriker ? 'rgb(239 246 255)' : 'rgb(248 250 252)' }}
+                  animate={{ backgroundColor: nonStriker?.isStriker ? 'rgb(254 242 242)' : 'rgb(248 250 252)' }}
                   className={cn(
                     "p-2 rounded-xl border transition-all",
-                    nonStriker?.isStriker ? "border-blue-200 ring-1 ring-blue-500/20 shadow-sm" : "border-slate-100"
+                    nonStriker?.isStriker ? "border-red-200 ring-1 ring-brand-red/20 shadow-sm" : "border-slate-100"
                   )}
                 >
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
-                    {nonStriker?.isStriker && <Zap className="w-2.5 h-2.5 text-blue-500 fill-blue-500" />}
+                    {nonStriker?.isStriker && <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red" />}
                   </div>
                   <p className="text-xs font-black text-slate-900 truncate">{nonStriker?.playerName || 'Batter'}</p>
-                  <p className="text-[10px] font-bold text-blue-600 mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
+                  <p className="text-[10px] font-bold text-brand-red mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
                 </motion.div>
 
                 <div className="p-2 rounded-xl bg-slate-900 text-white flex flex-col justify-center">
@@ -1518,7 +1518,7 @@ export default function MatchScoring() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => handleBall(run)}
-                    className="aspect-square rounded-xl bg-slate-50 border-2 border-slate-100 text-slate-900 font-black text-xl hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all shadow-sm flex items-center justify-center"
+                    className="aspect-square rounded-xl bg-slate-50 border-2 border-slate-100 text-slate-900 font-black text-xl hover:bg-brand-red hover:text-white hover:border-brand-red transition-all shadow-sm flex items-center justify-center"
                   >
                     {run}
                   </motion.button>
@@ -1552,7 +1552,7 @@ export default function MatchScoring() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={undoLastBall}
-                  className="aspect-square rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-600 font-black text-xl hover:bg-amber-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
+                  className="aspect-square rounded-xl bg-red-50 border-2 border-red-200 text-brand-red font-black text-xl hover:bg-brand-red hover:text-white transition-all shadow-lg flex items-center justify-center"
                 >
                   <RotateCcw className="w-5 h-5" />
                 </motion.button>
@@ -1579,7 +1579,7 @@ export default function MatchScoring() {
                         onClick={() => setExtraRuns(num)}
                         className={cn(
                           "w-6 h-6 rounded-md font-black text-[10px] transition-all",
-                          extraRuns === num ? "bg-blue-900 text-white" : "bg-white text-slate-400 border border-slate-200"
+                          extraRuns === num ? "bg-brand-red text-white" : "bg-white text-slate-400 border border-slate-200"
                         )}
                       >
                         {num}
@@ -1590,8 +1590,8 @@ export default function MatchScoring() {
 
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { label: 'WD', type: 'Wd', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-                    { label: 'NB', type: 'Nb', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+                    { label: 'WD', type: 'Wd', color: 'bg-red-50 text-brand-red border-red-100' },
+                    { label: 'NB', type: 'Nb', color: 'bg-red-50 text-brand-red border-red-100' },
                     { label: 'BYE', type: 'By', color: 'bg-slate-200 text-slate-700 border-slate-300' },
                     { label: 'LB', type: 'Lb', color: 'bg-slate-200 text-slate-700 border-slate-300' }
                   ].map((extra) => (
@@ -1660,20 +1660,20 @@ export default function MatchScoring() {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={handleHype}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full border border-amber-100 hover:bg-amber-100 transition-all active:scale-90"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-brand-red rounded-full border border-red-100 hover:bg-red-100 transition-all active:scale-90"
                 >
-                  <Flame className="w-4 h-4 fill-amber-500" />
+                  <Flame className="w-4 h-4 fill-brand-red" />
                   <span className="text-xs font-black">{match.hypeCount || 0}</span>
                 </button>
               </div>
             </div>
             
             {currentInnings?.ballHistory.length > 0 && (
-              <div className="mb-6 p-4 bg-blue-900 rounded-2xl text-white shadow-inner relative overflow-hidden">
+              <div className="mb-6 p-4 bg-brand-red rounded-2xl text-white shadow-inner relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10">
                   <Flame className="w-12 h-12" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-300 mb-1">Live Commentary</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-200 mb-1">Live Commentary</p>
                 <p className="text-lg font-black italic transform -skew-x-6">
                   {getHypeCommentary(currentInnings.ballHistory[currentInnings.ballHistory.length - 1])}
                 </p>
@@ -1693,7 +1693,7 @@ export default function MatchScoring() {
                       ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
                       ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
                       ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
-                      ball.isExtra ? "bg-amber-100 border-amber-500 text-amber-600" :
+                      ball.isExtra ? "bg-red-50 border-brand-red text-brand-red" :
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
@@ -1725,17 +1725,17 @@ export default function MatchScoring() {
           style={{ fontFamily: 'Inter, sans-serif' }}
         >
           {/* Neon Accents */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 blur-[120px] rounded-full"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-red/20 blur-[120px] rounded-full"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-600/20 blur-[120px] rounded-full"></div>
           
           <div className="relative z-10 flex justify-between items-start">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl">
+              <div className="w-16 h-16 bg-brand-red rounded-2xl flex items-center justify-center shadow-2xl">
                 <span className="text-white font-black italic text-4xl">A</span>
               </div>
               <div>
                 <h1 className="text-white text-3xl font-black uppercase tracking-tighter italic transform -skew-x-6">Apna Cricket</h1>
-                <p className="text-blue-400 text-sm font-black uppercase tracking-widest">Live Match Update</p>
+                <p className="text-red-400 text-sm font-black uppercase tracking-widest">Live Match Update</p>
               </div>
             </div>
             <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
@@ -1748,14 +1748,14 @@ export default function MatchScoring() {
               <div className="text-right flex-1">
                 <h2 className="text-white text-6xl font-black uppercase tracking-tighter mb-2">{match.teamAName}</h2>
                 {match.currentInnings === 1 && match.innings1 && (
-                  <p className="text-blue-400 text-4xl font-black italic">{match.innings1.runs}/{match.innings1.wickets}</p>
+                  <p className="text-red-400 text-4xl font-black italic">{match.innings1.runs}/{match.innings1.wickets}</p>
                 )}
               </div>
               <div className="w-px h-32 bg-white/20"></div>
               <div className="text-left flex-1">
                 <h2 className="text-white text-6xl font-black uppercase tracking-tighter mb-2">{match.teamBName}</h2>
                 {match.currentInnings === 2 && match.innings2 && (
-                  <p className="text-blue-400 text-4xl font-black italic">{match.innings2.runs}/{match.innings2.wickets}</p>
+                  <p className="text-red-400 text-4xl font-black italic">{match.innings2.runs}/{match.innings2.wickets}</p>
                 )}
               </div>
             </div>
@@ -1763,7 +1763,7 @@ export default function MatchScoring() {
             <div className="bg-white/5 backdrop-blur-xl p-12 rounded-[3rem] border border-white/10 shadow-2xl">
               {currentInnings?.ballHistory.length > 0 ? (
                 <div className="space-y-4">
-                  <p className="text-blue-400 text-2xl font-black uppercase tracking-[0.3em]">Latest Action</p>
+                  <p className="text-red-400 text-2xl font-black uppercase tracking-[0.3em]">Latest Action</p>
                   <h3 className="text-white text-7xl font-black italic transform -skew-x-6 leading-tight">
                     {getHypeCommentary(currentInnings.ballHistory[currentInnings.ballHistory.length - 1])}
                   </h3>
@@ -1780,7 +1780,7 @@ export default function MatchScoring() {
               <p className="text-white text-xl font-black uppercase tracking-tighter italic">ApnaCricket.co.in</p>
             </div>
             <div className="flex gap-4">
-              <div className="px-6 py-3 bg-blue-600 rounded-xl">
+              <div className="px-6 py-3 bg-brand-red rounded-xl">
                 <p className="text-white font-black uppercase tracking-widest text-sm">#GullyCricket</p>
               </div>
               <div className="px-6 py-3 bg-purple-600 rounded-xl">

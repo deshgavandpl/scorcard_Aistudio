@@ -286,14 +286,14 @@ export default function TournamentDetail() {
         </div>
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-4">
-            <span className="px-3 py-1 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] inline-block">
+            <span className="px-3 py-1 rounded-full bg-brand-red text-white text-[10px] font-black uppercase tracking-[0.2em] inline-block">
               {tournament.status}
             </span>
             <div className="flex gap-2">
               {canManage && (
                 <button 
                   onClick={() => setShowEditTournament(true)}
-                  className="p-3 rounded-2xl bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-lg"
+                  className="p-3 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-lg"
                   title="Edit Tournament"
                 >
                   <Edit2 className="w-6 h-6" />
@@ -330,7 +330,7 @@ export default function TournamentDetail() {
             onClick={() => setActiveTab('fixtures')}
             className={cn(
               "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
-              activeTab === 'fixtures' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+              activeTab === 'fixtures' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
             <Calendar className="w-4 h-4" /> Fixtures
@@ -339,7 +339,7 @@ export default function TournamentDetail() {
             onClick={() => setActiveTab('points')}
             className={cn(
               "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
-              activeTab === 'points' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+              activeTab === 'points' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
             <BarChart2 className="w-4 h-4" /> Points
@@ -348,7 +348,7 @@ export default function TournamentDetail() {
             onClick={() => setActiveTab('teams')}
             className={cn(
               "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
-              activeTab === 'teams' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+              activeTab === 'teams' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
             <Users className="w-4 h-4" /> Teams
@@ -442,7 +442,7 @@ export default function TournamentDetail() {
 
               <button 
                 onClick={addCustomMatch}
-                className="w-full py-4 rounded-2xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+                className="w-full py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
               >
                 Create Match
               </button>
@@ -492,7 +492,7 @@ export default function TournamentDetail() {
 
               <button 
                 onClick={updateTournament}
-                className="w-full py-4 rounded-2xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+                className="w-full py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
               >
                 Save Changes
               </button>
@@ -512,7 +512,7 @@ export default function TournamentDetail() {
             }, {} as Record<string, Match[]>)
           ).map(([stage, stageMatches]) => (
             <div key={stage} className="space-y-4">
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 border-l-4 border-blue-900 pl-3">{stage}</h3>
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 border-l-4 border-brand-red pl-3">{stage}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(stageMatches as Match[]).map((match, idx) => (
                   <div key={match.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group">
@@ -544,7 +544,7 @@ export default function TournamentDetail() {
                       <div className="flex-1 text-center">
                         <div className="font-black uppercase text-slate-900 truncate">{match.teamAName}</div>
                         {match.status !== 'Upcoming' && match.innings1 && (
-                          <div className="text-xs font-bold text-blue-600 mt-1">
+                          <div className="text-xs font-bold text-brand-red mt-1">
                             {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
                              match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
                           </div>
@@ -554,7 +554,7 @@ export default function TournamentDetail() {
                       <div className="flex-1 text-center">
                         <div className="font-black uppercase text-slate-900 truncate">{match.teamBName}</div>
                         {match.status !== 'Upcoming' && match.innings1 && (
-                          <div className="text-xs font-bold text-blue-600 mt-1">
+                          <div className="text-xs font-bold text-brand-red mt-1">
                             {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
                              match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
                           </div>
@@ -565,7 +565,7 @@ export default function TournamentDetail() {
                     {match.status !== 'Finished' ? (
                       <Link 
                         to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
-                        className="w-full py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-blue-900 transition-all"
+                        className="w-full py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-brand-red transition-all"
                       >
                         <Play className="w-3 h-3 fill-white" /> {match.status === 'Live' ? (canManage ? 'Resume Scoring' : 'View Live Score') : (canManage ? 'Start Scoring' : 'View Match')}
                       </Link>
@@ -611,7 +611,7 @@ export default function TournamentDetail() {
                     <td className="px-2 md:px-6 py-4 text-center font-bold text-emerald-600 text-xs md:text-sm">{team.wins}</td>
                     <td className="px-2 md:px-6 py-4 text-center font-bold text-red-500 text-xs md:text-sm">{team.losses}</td>
                     <td className="px-2 md:px-6 py-4 text-center font-bold text-slate-400 text-xs md:text-sm">{team.draws}</td>
-                    <td className="px-2 md:px-6 py-4 text-center font-black text-blue-900 text-xs md:text-sm">{team.points}</td>
+                    <td className="px-2 md:px-6 py-4 text-center font-black text-brand-red text-xs md:text-sm">{team.points}</td>
                     <td className={cn(
                       "px-4 md:px-6 py-4 text-center font-bold text-[10px] md:text-xs",
                       parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
@@ -663,7 +663,7 @@ export default function TournamentDetail() {
                     </select>
                     <button 
                       onClick={() => addPlayerToTeam(team.id)}
-                      className="p-2 rounded-xl bg-blue-900 text-white hover:bg-blue-800 transition-all shadow-md"
+                      className="p-2 rounded-xl bg-brand-red text-white hover:bg-red-700 transition-all shadow-md"
                     >
                       <UserPlus className="w-5 h-5" />
                     </button>

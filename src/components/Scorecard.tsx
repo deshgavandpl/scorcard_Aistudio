@@ -40,7 +40,7 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
                 <tr key={b.playerId} className="border-b border-slate-100 last:border-0">
                   <td className="py-3 pr-4">
                     <div className="flex flex-col">
-                      <span className={cn("font-bold text-sm", b.isStriker && "text-blue-600")}>
+                      <span className={cn("font-bold text-sm", b.isStriker && "text-brand-red")}>
                         {b.playerName}{b.isStriker ? '*' : ''}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium italic">

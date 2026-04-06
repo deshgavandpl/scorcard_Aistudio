@@ -51,7 +51,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red"></div>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function Settings() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 bg-slate-50/50">
           <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
-            <Globe className="w-5 h-5 text-blue-600" />
+            <Globe className="w-5 h-5 text-brand-red" />
             Social Media Links
           </h2>
           <p className="text-sm text-slate-500">These links will appear in the floating sidebar on the home page.</p>
@@ -120,7 +120,7 @@ export default function Settings() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-900 text-white font-black uppercase tracking-widest rounded-xl hover:bg-blue-800 transition-all disabled:opacity-50 shadow-lg shadow-blue-900/20"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-brand-red text-white font-black uppercase tracking-widest rounded-xl hover:bg-brand-red/90 transition-all disabled:opacity-50 shadow-lg shadow-brand-red/20"
             >
               {saving ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -142,14 +142,14 @@ function SocialInput({ label, icon: Icon, value, onChange, placeholder }: any) {
       <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{label}</label>
       <div className="relative group">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <Icon className="w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+          <Icon className="w-5 h-5 text-slate-400 group-focus-within:text-brand-red transition-colors" />
         </div>
         <input
           type="url"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm font-medium"
+          className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all text-sm font-medium"
         />
       </div>
     </div>

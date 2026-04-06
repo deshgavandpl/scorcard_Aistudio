@@ -107,7 +107,7 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <AnimatePresence>
         {/* Admin Login Modal */}
         {showAdminLogin && (
@@ -178,8 +178,8 @@ export default function Layout({ children }: LayoutProps) {
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-brand-red" />
                   </div>
                   <div>
                     <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none">Contact Us</h2>
@@ -200,7 +200,7 @@ export default function Layout({ children }: LayoutProps) {
                     type="text" 
                     value={contactForm.name}
                     onChange={(e) => setContactForm(s => ({ ...s, name: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold text-sm"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red outline-none font-bold text-sm"
                     placeholder="Your Name"
                   />
                 </div>
@@ -212,7 +212,7 @@ export default function Layout({ children }: LayoutProps) {
                     type="tel" 
                     value={contactForm.mobile}
                     onChange={(e) => setContactForm(s => ({ ...s, mobile: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold text-sm"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red outline-none font-bold text-sm"
                     placeholder="+91 00000 00000"
                   />
                 </div>
@@ -223,14 +223,14 @@ export default function Layout({ children }: LayoutProps) {
                   <textarea 
                     value={contactForm.issue}
                     onChange={(e) => setContactForm(s => ({ ...s, issue: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold text-sm min-h-[100px] resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red outline-none font-bold text-sm min-h-[100px] resize-none"
                     placeholder="Tell us what's happening..."
                   />
                 </div>
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Sending...' : <><Send className="w-4 h-4" /> Send Message</>}
                 </button>
@@ -330,7 +330,7 @@ export default function Layout({ children }: LayoutProps) {
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-900 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center">
                     <span className="text-white font-black italic text-xl">A</span>
                   </div>
                   <div>
@@ -345,21 +345,21 @@ export default function Layout({ children }: LayoutProps) {
               
               <div className="space-y-4 text-slate-600">
                 <p className="text-sm font-medium leading-relaxed">
-                  <span className="font-black text-blue-900">Apna Cricket System</span> is the ultimate digital companion for local tennis cricket in India. 
+                  <span className="font-black text-brand-red">Apna Cricket System</span> is the ultimate digital companion for local tennis cricket in India. 
                 </p>
                 <p className="text-sm font-medium leading-relaxed">
                   We empower village leagues and local legends with professional-grade scoring, real-time auctions, and comprehensive tournament management tools.
                 </p>
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-xs font-bold text-blue-900 uppercase tracking-widest text-center">
+                <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                  <p className="text-xs font-bold text-brand-red uppercase tracking-widest text-center">
                     Powering every village cricket league of India.
                   </p>
                 </div>
               </div>
 
               <button 
-                onClick={() => setShowAbout(false)}
-                className="w-full py-4 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all"
+                onClick={() => setShowAbout(true)}
+                className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all"
               >
                 Close
               </button>
@@ -374,12 +374,12 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <a href="https://lightgreen-alpaca-673553.hostingersite.com/index.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
-                <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-all">
+                <div className="w-10 h-10 bg-brand-red rounded-lg flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-all">
                   <span className="text-white font-black italic text-xl">A</span>
                 </div>
                 <div className="flex flex-col leading-none">
                   <span className="text-xl font-black text-slate-900 uppercase tracking-tighter">Apna</span>
-                  <span className="text-[0.65rem] font-bold text-blue-600 uppercase tracking-widest">Cricket</span>
+                  <span className="text-[0.65rem] font-bold text-brand-red uppercase tracking-widest">Cricket</span>
                 </div>
               </a>
             </div>
@@ -393,7 +393,7 @@ export default function Layout({ children }: LayoutProps) {
                   className={cn(
                     "px-3 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-2",
                     location.pathname === item.path
-                      ? "bg-blue-900 text-white shadow-md"
+                      ? "bg-brand-red text-white shadow-md"
                       : "text-slate-600 hover:bg-slate-100"
                   )}
                 >
@@ -406,12 +406,12 @@ export default function Layout({ children }: LayoutProps) {
                 {isAdminMode ? (
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Admin Mode</span>
+                      <span className="text-[10px] font-black text-brand-red uppercase tracking-widest">Admin Mode</span>
                       <span className="text-xs font-bold text-slate-900">Unlocked</span>
                     </div>
                     <button 
                       onClick={handleAdminLogout}
-                      className="p-2 rounded-full hover:bg-slate-100 text-red-500 transition-all"
+                      className="p-2 rounded-full hover:bg-slate-100 text-brand-red transition-all"
                       title="Lock Admin Mode"
                     >
                       <LogOut className="w-5 h-5" />
@@ -420,7 +420,7 @@ export default function Layout({ children }: LayoutProps) {
                 ) : (
                   <button 
                     onClick={() => setShowAdminLogin(true)}
-                    className="bg-amber-500 text-white px-4 py-2 rounded-md text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-all flex items-center gap-2"
+                    className="bg-brand-red text-white px-4 py-2 rounded-md text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all flex items-center gap-2"
                   >
                     <LogIn className="w-4 h-4" /> Admin
                   </button>
@@ -468,17 +468,17 @@ export default function Layout({ children }: LayoutProps) {
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-slate-100 py-4 px-4 space-y-2">
             {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setIsMenuOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold uppercase tracking-wider",
-                  location.pathname === item.path
-                    ? "bg-blue-900 text-white"
-                    : "text-slate-600 bg-slate-50"
-                )}
-              >
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold uppercase tracking-wider",
+                      location.pathname === item.path
+                        ? "bg-brand-red text-white"
+                        : "text-slate-600 bg-slate-50"
+                    )}
+                  >
                 <item.icon className="w-5 h-5" />
                 {item.name}
               </Link>
@@ -488,7 +488,7 @@ export default function Layout({ children }: LayoutProps) {
               {isAdminMode ? (
                 <button 
                   onClick={handleAdminLogout}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-amber-50 text-amber-700 font-bold"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-red-50 text-brand-red font-bold"
                 >
                   <span className="uppercase tracking-widest text-xs">Admin Mode: Unlocked</span>
                   <LogOut className="w-5 h-5" />
@@ -496,7 +496,7 @@ export default function Layout({ children }: LayoutProps) {
               ) : (
                 <button 
                   onClick={() => { setShowAdminLogin(true); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500 text-white font-bold uppercase tracking-widest text-xs"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-red text-white font-bold uppercase tracking-widest text-xs"
                 >
                   <LogIn className="w-5 h-5" /> Admin Login
                 </button>
@@ -515,7 +515,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   <button 
                     onClick={handleLogout}
-                    className="p-2 text-red-500"
+                    className="p-2 text-brand-red"
                   >
                     <LogOut className="w-5 h-5" />
                   </button>
@@ -523,7 +523,7 @@ export default function Layout({ children }: LayoutProps) {
               ) : (
                 <button 
                   onClick={handleLogin}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-900 text-white font-bold uppercase tracking-widest text-xs"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-red text-white font-bold uppercase tracking-widest text-xs"
                 >
                   <LogIn className="w-5 h-5" /> Google Login
                 </button>
@@ -542,7 +542,7 @@ export default function Layout({ children }: LayoutProps) {
       <footer className="bg-slate-900 text-white py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <a href="https://lightgreen-alpaca-673553.hostingersite.com/index.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center group-hover:scale-110 transition-all">
+            <div className="w-8 h-8 bg-brand-red rounded flex items-center justify-center group-hover:scale-110 transition-all">
               <span className="text-white font-black italic text-sm">A</span>
             </div>
             <span className="text-lg font-black uppercase tracking-tighter">Apna Cricket</span>

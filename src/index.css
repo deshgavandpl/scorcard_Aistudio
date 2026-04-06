@@ -3,11 +3,13 @@
 
 @theme {
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-red: #d11d27;
+  --color-brand-dark: #1a1a1a;
 }
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-white text-slate-900 antialiased;
   }
 }
 
@@ -17,6 +19,6 @@
   }
   
   .btn-primary {
-    @apply bg-blue-900 text-white font-black uppercase tracking-wider rounded-xl py-3 px-6 shadow-lg hover:bg-blue-800 transition-all active:scale-95;
+    @apply bg-brand-red text-white font-black uppercase tracking-wider rounded-xl py-3 px-6 shadow-lg hover:bg-red-700 transition-all active:scale-95;
   }
 }

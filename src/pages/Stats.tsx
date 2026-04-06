@@ -117,7 +117,7 @@ export default function Stats() {
             onClick={() => setActiveTab('batting')}
             className={cn(
               "flex-1 md:flex-none px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-              activeTab === 'batting' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+              activeTab === 'batting' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
             Batting
@@ -126,7 +126,7 @@ export default function Stats() {
             onClick={() => setActiveTab('bowling')}
             className={cn(
               "flex-1 md:flex-none px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-              activeTab === 'bowling' ? "bg-blue-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+              activeTab === 'bowling' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
             )}
           >
             Bowling
@@ -137,38 +137,38 @@ export default function Stats() {
       {/* Top Highlights Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Top Performer / Leading Scorer */}
-        <div className="bg-blue-900 rounded-2xl p-5 text-white shadow-xl relative overflow-hidden">
+        <div className="bg-brand-red rounded-2xl p-5 text-white shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <TrendingUp className="w-16 h-16" />
           </div>
           <h3 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
-            <Zap className="w-4 h-4 fill-amber-400 text-amber-400" /> Top Performer
+            <Zap className="w-4 h-4 fill-white text-white" /> Top Performer
           </h3>
           
           {(activeTab === 'batting' ? battingStats : bowlingStats).length > 0 ? (
             <div className="space-y-4 relative z-10">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-800 rounded-xl flex items-center justify-center border border-blue-700 shadow-lg">
-                  <User className="w-6 h-6 text-blue-300" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 shadow-lg">
+                  <User className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-xl font-black uppercase tracking-tight leading-none">{(activeTab === 'batting' ? battingStats : bowlingStats)[0].name}</p>
-                  <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest mt-1">
+                  <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">
                     {activeTab === 'batting' ? 'Leading Scorer' : 'Top Wicket Taker'}
                   </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-800/50 p-3 rounded-xl border border-blue-700">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">
+                <div className="bg-white/10 p-3 rounded-xl border border-white/20">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-white/60 mb-0.5">
                     {activeTab === 'batting' ? 'Total Runs' : 'Wickets'}
                   </p>
                   <p className="text-xl font-black">
                     {activeTab === 'batting' ? battingStats[0].runs : bowlingStats[0].wickets}
                   </p>
                 </div>
-                <div className="bg-blue-800/50 p-3 rounded-xl border border-blue-700">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">
+                <div className="bg-white/10 p-3 rounded-xl border border-white/20">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-white/60 mb-0.5">
                     {activeTab === 'batting' ? 'Strike Rate' : 'Economy'}
                   </p>
                   <p className="text-xl font-black">
@@ -181,14 +181,14 @@ export default function Stats() {
               </div>
             </div>
           ) : (
-            <p className="text-blue-300 italic text-xs">Waiting for match results...</p>
+            <p className="text-white/60 italic text-xs">Waiting for match results...</p>
           )}
         </div>
 
         {/* Tournament Records */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-amber-500" /> Tournament Records
+            <Trophy className="w-4 h-4 text-brand-red" /> Tournament Records
           </h3>
           <div className="grid grid-cols-1 gap-2">
             <RecordItem 
@@ -246,14 +246,14 @@ export default function Stats() {
                   <td className="px-3 md:px-6 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-black text-slate-300 w-3">{idx + 1}</span>
-                      <span className="text-xs font-bold text-slate-900 uppercase tracking-tight group-hover:text-blue-600 transition-colors truncate max-w-[80px] md:max-w-none">{s.name}</span>
+                      <span className="text-xs font-bold text-slate-900 uppercase tracking-tight group-hover:text-brand-red transition-colors truncate max-w-[80px] md:max-w-none">{s.name}</span>
                     </div>
                   </td>
                   {activeTab === 'batting' ? (
                     <>
                       <td className="px-2 md:px-6 py-3 text-center text-xs font-black text-slate-900">{s.runs}</td>
                       <td className="px-2 md:px-6 py-3 text-center text-[10px] text-slate-500 font-bold">{s.balls}</td>
-                      <td className="px-2 md:px-6 py-3 text-center text-[10px] font-black text-blue-600">
+                      <td className="px-2 md:px-6 py-3 text-center text-[10px] font-black text-brand-red">
                         {s.balls > 0 ? ((s.runs / s.balls) * 100).toFixed(1) : '0.0'}
                       </td>
                       <td className="px-2 md:px-6 py-3 text-center text-slate-400 text-[10px] font-black">{s.fours}/{s.sixes}</td>
@@ -262,7 +262,7 @@ export default function Stats() {
                     <>
                       <td className="px-2 md:px-6 py-3 text-center text-xs font-black text-emerald-600">{s.wickets}</td>
                       <td className="px-2 md:px-6 py-3 text-center text-[10px] text-slate-500 font-bold">{s.overs}.{s.balls}</td>
-                      <td className="px-2 md:px-6 py-3 text-center text-[10px] font-black text-amber-600">
+                      <td className="px-2 md:px-6 py-3 text-center text-[10px] font-black text-brand-red">
                         {s.overs > 0 ? (s.runs / (s.overs + s.balls/6)).toFixed(2) : '0.00'}
                       </td>
                       <td className="px-2 md:px-6 py-3 text-center text-slate-400 text-[10px] font-black">{s.runs}</td>
@@ -290,7 +290,7 @@ function RecordItem({ label, value, player }: any) {
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
         <p className="font-bold text-slate-900 text-sm uppercase">{player}</p>
       </div>
-      <span className="text-xl font-black text-blue-900">{value}</span>
+      <span className="text-xl font-black text-brand-red">{value}</span>
     </div>
   );
 }

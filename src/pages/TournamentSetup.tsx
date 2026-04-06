@@ -178,26 +178,26 @@ export default function TournamentSetup() {
       </button>
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-        <div className="bg-amber-500 p-8 text-white relative overflow-hidden">
+        <div className="bg-brand-red p-8 text-white relative overflow-hidden">
            <div className="absolute top-0 right-0 p-4 opacity-20">
               <Trophy className="w-24 h-24" />
             </div>
           <h1 className="text-3xl font-black uppercase tracking-tighter transform -skew-x-6 relative z-10">Create Tournament</h1>
-          <p className="text-amber-100 text-sm font-medium mt-1 uppercase tracking-widest relative z-10">Setup your league and fixtures</p>
+          <p className="text-red-100 text-sm font-medium mt-1 uppercase tracking-widest relative z-10">Setup your league and fixtures</p>
         </div>
 
         <div className="p-8 space-y-8">
           {step === 'setup' ? (
             <>
               {!canManage && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-brand-red shrink-0 mt-0.5" />
                   <div className="space-y-2">
-                    <p className="text-sm font-bold text-amber-900">Admin Access Required</p>
-                    <p className="text-xs text-amber-700">You must be logged in or use Admin PIN to save tournament data to the cloud.</p>
+                    <p className="text-sm font-bold text-red-900">Admin Access Required</p>
+                    <p className="text-xs text-red-700">You must be logged in or use Admin PIN to save tournament data to the cloud.</p>
                     <button 
                       onClick={handleLogin}
-                      className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-700 transition-all"
+                      className="flex items-center gap-2 px-4 py-2 bg-brand-red text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all"
                     >
                       <LogIn className="w-4 h-4" /> Login with Google
                     </button>
@@ -212,7 +212,7 @@ export default function TournamentSetup() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Deshgavhan Premier League"
-                  className="w-full px-4 py-4 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all font-black text-xl uppercase tracking-tight"
+                  className="w-full px-4 py-4 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-black text-xl uppercase tracking-tight"
                 />
               </div>
 
@@ -221,7 +221,7 @@ export default function TournamentSetup() {
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Teams</label>
                   <button 
                     onClick={addTeamField}
-                    className="text-xs font-black text-amber-600 uppercase tracking-widest hover:text-amber-700 flex items-center gap-1"
+                    className="text-xs font-black text-brand-red uppercase tracking-widest hover:text-red-700 flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" /> Add Team
                   </button>
@@ -242,7 +242,7 @@ export default function TournamentSetup() {
                           value={team}
                           onChange={(e) => updateTeamName(idx, e.target.value)}
                           placeholder="Enter team name"
-                          className="w-full pl-20 pr-4 py-3 rounded-xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-amber-500 outline-none transition-all font-bold"
+                          className="w-full pl-20 pr-4 py-3 rounded-xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-brand-red outline-none transition-all font-bold"
                         />
                       </div>
                       <button 
@@ -260,9 +260,9 @@ export default function TournamentSetup() {
                 <button 
                   disabled={!canManage || !name || teamNames.filter(n => n.trim() !== '').length < 2}
                   onClick={handleGenerate}
-                  className="w-full py-4 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-brand-red transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <Zap className="w-5 h-5 fill-amber-400 text-amber-400" /> {canManage ? 'Generate Fixtures' : 'Admin Access Required'}
+                  <Zap className="w-5 h-5 fill-red-400 text-red-400" /> {canManage ? 'Generate Fixtures' : 'Admin Access Required'}
                 </button>
               </div>
             </>
@@ -270,7 +270,7 @@ export default function TournamentSetup() {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Select Opening Match</h3>
-                <button onClick={() => setStep('setup')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Back to Setup</button>
+                <button onClick={() => setStep('setup')} className="text-[10px] font-black text-brand-red uppercase tracking-widest hover:underline">Back to Setup</button>
               </div>
               
               <div className="space-y-3">
@@ -281,7 +281,7 @@ export default function TournamentSetup() {
                     className={cn(
                       "w-full p-4 rounded-2xl border-2 transition-all text-left flex justify-between items-center group",
                       openingMatchId === match.id 
-                        ? "border-amber-500 bg-amber-50 shadow-md" 
+                        ? "border-brand-red bg-red-50 shadow-md" 
                         : "border-slate-100 hover:border-slate-200 bg-white"
                     )}
                   >
@@ -291,7 +291,7 @@ export default function TournamentSetup() {
                     </div>
                     <div className={cn(
                       "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                      openingMatchId === match.id ? "border-amber-500 bg-amber-500" : "border-slate-200"
+                      openingMatchId === match.id ? "border-brand-red bg-brand-red" : "border-slate-200"
                     )}>
                       {openingMatchId === match.id && <div className="w-2 h-2 bg-white rounded-full" />}
                     </div>
@@ -302,7 +302,7 @@ export default function TournamentSetup() {
               <div className="pt-4">
                 <button 
                   onClick={createTournament}
-                  className="w-full py-4 rounded-xl bg-emerald-600 text-white font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <Trophy className="w-5 h-5" /> Confirm & Start Tournament
                 </button>

@@ -83,7 +83,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8 md:space-y-12">
         {/* Hero Section - Reverted to Old Style from Photo */}
-        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-blue-900 text-white p-6 md:p-16 shadow-2xl">
+        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-brand-red text-white p-6 md:p-16 shadow-2xl">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
           </div>
@@ -92,9 +92,9 @@ export default function Home() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-3 md:px-4 py-1 md:py-1.5 rounded-full bg-blue-800/50 border border-blue-700 text-blue-200 font-black text-[8px] md:text-[10px] tracking-[0.2em] uppercase mb-6 md:mb-8"
+              className="inline-flex items-center gap-2 px-3 md:px-4 py-1 md:py-1.5 rounded-full bg-red-700/50 border border-red-600 text-red-100 font-black text-[8px] md:text-[10px] tracking-[0.2em] uppercase mb-6 md:mb-8"
             >
-              <Zap className="w-3 h-3 fill-blue-400 text-blue-400" />
+              <Zap className="w-3 h-3 fill-red-400 text-red-400" />
               Local Cricket Revolution
             </motion.div>
             
@@ -105,7 +105,7 @@ export default function Home() {
               className="text-4xl sm:text-6xl md:text-8xl font-black mb-6 md:mb-8 leading-[0.9] md:leading-[0.85] tracking-tighter uppercase transform -skew-x-6"
             >
               Every Run <br />
-              <span className="text-blue-400">Counts.</span>
+              <span className="text-red-200">Counts.</span>
             </motion.h1>
             
             <div className="space-y-6 md:space-y-8 max-w-2xl">
@@ -113,7 +113,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-base md:text-xl text-blue-100 font-medium leading-relaxed"
+                className="text-base md:text-xl text-red-50 font-medium leading-relaxed"
               >
                 The ultimate scoring platform for local tennis cricket. Track your matches, manage tournaments, and become a local legend.
               </motion.p>
@@ -126,28 +126,28 @@ export default function Home() {
                 className="grid grid-cols-1 md:grid-cols-2 gap-y-3 md:gap-y-4 gap-x-8 pt-2"
               >
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                  <div className="w-5 h-5 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-red-400" />
                   </div>
-                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Live ball-by-ball. Chase the glory.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-red-100 uppercase tracking-tight">Live ball-by-ball. Chase the glory.</span>
                 </div>
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                  <div className="w-5 h-5 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-red-400" />
                   </div>
-                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Universal registration. Level up your profile.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-red-100 uppercase tracking-tight">Universal registration. Level up your profile.</span>
                 </div>
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                  <div className="w-5 h-5 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-red-400" />
                   </div>
-                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Real-time auctions. Build your dream team.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-red-100 uppercase tracking-tight">Real-time auctions. Build your dream team.</span>
                 </div>
                 <div className="flex items-center gap-3 group">
-                  <div className="w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                  <div className="w-5 h-5 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-red-400" />
                   </div>
-                  <span className="text-[10px] md:text-sm font-bold text-blue-200 uppercase tracking-tight">Match & Tournament management. Main character energy.</span>
+                  <span className="text-[10px] md:text-sm font-bold text-red-100 uppercase tracking-tight">Match & Tournament management. Main character energy.</span>
                 </div>
               </motion.div>
             </div>
@@ -160,13 +160,13 @@ export default function Home() {
             >
               <Link 
                 to="/live" 
-                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-white text-blue-900 font-black uppercase tracking-wider hover:bg-blue-50 transition-all shadow-lg flex items-center justify-center gap-2 text-sm md:text-base"
+                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-white text-brand-red font-black uppercase tracking-wider hover:bg-red-50 transition-all shadow-lg flex items-center justify-center gap-2 text-sm md:text-base"
               >
                 Start Scoring <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </Link>
               <Link 
                 to="/tournaments" 
-                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-blue-800 text-white font-black uppercase tracking-wider hover:bg-blue-700 transition-all border border-blue-700 text-sm md:text-base text-center"
+                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-red-700 text-white font-black uppercase tracking-wider hover:bg-red-800 transition-all border border-red-600 text-sm md:text-base text-center"
               >
                 Tournaments
               </Link>
@@ -175,7 +175,7 @@ export default function Home() {
 
           {/* Decorative Element */}
           <div className="absolute right-0 bottom-0 w-1/3 h-full hidden lg:flex items-end justify-end p-8">
-             <div className="w-96 h-96 bg-blue-400 rounded-full blur-[120px] opacity-20"></div>
+             <div className="w-96 h-96 bg-red-400 rounded-full blur-[120px] opacity-20"></div>
           </div>
         </section>
 
@@ -200,7 +200,7 @@ export default function Home() {
             desc="View top performers and all-time records." 
             icon={BarChart2} 
             link="/stats"
-            color="bg-blue-500"
+            color="bg-brand-red"
           />
         </section>
       </div>
@@ -215,7 +215,7 @@ function ActionCard({ title, desc, icon: Icon, link, color }: any) {
         <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center mb-4 text-white shadow-lg", color)}>
           <Icon className="w-5 h-5" />
         </div>
-        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-1 group-hover:text-blue-600 transition-colors">{title}</h3>
+        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-1 group-hover:text-brand-red transition-colors">{title}</h3>
         <p className="text-slate-500 text-xs leading-relaxed">{desc}</p>
       </div>
     </Link>

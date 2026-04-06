@@ -33,7 +33,7 @@ export default function LiveMatchView() {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 space-y-4">
-      <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-12 h-12 border-4 border-brand-red border-t-transparent rounded-full animate-spin"></div>
       <p className="text-slate-400 font-black uppercase tracking-widest animate-pulse">Loading Live Score...</p>
     </div>
   );
@@ -44,7 +44,7 @@ export default function LiveMatchView() {
         <Zap className="w-10 h-10 text-slate-200" />
       </div>
       <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Match Not Found</h2>
-      <button onClick={() => navigate('/live')} className="px-8 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest text-sm">
+      <button onClick={() => navigate('/live')} className="px-8 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest text-sm">
         Back to Live Center
       </button>
     </div>
@@ -145,7 +145,7 @@ export default function LiveMatchView() {
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-slate-900 rounded-[3rem] p-12 text-center text-white shadow-2xl border-8 border-amber-500 relative overflow-hidden"
+          className="bg-slate-900 rounded-[3rem] p-12 text-center text-white shadow-2xl border-8 border-brand-red relative overflow-hidden"
         >
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <Trophy className="w-64 h-64 absolute -top-10 -left-10 rotate-12" />
@@ -153,7 +153,7 @@ export default function LiveMatchView() {
           </div>
           
           <div className="relative z-10 space-y-6">
-            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-amber-500 text-slate-900 font-black uppercase tracking-[0.3em] text-xs shadow-lg">
+            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-brand-red text-white font-black uppercase tracking-[0.3em] text-xs shadow-lg">
               <Trophy className="w-4 h-4" /> Champion
             </div>
             
@@ -162,7 +162,7 @@ export default function LiveMatchView() {
             </h1>
             
             <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 inline-block">
-              <p className="text-2xl font-black uppercase tracking-widest text-amber-400 italic">{match.resultMessage}</p>
+              <p className="text-2xl font-black uppercase tracking-widest text-brand-red italic">{match.resultMessage}</p>
             </div>
 
             {match.manOfTheMatch && (
@@ -174,7 +174,7 @@ export default function LiveMatchView() {
                 <button 
                   onClick={downloadCertificate}
                   disabled={isGenerating}
-                  className="px-8 py-4 bg-amber-500 text-slate-900 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-amber-400 transition-all flex items-center gap-3 mx-auto shadow-2xl disabled:opacity-50 active:scale-95"
+                  className="px-8 py-4 bg-brand-red text-white rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-brand-red/90 transition-all flex items-center gap-3 mx-auto shadow-2xl disabled:opacity-50 active:scale-95"
                 >
                   {isGenerating ? (
                     <>
@@ -199,7 +199,7 @@ export default function LiveMatchView() {
             <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">Final Scorecard</h2>
             <button 
               onClick={handlePrint}
-              className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest text-[10px] hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 print:hidden"
+              className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest text-[10px] hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2 print:hidden"
             >
               <History className="w-4 h-4" /> Download Ball-by-Ball PDF
             </button>
@@ -254,7 +254,7 @@ export default function LiveMatchView() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-amber-500 text-slate-900 p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] text-sm shadow-lg"
+            className="bg-brand-red text-white p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] text-sm shadow-lg"
           >
             Second innings started soon
           </motion.div>
@@ -352,7 +352,7 @@ export default function LiveMatchView() {
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
           <div className="space-y-4 md:space-y-6">
             <div>
-              <p className="text-blue-400 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-2">{battingTeamName} is Batting</p>
+              <p className="text-brand-red text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-2">{battingTeamName} is Batting</p>
               <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-none">
                 {currentInnings?.runs}<span className="text-2xl md:text-4xl text-slate-500">/{currentInnings?.wickets}</span>
               </h1>
@@ -361,7 +361,7 @@ export default function LiveMatchView() {
                 <div className="h-8 w-px bg-slate-800"></div>
                 <div className="text-center">
                   <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">Run Rate</p>
-                  <p className="text-lg md:text-xl font-black text-blue-400">
+                  <p className="text-lg md:text-xl font-black text-brand-red">
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
@@ -371,10 +371,10 @@ export default function LiveMatchView() {
             </div>
 
             {match.currentInnings === 2 && match.innings1 && (
-              <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-blue-900/40 border border-blue-800/50 backdrop-blur-sm">
+              <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-brand-red/20 border border-brand-red/30 backdrop-blur-sm">
                 <div className="flex items-center gap-3 mb-2">
-                  <Target className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-blue-200">Target: {match.innings1.runs + 1}</span>
+                  <Target className="w-4 h-4 md:w-5 md:h-5 text-brand-red" />
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-brand-red">Target: {match.innings1.runs + 1}</span>
                 </div>
                 <p className="text-lg md:text-xl font-black text-white">
                   Need {match.innings1.runs + 1 - (currentInnings?.runs || 0)} runs in {(match.oversLimit * 6) - ((currentInnings?.overs || 0) * 6 + (currentInnings?.balls || 0))} balls
@@ -388,20 +388,20 @@ export default function LiveMatchView() {
             <div className="grid grid-cols-1 gap-2 md:gap-3">
               <div className={cn(
                 "p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
-                striker?.isStriker ? "bg-blue-900/40 border-blue-700 ring-1 ring-blue-500/50" : "bg-slate-800/40 border-slate-700"
+                striker?.isStriker ? "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50" : "bg-slate-800/40 border-slate-700"
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
-                  {striker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-amber-400 fill-amber-400" />}
+                  {striker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
                   <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{striker?.playerName || 'Batter'}</p>
                 </div>
                 <p className="text-lg md:text-xl font-black">{striker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({striker?.balls || 0})</span></p>
               </div>
               <div className={cn(
                 "p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
-                nonStriker?.isStriker ? "bg-blue-900/40 border-blue-700 ring-1 ring-blue-500/50" : "bg-slate-800/40 border-slate-700"
+                nonStriker?.isStriker ? "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50" : "bg-slate-800/40 border-slate-700"
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
-                  {nonStriker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-amber-400 fill-amber-400" />}
+                  {nonStriker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
                   <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{nonStriker?.playerName || 'Batter'}</p>
                 </div>
                 <p className="text-lg md:text-xl font-black">{nonStriker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({nonStriker?.balls || 0})</span></p>
@@ -409,7 +409,7 @@ export default function LiveMatchView() {
             </div>
 
             {/* Current Bowler */}
-            <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-amber-500 text-slate-900 flex justify-between items-center shadow-lg">
+            <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-brand-red text-white flex justify-between items-center shadow-lg">
               <div>
                 <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-60">Bowling Now</span>
                 <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{bowler?.playerName || 'Bowler'}</p>
@@ -442,7 +442,7 @@ export default function LiveMatchView() {
                     ball.isWicket ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-200" :
                     ball.runs === 4 ? "bg-emerald-500 border-emerald-500 text-white" :
                     ball.runs === 6 ? "bg-purple-600 border-purple-600 text-white" :
-                    ball.isExtra ? "bg-amber-100 border-amber-200 text-amber-700" :
+                    ball.isExtra ? "bg-red-50 border-red-200 text-brand-red" :
                     "bg-slate-50 border-slate-100 text-slate-600"
                   )}
                 >

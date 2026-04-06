@@ -150,17 +150,17 @@ export default function Teams() {
   return (
     <div className="space-y-8">
       {!canManage && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+            <AlertCircle className="w-6 h-6 text-brand-red shrink-0 mt-0.5" />
             <div>
-              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Admin Access Required</p>
-              <p className="text-sm text-blue-700 font-medium">You can view all teams, but you must be logged in or use Admin PIN to add or delete teams.</p>
+              <p className="text-lg font-black text-brand-red uppercase tracking-tight">Admin Access Required</p>
+              <p className="text-sm text-red-700 font-medium">You can view all teams, but you must be logged in or use Admin PIN to add or delete teams.</p>
             </div>
           </div>
           <button 
             onClick={handleLogin}
-            className="px-8 py-3 bg-blue-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"
+            className="px-8 py-3 bg-brand-red text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2"
           >
             <LogIn className="w-4 h-4" /> Login with Google
           </button>
@@ -179,12 +179,12 @@ export default function Teams() {
             onChange={(e) => setNewTeamName(e.target.value)}
             disabled={!canManage}
             placeholder={canManage ? "New Team Name" : "Admin access required"}
-            className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-bold disabled:bg-slate-50 disabled:text-slate-400 text-sm"
+            className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red outline-none transition-all font-bold disabled:bg-slate-50 disabled:text-slate-400 text-sm"
           />
           <button 
             onClick={addTeam}
             disabled={!canManage || !newTeamName.trim()}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-wider hover:bg-brand-red/90 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             <Plus className="w-5 h-5" /> Add
           </button>
@@ -201,8 +201,8 @@ export default function Teams() {
           >
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100">
-                  <Shield className="w-6 h-6 text-blue-600" />
+                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center border border-red-100">
+                  <Shield className="w-6 h-6 text-brand-red" />
                 </div>
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{team.name}</h3>
               </div>
@@ -213,7 +213,7 @@ export default function Teams() {
                       setEditingTeam(team);
                       setEditTeamName(team.name);
                     }}
-                    className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                    className="p-1.5 rounded-lg bg-brand-red/20 text-brand-red hover:bg-brand-red hover:text-white transition-all shadow-sm"
                     title="Edit Team"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -253,7 +253,7 @@ export default function Teams() {
 
               <button 
                 onClick={() => setManagingTeam(team)}
-                className="w-full mt-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 font-black uppercase tracking-widest text-[10px] hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all"
+                className="w-full mt-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 font-black uppercase tracking-widest text-[10px] hover:bg-red-50 hover:text-brand-red hover:border-red-200 transition-all"
               >
                 Manage Roster
               </button>
@@ -301,12 +301,12 @@ export default function Teams() {
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
                       placeholder="Player Name"
-                      className="flex-grow px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-blue-500 transition-all"
+                      className="flex-grow px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-brand-red transition-all"
                     />
                     <select 
                       value={newPlayerRole}
                       onChange={(e) => setNewPlayerRole(e.target.value as any)}
-                      className="px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-blue-500 transition-all"
+                      className="px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-brand-red transition-all"
                     >
                       <option value="Batter">Batter</option>
                       <option value="Bowler">Bowler</option>
@@ -316,7 +316,7 @@ export default function Teams() {
                     <button 
                       onClick={addPlayer}
                       disabled={!newPlayerName.trim()}
-                      className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-widest text-xs hover:bg-blue-800 transition-all shadow-lg disabled:opacity-50"
+                      className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50"
                     >
                       Add Player
                     </button>
@@ -335,7 +335,7 @@ export default function Teams() {
                         </div>
                         <div>
                           <p className="font-bold text-slate-900 uppercase tracking-tight text-sm">{player.name}</p>
-                          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{player.role}</p>
+                          <p className="text-[10px] font-black text-brand-red uppercase tracking-widest">{player.role}</p>
                         </div>
                       </div>
                       {canManage && (
@@ -383,14 +383,14 @@ export default function Teams() {
                     type="text" 
                     value={editTeamName}
                     onChange={(e) => setEditTeamName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-brand-red transition-all"
                   />
                 </div>
               </div>
 
               <button 
                 onClick={updateTeam}
-                className="w-full py-4 rounded-2xl bg-blue-900 text-white font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
+                className="w-full py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-brand-red/90 transition-all shadow-lg"
               >
                 Save Changes
               </button>

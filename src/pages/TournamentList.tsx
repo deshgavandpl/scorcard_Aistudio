@@ -86,7 +86,7 @@ export default function TournamentList() {
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Tournaments</h1>
             {isAdminMode && !user && (
-              <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest">Admin Mode</span>
+              <span className="px-2 py-0.5 rounded bg-red-100 text-brand-red text-[10px] font-black uppercase tracking-widest">Admin Mode</span>
             )}
           </div>
           <p className="text-slate-500 font-medium">Create and manage your cricket leagues.</p>
@@ -94,7 +94,7 @@ export default function TournamentList() {
         {canManage && (
           <Link 
             to="/tournaments/new"
-            className="px-6 py-3 rounded-xl bg-amber-500 text-white font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg flex items-center gap-2"
+            className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-wider hover:bg-red-700 transition-all shadow-lg flex items-center gap-2"
           >
             <Plus className="w-5 h-5" /> Create Tournament
           </Link>
@@ -110,7 +110,7 @@ export default function TournamentList() {
           <p className="text-slate-400 max-w-xs mx-auto mb-8">Start your first league and invite teams to compete for the glory.</p>
           <Link 
             to="/tournaments/new"
-            className="inline-flex items-center gap-2 text-amber-600 font-black uppercase text-sm tracking-widest hover:text-amber-700 transition-colors"
+            className="inline-flex items-center gap-2 text-brand-red font-black uppercase text-sm tracking-widest hover:text-red-700 transition-colors"
           >
             Create Now <ChevronRight className="w-4 h-4" />
           </Link>
@@ -168,7 +168,7 @@ export default function TournamentList() {
                 
                 <Link 
                   to={`/tournament/${t.id}`}
-                  className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all"
+                  className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-brand-red hover:text-white hover:border-brand-red transition-all"
                 >
                   View Tournament <ChevronRight className="w-4 h-4" />
                 </Link>

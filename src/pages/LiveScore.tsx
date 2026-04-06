@@ -91,23 +91,21 @@ export default function LiveScore() {
 
   return (
     <div className="space-y-8">
-      {!canManage && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+            <AlertCircle className="w-6 h-6 text-brand-red shrink-0 mt-0.5" />
             <div>
-              <p className="text-lg font-black text-blue-900 uppercase tracking-tight">Admin Access Required</p>
-              <p className="text-sm text-blue-700 font-medium">You can view all live scores, but you must be logged in or use Admin PIN to manage matches.</p>
+              <p className="text-lg font-black text-brand-red uppercase tracking-tight">Admin Access Required</p>
+              <p className="text-sm text-red-700 font-medium">You can view all live scores, but you must be logged in or use Admin PIN to manage matches.</p>
             </div>
           </div>
           <button 
             onClick={handleLogin}
-            className="px-8 py-3 bg-blue-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"
+            className="px-8 py-3 bg-brand-red text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2"
           >
             <LogIn className="w-4 h-4" /> Login with Google
           </button>
         </div>
-      )}
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -122,7 +120,7 @@ export default function LiveScore() {
           <button 
             onClick={createNewMatch}
             disabled={!canManage}
-            className="px-6 py-3 rounded-xl bg-blue-900 text-white font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-wider hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
             <Plus className="w-5 h-5" /> {canManage ? 'New Match' : 'Single Match'}
           </button>
@@ -130,7 +128,7 @@ export default function LiveScore() {
             to={canManage ? "/tournaments/new" : "#"}
             onClick={(e) => !canManage && e.preventDefault()}
             className={cn(
-              "px-6 py-3 rounded-xl bg-amber-500 text-white font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg flex items-center gap-2",
+              "px-6 py-3 rounded-xl bg-red-600 text-white font-black uppercase tracking-wider hover:bg-red-700 transition-all shadow-lg flex items-center gap-2",
               !canManage && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -194,7 +192,7 @@ export default function LiveScore() {
                             <span className={cn(
                               "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
                               match.status === 'Live' ? "bg-red-100 text-red-600 animate-pulse" : 
-                              match.status === 'Finished' ? "bg-slate-100 text-slate-600" : "bg-blue-100 text-blue-600"
+                              match.status === 'Finished' ? "bg-slate-100 text-slate-600" : "bg-red-50 text-brand-red"
                             )}>
                               {match.status}
                             </span>
@@ -213,7 +211,7 @@ export default function LiveScore() {
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                           <div className="flex-1 text-center">
                             <p className="text-base md:text-lg font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
-                            <p className="text-xl md:text-2xl font-black text-blue-900">
+                            <p className="text-xl md:text-2xl font-black text-brand-red">
                               {match.innings1?.battingTeamId === match.teamAId ? match.innings1.runs : match.innings2?.runs || 0}
                               <span className="text-xs md:text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
                             </p>
@@ -221,7 +219,7 @@ export default function LiveScore() {
                           <div className="text-slate-300 font-black italic text-lg md:text-xl transform sm:rotate-0 rotate-90">VS</div>
                           <div className="flex-1 text-center">
                             <p className="text-base md:text-lg font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
-                            <p className="text-xl md:text-2xl font-black text-blue-900">
+                            <p className="text-xl md:text-2xl font-black text-brand-red">
                               {match.innings1?.battingTeamId === match.teamBId ? match.innings1.runs : match.innings2?.runs || 0}
                               <span className="text-xs md:text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
                             </p>
@@ -231,7 +229,7 @@ export default function LiveScore() {
                         <div className="flex justify-center">
                           <Link 
                             to={canManage && match.status !== 'Finished' ? `/admin/match/${match.id}` : `/match/${match.id}`}
-                            className="w-full text-center py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all"
+                            className="w-full text-center py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-brand-red hover:text-white hover:border-brand-red transition-all"
                           >
                             {match.status === 'Finished' ? 'View Scorecard' : (canManage ? 'Resume Scoring' : 'View Live Score')}
                           </Link>
@@ -247,21 +245,21 @@ export default function LiveScore() {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
-          <div className="bg-blue-900 rounded-2xl p-6 text-white shadow-xl">
+          <div className="bg-brand-red rounded-2xl p-6 text-white shadow-xl">
             <h3 className="text-lg font-black uppercase tracking-tight mb-4 flex items-center gap-2">
               <History className="w-5 h-5" /> Quick Stats
             </h3>
             <div className="space-y-4">
-              <div className="flex justify-between items-center border-b border-blue-800 pb-2">
-                <span className="text-blue-300 text-xs font-bold uppercase">Total Matches</span>
+              <div className="flex justify-between items-center border-b border-red-800 pb-2">
+                <span className="text-red-200 text-xs font-bold uppercase">Total Matches</span>
                 <span className="font-black">{matches.length}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-blue-800 pb-2">
-                <span className="text-blue-300 text-xs font-bold uppercase">Live Now</span>
+              <div className="flex justify-between items-center border-b border-red-800 pb-2">
+                <span className="text-red-200 text-xs font-bold uppercase">Live Now</span>
                 <span className="font-black text-emerald-400">{matches.filter(m => m.status === 'Live').length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-blue-300 text-xs font-bold uppercase">Finished</span>
+                <span className="text-red-200 text-xs font-bold uppercase">Finished</span>
                 <span className="font-black">{matches.filter(m => m.status === 'Finished').length}</span>
               </div>
             </div>
@@ -271,15 +269,15 @@ export default function LiveScore() {
             <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">Scoring Tips</h3>
             <ul className="space-y-3 text-sm text-slate-500 font-medium">
               <li className="flex gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-red mt-1.5 shrink-0"></div>
                 Auto-strike change happens on odd runs and over completion.
               </li>
               <li className="flex gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-red mt-1.5 shrink-0"></div>
                 Use "Wicket" button to record dismissals and set new batters.
               </li>
               <li className="flex gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-red mt-1.5 shrink-0"></div>
                 Extras like Wide and No Ball add 1 run and don't count as a legal ball.
               </li>
             </ul>
