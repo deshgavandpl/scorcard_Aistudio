@@ -20,7 +20,7 @@ import {
 import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats, BallEvent } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
-import { doc, onSnapshot, setDoc, deleteDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, deleteDoc, updateDoc, increment, getDoc, getDocs, query, collection } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -28,6 +28,7 @@ import Scorecard from '../components/Scorecard';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
 import { toPng } from 'html-to-image';
+import { Tournament, Team } from '../types/cricket';
 
 const getHypeCommentary = (ball: BallEvent) => {
   if (ball.isWicket) return "Khatam! Tata! Bye Bye! 💀 Gaya Bhai 🚶‍♂️";
@@ -134,6 +135,8 @@ export default function MatchScoring() {
   // Setup State
   const [teamA, setTeamA] = useState('');
   const [teamB, setTeamB] = useState('');
+  const [teamAId, setTeamAId] = useState('');
+  const [teamBId, setTeamBId] = useState('');
   const [overs, setOvers] = useState(6);
   const [umpireName, setUmpireName] = useState('');
   const [tossWinner, setTossWinner] = useState('');
@@ -162,6 +165,56 @@ export default function MatchScoring() {
   const [lastInnings, setLastInnings] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
   const [isHypeMuted, setIsHypeMuted] = useState(false);
+  const [teamARoster, setTeamARoster] = useState<Player[]>([]);
+  const [teamBRoster, setTeamBRoster] = useState<Player[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+
+  // Fetch all teams for selection
+  useEffect(() => {
+    const q = query(collection(db, 'teams'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const teamsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+      setAllTeams(teamsData);
+    });
+    return () => unsub();
+  }, []);
+
+  // Fetch rosters when match is loaded
+  useEffect(() => {
+    if (!match) return;
+
+    const fetchRosters = async () => {
+      try {
+        // 1. Try fetching from tournament if it exists
+        if (match.tournamentId) {
+          const tournamentDoc = await getDoc(doc(db, 'tournaments', match.tournamentId));
+          if (tournamentDoc.exists()) {
+            const tournamentData = tournamentDoc.data() as Tournament;
+            const tA = tournamentData.teams.find(t => t.id === match.teamAId);
+            const tB = tournamentData.teams.find(t => t.id === match.teamBId);
+            if (tA) setTeamARoster(tA.players || []);
+            if (tB) setTeamBRoster(tB.players || []);
+            return;
+          }
+        }
+
+        // 2. Try fetching from teams collection
+        const teamsQuery = query(collection(db, 'teams'));
+        const teamsSnapshot = await getDocs(teamsQuery);
+        const allTeams = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+        
+        const tA = allTeams.find(t => t.id === match.teamAId || t.name === match.teamAName);
+        const tB = allTeams.find(t => t.id === match.teamBId || t.name === match.teamBName);
+        
+        if (tA) setTeamARoster(tA.players || []);
+        if (tB) setTeamBRoster(tB.players || []);
+      } catch (error) {
+        console.error("Error fetching rosters:", error);
+      }
+    };
+
+    fetchRosters();
+  }, [match?.id, match?.tournamentId, match?.teamAId, match?.teamBId]);
 
   const handleHype = async () => {
     if (!id || !match) return;
@@ -279,9 +332,11 @@ export default function MatchScoring() {
       setIsSettingUp(true);
       setTeamA(match.teamAName || '');
       setTeamB(match.teamBName || '');
+      setTeamAId(match.teamAId || '');
+      setTeamBId(match.teamBId || '');
       setOvers(match.oversLimit || 6);
     }
-  }, [match?.status, match?.teamAName, match?.teamBName, match?.oversLimit]);
+  }, [match?.status, match?.teamAName, match?.teamBName, match?.teamAId, match?.teamBId, match?.oversLimit]);
 
   useEffect(() => {
     if (match && !isSettingUp && match.status === 'Live') {
@@ -322,9 +377,9 @@ export default function MatchScoring() {
   const startMatch = async () => {
     if (!canManage) return;
     
-    // Use existing IDs if we are in an existing match
-    const tAId = match?.teamAId || 'team_a';
-    const tBId = match?.teamBId || 'team_b';
+    // Use existing IDs if we are in an existing match, or the selected ones from the setup
+    const tAId = match?.teamAId || teamAId || 'team_a_' + Math.random().toString(36).substr(2, 4);
+    const tBId = match?.teamBId || teamBId || 'team_b_' + Math.random().toString(36).substr(2, 4);
     
     const battingTeamId = (tossWinner === teamA && tossDecision === 'Bat') || (tossWinner === teamB && tossDecision === 'Bowl') ? tAId : tBId;
     const bowlingTeamId = battingTeamId === tAId ? tBId : tAId;
@@ -620,24 +675,70 @@ export default function MatchScoring() {
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Team A Name</label>
-                    <input 
-                      type="text" 
-                      value={teamA}
-                      onChange={(e) => setTeamA(e.target.value)}
-                      placeholder="e.g. AP11"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
-                    />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Team A</label>
+                    <div className="space-y-2">
+                      <input 
+                        type="text" 
+                        value={teamA}
+                        onChange={(e) => {
+                          setTeamA(e.target.value);
+                          setTeamAId(''); // Reset ID if name is changed manually
+                        }}
+                        placeholder="e.g. AP11"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
+                      />
+                      {allTeams.length > 0 && (
+                        <select 
+                          value={teamAId}
+                          onChange={(e) => {
+                            const team = allTeams.find(t => t.id === e.target.value);
+                            if (team) {
+                              setTeamA(team.name);
+                              setTeamAId(team.id);
+                            } else {
+                              setTeamAId('');
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold bg-slate-50"
+                        >
+                          <option value="">Select Existing Team</option>
+                          {allTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Team B Name</label>
-                    <input 
-                      type="text" 
-                      value={teamB}
-                      onChange={(e) => setTeamB(e.target.value)}
-                      placeholder="e.g. Cotton11"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
-                    />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Team B</label>
+                    <div className="space-y-2">
+                      <input 
+                        type="text" 
+                        value={teamB}
+                        onChange={(e) => {
+                          setTeamB(e.target.value);
+                          setTeamBId(''); // Reset ID if name is changed manually
+                        }}
+                        placeholder="e.g. Cotton11"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
+                      />
+                      {allTeams.length > 0 && (
+                        <select 
+                          value={teamBId}
+                          onChange={(e) => {
+                            const team = allTeams.find(t => t.id === e.target.value);
+                            if (team) {
+                              setTeamB(team.name);
+                              setTeamBId(team.id);
+                            } else {
+                              setTeamBId('');
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold bg-slate-50"
+                        >
+                          <option value="">Select Existing Team</option>
+                          {allTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -772,6 +873,9 @@ export default function MatchScoring() {
     const needsNonStriker = striker && !nonStriker;
     const needsBowler = striker && nonStriker && !bowlerId;
 
+    const battingRoster = currentInn?.battingTeamId === match.teamAId ? teamARoster : teamBRoster;
+    const bowlingRoster = currentInn?.bowlingTeamId === match.teamAId ? teamARoster : teamBRoster;
+
     const getTitle = () => {
       if (needsStriker) return currentInn?.wickets === 0 ? "First Opener" : "New Batter";
       if (needsNonStriker) return currentInn?.wickets === 0 ? "Second Opener" : "Next Batter";
@@ -786,12 +890,21 @@ export default function MatchScoring() {
       return "Please enter the name below.";
     };
 
+    const isPlayerOut = (name: string) => {
+      return currentInn?.battingStats[name]?.isOut;
+    };
+
+    const isPlayerOnField = (name: string) => {
+      const stats = Object.values(currentInn?.battingStats || {}) as BatterStats[];
+      return stats.some(s => s.playerName === name && !s.isOut);
+    };
+
     return (
-      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 backdrop-blur-xl p-4">
+      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 backdrop-blur-xl p-4 overflow-y-auto">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl space-y-8"
+          className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl space-y-8 my-8"
         >
           <div className="text-center space-y-2">
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -818,29 +931,40 @@ export default function MatchScoring() {
             )}
 
             <div className="space-y-4">
-              {needsStriker && (
-                <div className="space-y-2">
+              {(needsStriker || needsNonStriker) && (
+                <div className="space-y-4">
                   <input 
                     type="text" 
                     autoFocus
-                    value={strikerName}
-                    onChange={(e) => setStrikerName(e.target.value)}
+                    value={needsStriker ? strikerName : nonStrikerName}
+                    onChange={(e) => needsStriker ? setStrikerName(e.target.value) : setNonStrikerName(e.target.value)}
                     placeholder="ENTER BATTER NAME"
                     className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
                   />
-                </div>
-              )}
-              
-              {needsNonStriker && (
-                <div className="space-y-2">
-                  <input 
-                    type="text" 
-                    autoFocus
-                    value={nonStrikerName}
-                    onChange={(e) => setNonStrikerName(e.target.value)}
-                    placeholder="ENTER BATTER NAME"
-                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
-                  />
+                  
+                  {battingRoster.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
+                      <div className="flex flex-wrap justify-center gap-2 max-h-48 overflow-y-auto p-1">
+                        {battingRoster
+                          .filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name))
+                          .map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => needsStriker ? setStrikerName(p.name) : setNonStrikerName(p.name)}
+                            className={cn(
+                              "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
+                              (needsStriker ? strikerName : nonStrikerName) === p.name 
+                                ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" 
+                                : "bg-white border-slate-100 text-slate-600 hover:border-red-300"
+                            )}
+                          >
+                            {p.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -855,31 +979,59 @@ export default function MatchScoring() {
                     className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
                   />
                   
-                  {previousBowlers.length > 0 && (
-                    <div className="space-y-3">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quick Select Previous Bowler</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {previousBowlers.map((bName) => {
-                          const isLastBowler = bName === lastOverBowler;
-                          return (
-                            <button
-                              key={bName}
-                              disabled={isLastBowler}
-                              onClick={() => setBowlerName(bName)}
-                              className={cn(
-                                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
-                                bowlerName === bName ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
-                                isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
-                                "bg-white border-slate-100 text-slate-600 hover:border-red-300"
-                              )}
-                            >
-                              {bName}
-                            </button>
-                          );
-                        })}
+                  <div className="space-y-4">
+                    {bowlingRoster.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
+                        <div className="flex flex-wrap justify-center gap-2 max-h-48 overflow-y-auto p-1">
+                          {bowlingRoster.map((p) => {
+                            const isLastBowler = p.name === lastOverBowler;
+                            return (
+                              <button
+                                key={p.id}
+                                disabled={isLastBowler}
+                                onClick={() => setBowlerName(p.name)}
+                                className={cn(
+                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
+                                  bowlerName === p.name ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
+                                  isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
+                                  "bg-white border-slate-100 text-slate-600 hover:border-red-300"
+                                )}
+                              >
+                                {p.name}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {previousBowlers.length > 0 && !bowlingRoster.length && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quick Select Previous Bowler</p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {previousBowlers.map((bName) => {
+                            const isLastBowler = bName === lastOverBowler;
+                            return (
+                              <button
+                                key={bName}
+                                disabled={isLastBowler}
+                                onClick={() => setBowlerName(bName)}
+                                className={cn(
+                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
+                                  bowlerName === bName ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
+                                  isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
+                                  "bg-white border-slate-100 text-slate-600 hover:border-red-300"
+                                )}
+                              >
+                                {bName}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
