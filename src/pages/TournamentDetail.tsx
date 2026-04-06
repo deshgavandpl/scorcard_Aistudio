@@ -5,7 +5,7 @@ import { Tournament, Match, Team } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
-import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -27,9 +27,17 @@ export default function TournamentDetail() {
   const [editStatus, setEditStatus] = useState<'Draft' | 'Live' | 'Finished'>('Draft');
   
   // Player Management State
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const [newPlayerRole, setNewPlayerRole] = useState<'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper'>('Batsman');
+  const [teamPlayerInputs, setTeamPlayerInputs] = useState<Record<string, { name: string, role: 'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper' }>>({});
+  
+  const handlePlayerInputChange = (teamId: string, field: 'name' | 'role', value: string) => {
+    setTeamPlayerInputs(prev => ({
+      ...prev,
+      [teamId]: {
+        ...(prev[teamId] || { name: '', role: 'Batsman' }),
+        [field]: value
+      }
+    }));
+  };
   
   // Add Match Form State
   const [teamAId, setTeamAId] = useState('');
@@ -116,24 +124,44 @@ export default function TournamentDetail() {
   };
 
   const addPlayerToTeam = async (teamId: string) => {
-    if (!id || !tournament || !newPlayerName.trim()) return;
+    const input = teamPlayerInputs[teamId];
+    if (!id || !tournament || !input?.name.trim()) return;
     
+    const newPlayer = { 
+      id: Math.random().toString(36).substr(2, 9), 
+      name: input.name, 
+      role: input.role 
+    };
+
     const updatedTeams = tournament.teams.map(team => {
       if (team.id === teamId) {
         return {
           ...team,
-          players: [
-            ...team.players,
-            { id: Math.random().toString(36).substr(2, 9), name: newPlayerName, role: newPlayerRole }
-          ]
+          players: [...(team.players || []), newPlayer]
         };
       }
       return team;
     });
 
     try {
+      // 1. Update Tournament
       await setDoc(doc(db, 'tournaments', id), { ...tournament, teams: updatedTeams });
-      setNewPlayerName('');
+      
+      // 2. Update Global Team if it exists
+      const teamRef = doc(db, 'teams', teamId);
+      const teamSnap = await getDoc(teamRef);
+      if (teamSnap.exists()) {
+        const teamData = teamSnap.data() as Team;
+        await setDoc(teamRef, {
+          ...teamData,
+          players: [...(teamData.players || []), newPlayer]
+        });
+      }
+
+      setTeamPlayerInputs(prev => ({
+        ...prev,
+        [teamId]: { name: '', role: 'Batsman' }
+      }));
       toast.success('Player added successfully!');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
@@ -147,14 +175,27 @@ export default function TournamentDetail() {
       if (team.id === teamId) {
         return {
           ...team,
-          players: team.players.filter(p => p.id !== playerId)
+          players: (team.players || []).filter(p => p.id !== playerId)
         };
       }
       return team;
     });
 
     try {
+      // 1. Update Tournament
       await setDoc(doc(db, 'tournaments', id), { ...tournament, teams: updatedTeams });
+      
+      // 2. Update Global Team if it exists
+      const teamRef = doc(db, 'teams', teamId);
+      const teamSnap = await getDoc(teamRef);
+      if (teamSnap.exists()) {
+        const teamData = teamSnap.data() as Team;
+        await setDoc(teamRef, {
+          ...teamData,
+          players: (teamData.players || []).filter(p => p.id !== playerId)
+        });
+      }
+      
       toast.success('Player removed.');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
@@ -640,20 +681,14 @@ export default function TournamentDetail() {
                   <div className="flex gap-2">
                     <input 
                       type="text" 
-                      value={selectedTeamId === team.id ? newPlayerName : ''}
-                      onChange={(e) => {
-                        setSelectedTeamId(team.id);
-                        setNewPlayerName(e.target.value);
-                      }}
+                      value={teamPlayerInputs[team.id]?.name || ''}
+                      onChange={(e) => handlePlayerInputChange(team.id, 'name', e.target.value)}
                       placeholder="Add player name"
                       className="flex-1 px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold outline-none focus:bg-white focus:border-blue-500 transition-all"
                     />
                     <select 
-                      value={selectedTeamId === team.id ? newPlayerRole : 'Batsman'}
-                      onChange={(e) => {
-                        setSelectedTeamId(team.id);
-                        setNewPlayerRole(e.target.value as any);
-                      }}
+                      value={teamPlayerInputs[team.id]?.role || 'Batsman'}
+                      onChange={(e) => handlePlayerInputChange(team.id, 'role', e.target.value)}
                       className="px-3 py-2 rounded-xl border border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-widest outline-none"
                     >
                       <option value="Batsman">Bat</option>

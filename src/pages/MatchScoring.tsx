@@ -185,29 +185,37 @@ export default function MatchScoring() {
 
     const fetchRosters = async () => {
       try {
-        // 1. Try fetching from tournament if it exists
-        if (match.tournamentId) {
+        // 1. Try fetching from global teams collection first (most up-to-date)
+        const teamsQuery = query(collection(db, 'teams'));
+        const teamsSnapshot = await getDocs(teamsQuery);
+        const allTeamsData = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+        
+        const tA = allTeamsData.find(t => t.id === match.teamAId || t.name === match.teamAName);
+        const tB = allTeamsData.find(t => t.id === match.teamBId || t.name === match.teamBName);
+        
+        if (tA && tA.players?.length > 0) {
+          setTeamARoster(tA.players);
+        } else if (match.tournamentId) {
+          // Fallback to tournament data if global team has no players
           const tournamentDoc = await getDoc(doc(db, 'tournaments', match.tournamentId));
           if (tournamentDoc.exists()) {
             const tournamentData = tournamentDoc.data() as Tournament;
-            const tA = tournamentData.teams.find(t => t.id === match.teamAId);
-            const tB = tournamentData.teams.find(t => t.id === match.teamBId);
-            if (tA) setTeamARoster(tA.players || []);
-            if (tB) setTeamBRoster(tB.players || []);
-            return;
+            const tourTeamA = tournamentData.teams.find(t => t.id === match.teamAId);
+            if (tourTeamA) setTeamARoster(tourTeamA.players || []);
           }
         }
 
-        // 2. Try fetching from teams collection
-        const teamsQuery = query(collection(db, 'teams'));
-        const teamsSnapshot = await getDocs(teamsQuery);
-        const allTeams = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
-        
-        const tA = allTeams.find(t => t.id === match.teamAId || t.name === match.teamAName);
-        const tB = allTeams.find(t => t.id === match.teamBId || t.name === match.teamBName);
-        
-        if (tA) setTeamARoster(tA.players || []);
-        if (tB) setTeamBRoster(tB.players || []);
+        if (tB && tB.players?.length > 0) {
+          setTeamBRoster(tB.players);
+        } else if (match.tournamentId) {
+          // Fallback to tournament data if global team has no players
+          const tournamentDoc = await getDoc(doc(db, 'tournaments', match.tournamentId));
+          if (tournamentDoc.exists()) {
+            const tournamentData = tournamentDoc.data() as Tournament;
+            const tourTeamB = tournamentData.teams.find(t => t.id === match.teamBId);
+            if (tourTeamB) setTeamBRoster(tourTeamB.players || []);
+          }
+        }
       } catch (error) {
         console.error("Error fetching rosters:", error);
       }
@@ -322,9 +330,7 @@ export default function MatchScoring() {
 
   const handleFinishMatch = async () => {
     if (!match || !winnerId) return;
-    
-    const { finishMatch } = useCricketScoring(id); // We need to use the function from the hook
-    // Wait, useCricketScoring is already called at the top level
+    await finishMatch(winnerId, resultMessage, manOfTheMatch);
   };
 
   useEffect(() => {
@@ -444,14 +450,18 @@ export default function MatchScoring() {
 
     let hasError = false;
 
+    const needsStriker = !striker;
+    const needsNonStriker = striker && !nonStriker;
+    const needsBowler = striker && nonStriker && !bowlerId;
+
     // 1. Handle Striker
-    if (!striker) {
+    if (needsStriker) {
       if (!strikerName.trim()) {
         setError("Please enter striker name");
-        hasError = true;
+        return;
       } else if (currentInn.battingStats[strikerName]?.isOut) {
         setError(`${strikerName} is already out`);
-        hasError = true;
+        return;
       } else {
         currentInn.battingStats[strikerName] = {
           playerId: strikerName,
@@ -466,20 +476,17 @@ export default function MatchScoring() {
       }
     }
 
-    if (hasError) return;
-
     // 2. Handle Non-Striker
-    if (!nonStriker) {
-      const currentStrikerName = striker?.playerName || strikerName;
+    else if (needsNonStriker) {
       if (!nonStrikerName.trim()) {
         setError("Please enter non-striker name");
-        hasError = true;
-      } else if (nonStrikerName === currentStrikerName) {
+        return;
+      } else if (nonStrikerName === striker.playerName) {
         setError("Striker and Non-Striker cannot be the same person");
-        hasError = true;
+        return;
       } else if (currentInn.battingStats[nonStrikerName]?.isOut) {
         setError(`${nonStrikerName} is already out`);
-        hasError = true;
+        return;
       } else {
         currentInn.battingStats[nonStrikerName] = {
           playerId: nonStrikerName,
@@ -494,41 +501,35 @@ export default function MatchScoring() {
       }
     }
 
-    if (hasError) return;
-
     // 3. Handle Bowler
-    if (!bowlerId) {
+    else if (needsBowler) {
       if (!bowlerName.trim()) {
         setError("Please enter bowler name");
-        hasError = true;
+        return;
       } else {
         // Check if bowler bowled the last over
         if (currentInn.ballHistory.length > 0) {
           const lastBall = currentInn.ballHistory[currentInn.ballHistory.length - 1];
           if (lastBall.bowlerId === bowlerName && currentInn.balls === 0) {
             setError(`${bowlerName} cannot bowl consecutive overs`);
-            hasError = true;
+            return;
           }
         }
         
-        if (!hasError) {
-          currentInn.currentBowlerId = bowlerName;
-          if (!currentInn.bowlingStats[bowlerName]) {
-            currentInn.bowlingStats[bowlerName] = {
-              playerId: bowlerName,
-              playerName: bowlerName,
-              overs: 0,
-              balls: 0,
-              runs: 0,
-              wickets: 0,
-              maiden: 0
-            };
-          }
+        currentInn.currentBowlerId = bowlerName;
+        if (!currentInn.bowlingStats[bowlerName]) {
+          currentInn.bowlingStats[bowlerName] = {
+            playerId: bowlerName,
+            playerName: bowlerName,
+            overs: 0,
+            balls: 0,
+            runs: 0,
+            wickets: 0,
+            maiden: 0
+          };
         }
       }
     }
-
-    if (hasError) return;
 
     try {
       await setDoc(doc(db, 'matches', match.id), updatedMatch);

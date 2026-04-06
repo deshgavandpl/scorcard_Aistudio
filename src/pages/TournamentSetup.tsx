@@ -5,7 +5,7 @@ import { Team, Tournament, Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
-import { doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
@@ -14,6 +14,8 @@ export default function TournamentSetup() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [teamNames, setTeamNames] = useState(['', '', '', '']);
+  const [teamIds, setTeamIds] = useState(['', '', '', '']);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [step, setStep] = useState<'setup' | 'preview'>('setup');
@@ -21,6 +23,17 @@ export default function TournamentSetup() {
   const [openingMatchId, setOpeningMatchId] = useState<string>('');
   const [teams, setTeams] = useState<Team[]>([]);
   const [tournamentId, setTournamentId] = useState<string>('');
+
+  useEffect(() => {
+    const q = query(collection(db, 'teams'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const teamsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+      setAllTeams(teamsData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'teams');
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -53,19 +66,46 @@ export default function TournamentSetup() {
 
   const addTeamField = () => {
     setTeamNames([...teamNames, '']);
+    setTeamIds([...teamIds, '']);
   };
 
   const removeTeamField = (index: number) => {
     if (teamNames.length <= 2) return;
-    const updated = [...teamNames];
-    updated.splice(index, 1);
-    setTeamNames(updated);
+    const updatedNames = [...teamNames];
+    const updatedIds = [...teamIds];
+    updatedNames.splice(index, 1);
+    updatedIds.splice(index, 1);
+    setTeamNames(updatedNames);
+    setTeamIds(updatedIds);
   };
 
   const updateTeamName = (index: number, value: string) => {
-    const updated = [...teamNames];
-    updated[index] = value;
-    setTeamNames(updated);
+    const updatedNames = [...teamNames];
+    const updatedIds = [...teamIds];
+    updatedNames[index] = value;
+    
+    // If the name matches an existing team exactly, set its ID
+    const existingTeam = allTeams.find(t => t.name.toLowerCase() === value.toLowerCase());
+    if (existingTeam) {
+      updatedIds[index] = existingTeam.id;
+    } else {
+      updatedIds[index] = ''; // Reset ID if it's a new name
+    }
+    
+    setTeamNames(updatedNames);
+    setTeamIds(updatedIds);
+  };
+
+  const selectExistingTeam = (index: number, teamId: string) => {
+    const team = allTeams.find(t => t.id === teamId);
+    if (!team) return;
+    
+    const updatedNames = [...teamNames];
+    const updatedIds = [...teamIds];
+    updatedNames[index] = team.name;
+    updatedIds[index] = team.id;
+    setTeamNames(updatedNames);
+    setTeamIds(updatedIds);
   };
 
   const generateFixtures = (teams: Team[], tournamentId: string, tournamentName: string): Match[] => {
@@ -115,19 +155,27 @@ export default function TournamentSetup() {
   };
 
   const handleGenerate = () => {
-    const validTeams = teamNames.filter(n => n.trim() !== '');
-    if (validTeams.length < 2) return;
+    const validTeamEntries = teamNames
+      .map((name, idx) => ({ name: name.trim(), id: teamIds[idx] }))
+      .filter(entry => entry.name !== '');
+      
+    if (validTeamEntries.length < 2) return;
 
-    const newTeams: Team[] = validTeams.map(n => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: n,
-      players: []
-    }));
+    const finalTeams: Team[] = validTeamEntries.map(entry => {
+      const existingTeam = allTeams.find(t => t.id === entry.id || t.name.toLowerCase() === entry.name.toLowerCase());
+      if (existingTeam) return existingTeam;
+      
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        name: entry.name,
+        players: []
+      };
+    });
 
     const newTournamentId = Math.random().toString(36).substr(2, 9);
-    const fixtures = generateFixtures(newTeams, newTournamentId, name);
+    const fixtures = generateFixtures(finalTeams, newTournamentId, name);
     
-    setTeams(newTeams);
+    setTeams(finalTeams);
     setTournamentId(newTournamentId);
     setGeneratedMatches(fixtures);
     if (fixtures.length > 0) setOpeningMatchId(fixtures[0].id);
@@ -147,6 +195,18 @@ export default function TournamentSetup() {
       ...m,
       createdAt: now + idx
     }));
+
+    // Ensure all teams are saved to the global teams collection if they are new
+    for (const team of teams) {
+      const exists = allTeams.some(t => t.id === team.id);
+      if (!exists) {
+        try {
+          await setDoc(doc(db, 'teams', team.id), team);
+        } catch (error) {
+          console.error("Error saving new team during tournament setup:", error);
+        }
+      }
+    }
 
     const tournament: Tournament = {
       id: tournamentId,
@@ -233,24 +293,40 @@ export default function TournamentSetup() {
                       key={idx}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-2"
+                      className="flex flex-col gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100"
                     >
-                      <div className="flex-grow relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase tracking-widest">Team {idx + 1}</div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Team {idx + 1}</span>
+                        {teamNames.length > 2 && (
+                          <button 
+                            onClick={() => removeTeamField(idx)}
+                            className="text-slate-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2">
                         <input 
                           type="text" 
                           value={team}
                           onChange={(e) => updateTeamName(idx, e.target.value)}
                           placeholder="Enter team name"
-                          className="w-full pl-20 pr-4 py-3 rounded-xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-brand-red outline-none transition-all font-bold"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:border-brand-red outline-none transition-all font-bold text-sm"
                         />
+                        {allTeams.length > 0 && (
+                          <select 
+                            value={teamIds[idx]}
+                            onChange={(e) => selectExistingTeam(idx, e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-widest bg-white text-slate-500"
+                          >
+                            <option value="">Or Select Existing Team</option>
+                            {allTeams.map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                        )}
                       </div>
-                      <button 
-                        onClick={() => removeTeamField(idx)}
-                        className="p-3 text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
                     </motion.div>
                   ))}
                 </div>
