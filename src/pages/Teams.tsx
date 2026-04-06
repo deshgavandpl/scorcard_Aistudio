@@ -64,7 +64,7 @@ export default function Teams() {
   };
 
   const addTeam = async () => {
-    if (!user || !newTeamName.trim()) return;
+    if (!canManage || !newTeamName.trim()) return;
     const teamId = Math.random().toString(36).substr(2, 9);
     const newTeam: Team = {
       id: teamId,
@@ -82,7 +82,7 @@ export default function Teams() {
   };
 
   const updateTeam = async () => {
-    if (!editingTeam || !editTeamName.trim()) return;
+    if (!canManage || !editingTeam || !editTeamName.trim()) return;
     
     const updatedTeam = {
       ...editingTeam,
@@ -109,7 +109,7 @@ export default function Teams() {
   };
 
   const addPlayer = async () => {
-    if (!managingTeam || !newPlayerName.trim()) return;
+    if (!canManage || !managingTeam || !newPlayerName.trim()) return;
     
     const newPlayer: Player = {
       id: Math.random().toString(36).substr(2, 9),
@@ -132,7 +132,7 @@ export default function Teams() {
   };
 
   const removePlayer = async (playerId: string) => {
-    if (!managingTeam) return;
+    if (!canManage || !managingTeam) return;
 
     const updatedTeam = {
       ...managingTeam,
@@ -148,7 +148,7 @@ export default function Teams() {
   };
 
   const toggleCaptain = async (playerId: string) => {
-    if (!managingTeam) return;
+    if (!canManage || !managingTeam) return;
 
     const updatedTeam = {
       ...managingTeam,

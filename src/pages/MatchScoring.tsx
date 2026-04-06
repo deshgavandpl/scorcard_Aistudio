@@ -584,7 +584,7 @@ export default function MatchScoring() {
     toast.success('Match result updated.');
   };
   const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string, fName?: string) => {
-    if (!match) return;
+    if (!match || !canManage) return;
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     if (!currentInn) return;
     
@@ -627,7 +627,7 @@ export default function MatchScoring() {
   };
 
   const saveResultDetails = async () => {
-    if (!match || !id) return;
+    if (!match || !id || !canManage) return;
     try {
       await setDoc(doc(db, 'matches', id), {
         ...match,
@@ -642,7 +642,7 @@ export default function MatchScoring() {
   };
 
   const deleteMatch = async () => {
-    if (!match) return;
+    if (!match || !canManage) return;
     try {
       await deleteDoc(doc(db, 'matches', match.id));
       toast.success('Match deleted successfully.');

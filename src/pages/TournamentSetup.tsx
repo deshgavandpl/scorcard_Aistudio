@@ -116,23 +116,22 @@ export default function TournamentSetup() {
       }
     }
 
-    // Shuffle pairs initially
-    allPairs = allPairs.sort(() => Math.random() - 0.5);
-
     const orderedMatches: Match[] = [];
-    let lastTeams: string[] = [];
+    const teamLastPlayed: Record<string, number> = {};
+    teams.forEach(t => teamLastPlayed[t.id] = -2);
 
+    let currentMatchIndex = 0;
     while (allPairs.length > 0) {
-      let foundIndex = allPairs.findIndex(pair => 
-        !lastTeams.includes(pair.teamA.id) && !lastTeams.includes(pair.teamB.id)
-      );
+      // Sort pairs to prioritize those with the most "rest"
+      allPairs.sort((a, b) => {
+        const restA = Math.min(currentMatchIndex - teamLastPlayed[a.teamA.id], currentMatchIndex - teamLastPlayed[a.teamB.id]);
+        const restB = Math.min(currentMatchIndex - teamLastPlayed[b.teamA.id], currentMatchIndex - teamLastPlayed[b.teamB.id]);
+        
+        if (restA !== restB) return restB - restA;
+        return Math.random() - 0.5;
+      });
 
-      if (foundIndex === -1) {
-        // If no match found without consecutive teams, just pick the first one
-        foundIndex = 0;
-      }
-
-      const pair = allPairs.splice(foundIndex, 1)[0];
+      const pair = allPairs.shift()!;
       orderedMatches.push({
         id: Math.random().toString(36).substr(2, 9),
         name: `${pair.teamA.name} vs ${pair.teamB.name}`,
@@ -149,7 +148,10 @@ export default function TournamentSetup() {
         currentInnings: 1,
         createdAt: Date.now() + orderedMatches.length,
       });
-      lastTeams = [pair.teamA.id, pair.teamB.id];
+
+      teamLastPlayed[pair.teamA.id] = currentMatchIndex;
+      teamLastPlayed[pair.teamB.id] = currentMatchIndex;
+      currentMatchIndex++;
     }
     return orderedMatches;
   };

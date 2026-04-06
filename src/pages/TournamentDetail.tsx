@@ -116,6 +116,7 @@ export default function TournamentDetail() {
   };
 
   const deleteMatch = async (matchId: string) => {
+    if (!canManage) return;
     if (!window.confirm('Are you sure you want to delete this match?')) return;
     try {
       await deleteDoc(doc(db, 'matches', matchId));
@@ -126,7 +127,7 @@ export default function TournamentDetail() {
 
   const addPlayerToTeam = async (teamId: string) => {
     const input = teamPlayerInputs[teamId];
-    if (!id || !tournament || !input?.name.trim()) return;
+    if (!canManage || !id || !tournament || !input?.name.trim()) return;
     
     const newPlayer = { 
       id: Math.random().toString(36).substr(2, 9), 
@@ -170,7 +171,7 @@ export default function TournamentDetail() {
   };
 
   const removePlayerFromTeam = async (teamId: string, playerId: string) => {
-    if (!id || !tournament) return;
+    if (!canManage || !id || !tournament) return;
     
     const updatedTeams = tournament.teams.map(team => {
       if (team.id === teamId) {
@@ -204,7 +205,7 @@ export default function TournamentDetail() {
   };
 
   const addCustomMatch = async () => {
-    if (!id || !teamAId || !teamBId || !matchName) return;
+    if (!canManage || !id || !teamAId || !teamBId || !matchName) return;
     
     const teamA = tournament?.teams.find(t => t.id === teamAId);
     const teamB = tournament?.teams.find(t => t.id === teamBId);
@@ -242,7 +243,7 @@ export default function TournamentDetail() {
   };
 
   const updateTournament = async () => {
-    if (!id || !tournament || !editName.trim()) return;
+    if (!canManage || !id || !tournament || !editName.trim()) return;
     
     const updatedTournament = {
       ...tournament,
