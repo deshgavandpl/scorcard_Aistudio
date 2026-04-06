@@ -27,7 +27,7 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200">
-                <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Batter</th>
+                <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Batsman</th>
                 <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">R</th>
                 <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">B</th>
                 <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">4s</th>

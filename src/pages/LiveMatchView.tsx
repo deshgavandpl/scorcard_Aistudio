@@ -392,7 +392,7 @@ export default function LiveMatchView() {
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
                   {striker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
-                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{striker?.playerName || 'Batter'}</p>
+                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{striker?.playerName || 'Batsman'}</p>
                 </div>
                 <p className="text-lg md:text-xl font-black">{striker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({striker?.balls || 0})</span></p>
               </div>
@@ -402,7 +402,7 @@ export default function LiveMatchView() {
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
                   {nonStriker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
-                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{nonStriker?.playerName || 'Batter'}</p>
+                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{nonStriker?.playerName || 'Batsman'}</p>
                 </div>
                 <p className="text-lg md:text-xl font-black">{nonStriker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({nonStriker?.balls || 0})</span></p>
               </div>

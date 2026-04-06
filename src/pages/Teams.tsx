@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Trash2, Shield, User, AlertCircle, LogIn, X, Edit2 } from 'lucide-react';
-import { Team, Player } from '../types/cricket';
+import { Team, Player, PlayerRole } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
@@ -19,7 +19,7 @@ export default function Teams() {
   const [teamToDelete, setTeamToDelete] = useState<string | null>(null);
   const [managingTeam, setManagingTeam] = useState<Team | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
-  const [newPlayerRole, setNewPlayerRole] = useState<'Batter' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper'>('Batter');
+  const [newPlayerRole, setNewPlayerRole] = useState<PlayerRole>('Batsman');
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [editTeamName, setEditTeamName] = useState('');
 
@@ -137,6 +137,25 @@ export default function Teams() {
     const updatedTeam = {
       ...managingTeam,
       players: managingTeam.players.filter(p => p.id !== playerId)
+    };
+
+    try {
+      await setDoc(doc(db, 'teams', managingTeam.id), updatedTeam);
+      setManagingTeam(updatedTeam);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `teams/${managingTeam.id}`);
+    }
+  };
+
+  const toggleCaptain = async (playerId: string) => {
+    if (!managingTeam) return;
+
+    const updatedTeam = {
+      ...managingTeam,
+      players: managingTeam.players.map(p => ({
+        ...p,
+        isCaptain: p.id === playerId ? !p.isCaptain : false // Only one captain
+      }))
     };
 
     try {
@@ -308,7 +327,7 @@ export default function Teams() {
                       onChange={(e) => setNewPlayerRole(e.target.value as any)}
                       className="px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-brand-red transition-all"
                     >
-                      <option value="Batter">Batter</option>
+                      <option value="Batsman">Batsman</option>
                       <option value="Bowler">Bowler</option>
                       <option value="All-Rounder">All-Rounder</option>
                       <option value="Wicket-Keeper">Wicket-Keeper</option>
@@ -328,24 +347,44 @@ export default function Teams() {
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current Squad ({managingTeam.players.length})</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {managingTeam.players.map((player) => (
-                    <div key={player.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-100 transition-all group">
+                    <div key={player.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white hover:border-red-100 transition-all group">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
-                          <User className="w-4 h-4 text-slate-400" />
+                        <div className={cn(
+                          "w-8 h-8 rounded-lg flex items-center justify-center",
+                          player.isCaptain ? "bg-brand-red text-white" : "bg-slate-50 text-slate-400"
+                        )}>
+                          {player.isCaptain ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900 uppercase tracking-tight text-sm">{player.name}</p>
+                          <p className="font-bold text-slate-900 uppercase tracking-tight text-sm flex items-center gap-2">
+                            {player.name}
+                            {player.isCaptain && <span className="text-[8px] bg-brand-red text-white px-1.5 py-0.5 rounded-full">CAPTAIN</span>}
+                          </p>
                           <p className="text-[10px] font-black text-brand-red uppercase tracking-widest">{player.role}</p>
                         </div>
                       </div>
-                      {canManage && (
-                        <button 
-                          onClick={() => removePlayer(player.id)}
-                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {canManage && (
+                          <button 
+                            onClick={() => toggleCaptain(player.id)}
+                            className={cn(
+                              "p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100",
+                              player.isCaptain ? "text-brand-red bg-red-50" : "text-slate-300 hover:text-brand-red hover:bg-red-50"
+                            )}
+                            title={player.isCaptain ? "Remove Captaincy" : "Make Captain"}
+                          >
+                            <Shield className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canManage && (
+                          <button 
+                            onClick={() => removePlayer(player.id)}
+                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                   {managingTeam.players.length === 0 && (

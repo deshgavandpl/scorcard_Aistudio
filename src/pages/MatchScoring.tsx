@@ -877,8 +877,8 @@ export default function MatchScoring() {
     const bowlingRoster = currentInn?.bowlingTeamId === match.teamAId ? teamARoster : teamBRoster;
 
     const getTitle = () => {
-      if (needsStriker) return currentInn?.wickets === 0 ? "First Opener" : "New Batter";
-      if (needsNonStriker) return currentInn?.wickets === 0 ? "Second Opener" : "Next Batter";
+      if (needsStriker) return currentInn?.wickets === 0 ? "First Opener" : "New Batsman";
+      if (needsNonStriker) return currentInn?.wickets === 0 ? "Second Opener" : "Next Batsman";
       if (needsBowler) return currentInn?.balls === 0 && currentInn?.overs > 0 ? "Next Over" : "New Bowler";
       return "Select Player";
     };
@@ -1627,7 +1627,7 @@ export default function MatchScoring() {
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Striker</span>
                     {striker?.isStriker && <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red" />}
                   </div>
-                  <p className="text-xs font-black text-slate-900 truncate">{striker?.playerName || 'Batter'}</p>
+                  <p className="text-xs font-black text-slate-900 truncate">{striker?.playerName || 'Batsman'}</p>
                   <p className="text-[10px] font-bold text-brand-red mt-0.5">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
                 </motion.div>
 
@@ -1643,7 +1643,7 @@ export default function MatchScoring() {
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
                     {nonStriker?.isStriker && <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red" />}
                   </div>
-                  <p className="text-xs font-black text-slate-900 truncate">{nonStriker?.playerName || 'Batter'}</p>
+                  <p className="text-xs font-black text-slate-900 truncate">{nonStriker?.playerName || 'Batsman'}</p>
                   <p className="text-[10px] font-bold text-brand-red mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
                 </motion.div>
 

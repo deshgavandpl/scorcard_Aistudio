@@ -4,6 +4,7 @@ export interface Player {
   id: string;
   name: string;
   role: PlayerRole;
+  isCaptain?: boolean;
 }
 
 export interface Team {
