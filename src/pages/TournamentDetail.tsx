@@ -27,6 +27,17 @@ export default function TournamentDetail() {
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [editName, setEditName] = useState('');
   const [editStatus, setEditStatus] = useState<'Draft' | 'Live' | 'Finished'>('Draft');
+  const [editWinnerId, setEditWinnerId] = useState('');
+  const [editResultMessage, setEditResultMessage] = useState('');
+  
+  // Match Edit State
+  const [showEditMatch, setShowEditMatch] = useState<Match | null>(null);
+  const [editMatchName, setEditMatchName] = useState('');
+  const [editMatchTeamA, setEditMatchTeamA] = useState('');
+  const [editMatchTeamB, setEditMatchTeamB] = useState('');
+  const [editMatchOrder, setEditMatchOrder] = useState(0);
+  const [editMatchOvers, setEditMatchOvers] = useState(6);
+  const [editMatchUmpire, setEditMatchUmpire] = useState('');
   
   // Player Management State
   const [teamPlayerInputs, setTeamPlayerInputs] = useState<Record<string, { name: string, role: 'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper' }>>({});
@@ -76,6 +87,8 @@ export default function TournamentDetail() {
         setTournament({ id: docSnap.id, ...data } as Tournament);
         setEditName(data.name);
         setEditStatus(data.status);
+        setEditWinnerId(data.winnerId || '');
+        setEditResultMessage(data.resultMessage || '');
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `tournaments/${id}`);
@@ -88,7 +101,14 @@ export default function TournamentDetail() {
     const q = query(collection(db, 'matches'), where('tournamentId', '==', id));
     const unsub = onSnapshot(q, (snapshot) => {
       const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
-      setMatches(matchesData);
+      // Sort by order first, then by createdAt
+      const sortedMatches = matchesData.sort((a, b) => {
+        const orderA = a.order ?? 999;
+        const orderB = b.order ?? 999;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.createdAt - b.createdAt;
+      });
+      setMatches(sortedMatches);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'matches');
     });
@@ -206,7 +226,7 @@ export default function TournamentDetail() {
   };
 
   const addCustomMatch = async () => {
-    if (!canManage || !id || !teamAId || !teamBId || !matchName) return;
+    if (!canManage || !id || !teamAId || !teamBId) return;
     
     const teamA = tournament?.teams.find(t => t.id === teamAId);
     const teamB = tournament?.teams.find(t => t.id === teamBId);
@@ -214,9 +234,11 @@ export default function TournamentDetail() {
     if (!teamA || !teamB) return;
 
     const matchId = Math.random().toString(36).substr(2, 9);
+    const finalMatchName = matchName.trim() || `Match ${matches.length + 1}`;
+    
     const newMatch: Match = {
       id: matchId,
-      name: matchName,
+      name: finalMatchName,
       tournamentId: id,
       teamAId,
       teamBId,
@@ -228,6 +250,7 @@ export default function TournamentDetail() {
       oversLimit: overs,
       status: 'Upcoming',
       currentInnings: 1,
+      order: matches.length + 1,
       createdAt: Date.now()
     };
 
@@ -249,7 +272,9 @@ export default function TournamentDetail() {
     const updatedTournament = {
       ...tournament,
       name: editName,
-      status: editStatus
+      status: editStatus,
+      winnerId: editWinnerId,
+      resultMessage: editResultMessage
     };
 
     try {
@@ -261,6 +286,44 @@ export default function TournamentDetail() {
     }
   };
 
+  const handleEditMatch = (match: Match) => {
+    setShowEditMatch(match);
+    setEditMatchName(match.name || '');
+    setEditMatchTeamA(match.teamAId);
+    setEditMatchTeamB(match.teamBId);
+    setEditMatchOrder(match.order || 0);
+    setEditMatchOvers(match.oversLimit);
+    setEditMatchUmpire(match.umpireName || '');
+  };
+
+  const updateMatch = async () => {
+    if (!canManage || !showEditMatch) return;
+    
+    const teamA = tournament?.teams.find(t => t.id === editMatchTeamA);
+    const teamB = tournament?.teams.find(t => t.id === editMatchTeamB);
+    
+    if (!teamA || !teamB) return;
+
+    const updatedMatch: Match = {
+      ...showEditMatch,
+      name: editMatchName,
+      teamAId: editMatchTeamA,
+      teamBId: editMatchTeamB,
+      teamAName: teamA.name,
+      teamBName: teamB.name,
+      order: editMatchOrder,
+      oversLimit: editMatchOvers,
+      umpireName: editMatchUmpire
+    };
+
+    try {
+      await setDoc(doc(db, 'matches', showEditMatch.id), updatedMatch);
+      setShowEditMatch(null);
+      toast.success('Match updated successfully.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `matches/${showEditMatch.id}`);
+    }
+  };
   const getPlayerTournamentStats = (playerName: string) => {
     const stats = {
       batting: {
@@ -566,9 +629,9 @@ export default function TournamentDetail() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           >
-            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6">
+            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Edit Tournament</h2>
                 <button onClick={() => setShowEditTournament(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -599,6 +662,32 @@ export default function TournamentDetail() {
                     <option value="Finished">Finished</option>
                   </select>
                 </div>
+
+                {editStatus === 'Finished' && (
+                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tournament Winner</label>
+                      <select 
+                        value={editWinnerId}
+                        onChange={(e) => setEditWinnerId(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                      >
+                        <option value="">Select Winner</option>
+                        {tournament.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Final Result Message</label>
+                      <input 
+                        type="text" 
+                        value={editResultMessage}
+                        onChange={(e) => setEditResultMessage(e.target.value)}
+                        placeholder="e.g. Team A won by 20 runs"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <button 
@@ -610,10 +699,143 @@ export default function TournamentDetail() {
             </div>
           </motion.div>
         )}
+
+        {showEditMatch && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Edit Match</h2>
+                <button onClick={() => setShowEditMatch(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Name / Stage</label>
+                  <input 
+                    type="text" 
+                    value={editMatchName}
+                    onChange={(e) => setEditMatchName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Team A</label>
+                    <select 
+                      value={editMatchTeamA}
+                      onChange={(e) => setEditMatchTeamA(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    >
+                      {tournament.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Team B</label>
+                    <select 
+                      value={editMatchTeamB}
+                      onChange={(e) => setEditMatchTeamB(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    >
+                      {tournament.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Display Order</label>
+                    <input 
+                      type="number" 
+                      value={editMatchOrder}
+                      onChange={(e) => setEditMatchOrder(parseInt(e.target.value) || 0)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overs</label>
+                    <input 
+                      type="number" 
+                      value={editMatchOvers}
+                      onChange={(e) => setEditMatchOvers(parseInt(e.target.value) || 6)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Umpire Name</label>
+                  <input 
+                    type="text" 
+                    value={editMatchUmpire}
+                    onChange={(e) => setEditMatchUmpire(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={updateMatch}
+                className="w-full py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
+              >
+                Update Match
+              </button>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {activeTab === 'fixtures' ? (
         <div className="space-y-8">
+          {/* Final Winner Banner - GenZ Style */}
+          {tournament.status === 'Finished' && tournament.winnerId && (
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="relative p-8 rounded-[3rem] bg-slate-900 border-4 border-brand-red overflow-hidden shadow-[0_0_50px_-12px_rgba(239,68,68,0.5)]"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]"></div>
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-red/10 blur-[100px] rounded-full"></div>
+              <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-brand-red/10 blur-[100px] rounded-full"></div>
+              
+              <div className="relative z-10 text-center space-y-4">
+                <motion.div 
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-brand-red shadow-[0_0_30px_rgba(239,68,68,0.4)] mb-2"
+                >
+                  <Trophy className="w-10 h-10 text-white" />
+                </motion.div>
+                
+                <div className="space-y-1">
+                  <p className="text-brand-red font-black uppercase tracking-[0.4em] text-xs">Tournament Champions</p>
+                  <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter italic transform -skew-x-6 drop-shadow-2xl">
+                    {tournament.teams.find(t => t.id === tournament.winnerId)?.name}
+                  </h2>
+                </div>
+                
+                {tournament.resultMessage && (
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-sm max-w-md mx-auto">
+                    {tournament.resultMessage}
+                  </p>
+                )}
+                
+                <div className="flex justify-center gap-2 pt-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-brand-red animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}></div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {Object.entries(
             matches.reduce((acc, match) => {
               const stage = match.name || 'League Stage';
@@ -625,75 +847,89 @@ export default function TournamentDetail() {
             <div key={stage} className="space-y-4">
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 border-l-4 border-brand-red pl-3">{stage}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(stageMatches as Match[]).map((match, idx) => (
-                  <Link 
-                    key={match.id}
-                    to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
-                    className={cn(
-                      "block p-6 rounded-[2rem] border transition-all group relative",
-                      match.status === 'Live' 
-                        ? "bg-[#fff5f5] border-red-100 ring-1 ring-red-50" 
-                        : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
-                    )}
-                  >
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                        MATCH {idx + 1}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                          match.status === 'Live' ? "bg-red-50 text-red-600 animate-pulse" : 
-                          match.status === 'Finished' ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
-                        )}>
-                          {match.status}
+                {(stageMatches as Match[]).map((match) => (
+                  <div key={match.id} className="relative group">
+                    <Link 
+                      to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
+                      className={cn(
+                        "block p-6 rounded-[2rem] border transition-all relative",
+                        match.status === 'Live' 
+                          ? "bg-[#fff5f5] border-red-100 ring-1 ring-red-50" 
+                          : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
+                      )}
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                          {match.name || 'MATCH'}
                         </span>
-                        {canManage && (
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              deleteMatch(match.id);
-                            }}
-                            className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                            title="Delete Match"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1 text-center">
-                        <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamAName}</p>
-                        {match.status !== 'Upcoming' && match.innings1 && (
-                          <p className="text-sm md:text-base font-black text-brand-red">
-                            {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
-                             match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                            match.status === 'Live' ? "bg-red-50 text-red-600 animate-pulse" : 
+                            match.status === 'Finished' ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
+                          )}>
+                            {match.status}
+                          </span>
+                        </div>
                       </div>
                       
-                      <div className="text-[10px] font-black text-slate-200 italic uppercase tracking-widest">VS</div>
-                      
-                      <div className="flex-1 text-center">
-                        <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamBName}</p>
-                        {match.status !== 'Upcoming' && match.innings1 && (
-                          <p className="text-sm md:text-base font-black text-brand-red">
-                            {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
-                             match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
-                          </p>
-                        )}
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 text-center">
+                          <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamAName}</p>
+                          {match.status !== 'Upcoming' && match.innings1 && (
+                            <p className="text-sm md:text-base font-black text-brand-red">
+                              {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
+                               match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="text-[10px] font-black text-slate-200 italic uppercase tracking-widest">VS</div>
+                        
+                        <div className="flex-1 text-center">
+                          <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamBName}</p>
+                          {match.status !== 'Upcoming' && match.innings1 && (
+                            <p className="text-sm md:text-base font-black text-brand-red">
+                              {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
+                               match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mt-6 pt-4 border-t border-slate-100/50 flex justify-center">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-red transition-colors flex items-center gap-2">
-                        {match.status === 'Live' ? 'View Live Score' : match.status === 'Finished' ? 'View Results' : 'View Match Details'}
-                        <ChevronRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </Link>
+                      <div className="mt-6 pt-4 border-t border-slate-100/50 flex justify-center">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-red transition-colors flex items-center gap-2">
+                          {match.status === 'Live' ? 'View Live Score' : match.status === 'Finished' ? 'View Results' : 'View Match Details'}
+                          <ChevronRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </Link>
+
+                    {canManage && (
+                      <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleEditMatch(match);
+                          }}
+                          className="p-2 rounded-xl bg-white/90 backdrop-blur-sm border border-slate-100 text-slate-400 hover:text-brand-red shadow-sm transition-all"
+                          title="Edit Match"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            deleteMatch(match.id);
+                          }}
+                          className="p-2 rounded-xl bg-white/90 backdrop-blur-sm border border-slate-100 text-slate-400 hover:text-red-500 shadow-sm transition-all"
+                          title="Delete Match"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

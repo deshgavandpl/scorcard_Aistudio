@@ -783,11 +783,11 @@ export default function MatchScoring() {
                 </div>
 
                 <button 
-                  disabled={!teamA || !teamB}
+                  disabled={!teamA || !teamB || teamA === teamB}
                   onClick={() => setSetupStep(2)}
                   className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next Step
+                  {teamA === teamB && teamA !== '' ? 'Teams must be different' : 'Next Step'}
                 </button>
               </motion.div>
             ) : (
@@ -909,48 +909,48 @@ export default function MatchScoring() {
         <motion.div 
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl space-y-8 my-8"
+          className="bg-white rounded-[2rem] p-6 w-full max-w-md shadow-2xl space-y-6 my-4"
         >
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <User className="w-8 h-8 text-brand-red" />
+          <div className="text-center space-y-1">
+            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+              <User className="w-6 h-6 text-brand-red" />
             </div>
-            <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">
               {getTitle()}
             </h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[8px]">
               {getInstruction()}
             </p>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4">
             {error && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-xs font-black uppercase tracking-widest flex items-center gap-3"
+                className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
               >
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {error}
               </motion.div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {(needsStriker || needsNonStriker) && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <input 
                     type="text" 
                     autoFocus
                     value={needsStriker ? strikerName : nonStrikerName}
                     onChange={(e) => needsStriker ? setStrikerName(e.target.value) : setNonStrikerName(e.target.value)}
                     placeholder="ENTER BATTER NAME"
-                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-lg"
                   />
                   
                   {battingRoster.length > 0 && (
-                    <div className="space-y-3">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
-                      <div className="flex flex-wrap justify-center gap-2 max-h-48 overflow-y-auto p-1">
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
+                      <div className="flex flex-wrap justify-center gap-2 max-h-40 overflow-y-auto p-1">
                         {battingRoster
                           .filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name))
                           .map((p) => (
@@ -958,7 +958,7 @@ export default function MatchScoring() {
                             key={p.id}
                             onClick={() => needsStriker ? setStrikerName(p.name) : setNonStrikerName(p.name)}
                             className={cn(
-                              "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
+                              "px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest border-2 transition-all",
                               (needsStriker ? strikerName : nonStrikerName) === p.name 
                                 ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" 
                                 : "bg-white border-slate-100 text-slate-600 hover:border-red-300"
@@ -974,21 +974,21 @@ export default function MatchScoring() {
               )}
 
               {needsBowler && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <input 
                     type="text" 
                     autoFocus
                     value={bowlerName}
                     onChange={(e) => setBowlerName(e.target.value)}
                     placeholder="ENTER BOWLER NAME"
-                    className="w-full px-6 py-5 rounded-2xl border-4 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-lg"
                   />
                   
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {bowlingRoster.length > 0 && (
-                      <div className="space-y-3">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
-                        <div className="flex flex-wrap justify-center gap-2 max-h-48 overflow-y-auto p-1">
+                      <div className="space-y-2">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
+                        <div className="flex flex-wrap justify-center gap-2 max-h-40 overflow-y-auto p-1">
                           {bowlingRoster.map((p) => {
                             const isLastBowler = p.name === lastOverBowler;
                             return (
@@ -997,7 +997,7 @@ export default function MatchScoring() {
                                 disabled={isLastBowler}
                                 onClick={() => setBowlerName(p.name)}
                                 className={cn(
-                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
+                                  "px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest border-2 transition-all",
                                   bowlerName === p.name ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
                                   isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
                                   "bg-white border-slate-100 text-slate-600 hover:border-red-300"
@@ -1571,36 +1571,55 @@ export default function MatchScoring() {
                     )}
                   </div>
 
-                  {/* Quick Active Players Info */}
-                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-red-800/50">
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-col">
-                        <span className="text-[7px] font-black text-red-400 uppercase tracking-widest">Batting</span>
-                        <div className="flex items-center gap-2">
+                  {/* Active Players Info - Consolidated into Red Card */}
+                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-red-800/50">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-white animate-pulse" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Striker</span>
                           <button 
                             onClick={() => openPlayerProfile(striker?.playerId || '', striker?.playerName || '')}
-                            className="text-[10px] font-black text-white flex items-center gap-1 hover:text-red-200 transition-colors"
+                            className="text-sm font-black text-white hover:text-red-200 transition-colors text-left"
                           >
-                            {striker?.playerName}* <span className="text-[8px] text-red-300">({striker?.runs})</span>
+                            {striker?.playerName} <span className="text-xs text-red-300">({striker?.runs})</span>
                           </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-70">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                          <User className="w-4 h-4 text-red-300" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Non-Striker</span>
                           <button 
                             onClick={() => openPlayerProfile(nonStriker?.playerId || '', nonStriker?.playerName || '')}
-                            className="text-[10px] font-bold text-red-300 hover:text-white transition-colors"
+                            className="text-sm font-bold text-red-100 hover:text-white transition-colors text-left"
                           >
-                            {nonStriker?.playerName} <span className="text-[8px] opacity-70">({nonStriker?.runs})</span>
+                            {nonStriker?.playerName} <span className="text-xs opacity-70">({nonStriker?.runs})</span>
                           </button>
                         </div>
                       </div>
                     </div>
-                    <div className="w-px h-6 bg-red-800/50"></div>
-                    <div className="flex flex-col">
-                      <span className="text-[7px] font-black text-red-400 uppercase tracking-widest">Bowling</span>
-                      <button 
-                        onClick={() => openPlayerProfile(bowler?.playerId || '', bowler?.playerName || '')}
-                        className="text-[10px] font-black text-white hover:text-red-200 transition-colors"
-                      >
-                        {bowler?.playerName} <span className="text-[8px] text-red-300">({bowler?.wickets}-{bowler?.runs})</span>
-                      </button>
+                    
+                    <div className="flex flex-col justify-center pl-4 border-l border-red-800/50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                          <Flame className="w-4 h-4 text-red-400 animate-bounce" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Bowler</span>
+                          <button 
+                            onClick={() => openPlayerProfile(bowler?.playerId || '', bowler?.playerName || '')}
+                            className="text-sm font-black text-white hover:text-red-200 transition-colors text-left"
+                          >
+                            {bowler?.playerName}
+                          </button>
+                          <p className="text-xs font-bold text-red-300">{bowler?.wickets}-{bowler?.runs} <span className="opacity-50">({bowler?.overs}.{bowler?.balls})</span></p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1662,7 +1681,7 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs)}
+                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
                   </div>
                 ))}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
@@ -1674,80 +1693,8 @@ export default function MatchScoring() {
           {/* Scoring Controls */}
           {match.status === 'Live' && (
             <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-lg space-y-3">
-              {/* Active Players Summary - Compact Row */}
-              <div className="grid grid-cols-3 gap-2">
-                <motion.div 
-                  initial={false}
-                  animate={{ 
-                    backgroundColor: 'rgb(254 242 242)',
-                    borderColor: 'rgb(239 68 68)'
-                  }}
-                  className="p-2 rounded-xl border-2 shadow-sm relative overflow-hidden group/player"
-                >
-                  <div className="absolute top-0 right-0 p-1 opacity-10 group-hover/player:opacity-20 transition-opacity">
-                    <Zap className="w-8 h-8 text-brand-red" />
-                  </div>
-                  <div className="flex items-center justify-between mb-0.5 relative z-10">
-                    <span className="text-[8px] font-black text-brand-red uppercase tracking-widest flex items-center gap-1">
-                      <span className="w-1 h-1 rounded-full bg-brand-red animate-pulse"></span>
-                      Striker
-                    </span>
-                    <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red animate-bounce" />
-                  </div>
-                  <button 
-                    onClick={() => openPlayerProfile(striker?.playerId || '', striker?.playerName || '')}
-                    className="text-xs font-black text-slate-900 truncate relative z-10 hover:text-brand-red transition-colors text-left w-full"
-                  >
-                    {striker?.playerName || 'Batsman'}
-                  </button>
-                  <p className="text-[10px] font-bold text-brand-red mt-0.5 relative z-10">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
-                </motion.div>
-
-                <motion.div 
-                  initial={false}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50/50 shadow-sm group/player"
-                >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
-                  </div>
-                  <button 
-                    onClick={() => openPlayerProfile(nonStriker?.playerId || '', nonStriker?.playerName || '')}
-                    className="text-xs font-black text-slate-900 truncate hover:text-brand-red transition-colors text-left w-full"
-                  >
-                    {nonStriker?.playerName || 'Batsman'}
-                  </button>
-                  <p className="text-[10px] font-bold text-slate-500 mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
-                </motion.div>
-
-                <motion.div 
-                  initial={false}
-                  animate={{ 
-                    borderColor: 'rgb(15 23 42)',
-                    backgroundColor: 'rgb(15 23 42)'
-                  }}
-                  className="p-2 rounded-xl border-2 text-white flex flex-col justify-center shadow-lg relative overflow-hidden group/player"
-                >
-                  <div className="absolute top-0 right-0 p-1 opacity-20">
-                    <Flame className="w-8 h-8 text-red-500" />
-                  </div>
-                  <div className="flex items-center justify-between mb-0.5 relative z-10">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></span>
-                      Bowler
-                    </span>
-                  </div>
-                  <button 
-                    onClick={() => openPlayerProfile(bowler?.playerId || '', bowler?.playerName || '')}
-                    className="text-xs font-black truncate relative z-10 hover:text-brand-red transition-colors text-left w-full"
-                  >
-                    {bowler?.playerName || 'Bowler'}
-                  </button>
-                  <p className="text-[10px] font-bold text-slate-300 mt-0.5 relative z-10">{bowler?.wickets || 0}-{bowler?.runs || 0} <span className="opacity-50">({bowler?.overs || 0}.{bowler?.balls || 0})</span></p>
-                </motion.div>
-              </div>
-
-            {/* Scoring Grid - Simplified for Admin - Compact */}
-            <div className="space-y-2">
+              {/* Scoring Grid - Simplified for Admin - Compact */}
+              <div className="space-y-2">
               <div className="text-center">
                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Live Feed Input</p>
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic transform -skew-x-6">Tap to add runs</h3>
@@ -1936,7 +1883,7 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs)}
+                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
                   </div>
                 ))}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (

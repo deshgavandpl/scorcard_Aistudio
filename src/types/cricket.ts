@@ -90,6 +90,7 @@ export interface Match {
   manOfTheMatch?: string;
   umpireName?: string;
   hypeCount?: number;
+  order?: number;
   createdAt: number;
 }
 
@@ -99,4 +100,6 @@ export interface Tournament {
   teams: Team[];
   matches: Match[];
   status: 'Draft' | 'Live' | 'Finished';
+  winnerId?: string;
+  resultMessage?: string;
 }
