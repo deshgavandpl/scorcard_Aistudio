@@ -12,9 +12,11 @@ import {
   Target,
   CheckCircle2,
   Loader2,
-  Download
+  Download,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
-import { Match, BatterStats, BowlerStats } from '../types/cricket';
+import { Match, BatterStats, BowlerStats, BallEvent } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -26,6 +28,7 @@ import Certificate from '../components/Certificate';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
 import TournamentSidebar from '../components/TournamentSidebar';
+import { getHypeCommentary, speakHype } from '../lib/audioUtils';
 
 export default function LiveMatchView() {
   const { id } = useParams();
@@ -34,7 +37,26 @@ export default function LiveMatchView() {
   const { match, setMatch, loading } = useCricketScoring(id);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Default to muted for better UX
+  const [lastBallKey, setLastBallKey] = useState<string>('');
   const certificateRef = useRef<HTMLDivElement>(null);
+
+  // Audio Commentary Effect
+  useEffect(() => {
+    if (!match || isMuted) return;
+
+    const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    if (!currentInn || currentInn.ballHistory.length === 0) return;
+
+    const lastBall = currentInn.ballHistory[currentInn.ballHistory.length - 1];
+    const currentBallKey = `${match.currentInnings}-${lastBall.over}-${lastBall.ball}`;
+
+    if (currentBallKey !== lastBallKey) {
+      const commentary = getHypeCommentary(lastBall);
+      speakHype(commentary);
+      setLastBallKey(currentBallKey);
+    }
+  }, [match, isMuted, lastBallKey]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -305,6 +327,23 @@ export default function LiveMatchView() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsMuted(!isMuted)}
+            className={cn(
+              "p-3 rounded-xl transition-all flex items-center gap-2 font-black uppercase tracking-widest text-[10px]",
+              isMuted ? "bg-slate-100 text-slate-400" : "bg-red-50 text-brand-red border border-red-100 shadow-sm"
+            )}
+          >
+            {isMuted ? (
+              <>
+                <VolumeX className="w-4 h-4" /> Audio Off
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-4 h-4 animate-pulse" /> Audio On
+              </>
+            )}
+          </button>
           {match.status === 'Live' && (
             <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
