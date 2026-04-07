@@ -56,7 +56,8 @@ export default function Home() {
         {socialLinks.map((social, idx) => (
           <motion.a
             key={social.id}
-            href={social.url}
+            href={social.url === '#' ? undefined : social.url}
+            onClick={social.url === '#' ? (e) => e.preventDefault() : undefined}
             target="_blank"
             rel="noopener noreferrer"
             initial={{ x: 50, opacity: 0 }}

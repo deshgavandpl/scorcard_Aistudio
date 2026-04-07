@@ -373,7 +373,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <a href="https://lightgreen-alpaca-673553.hostingersite.com/index.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
+              <a href="https://apnacricket.co.in" className="flex items-center gap-2 group">
                 <div className="w-10 h-10 bg-brand-red rounded-lg flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-all">
                   <span className="text-white font-black italic text-xl">A</span>
                 </div>

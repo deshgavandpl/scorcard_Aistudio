@@ -170,6 +170,16 @@ export default function Teams() {
     }
   };
 
+  const handleDownloadPDF = async (team: Team) => {
+    try {
+      await generateTeamPDF(team);
+      toast.success(`${team.name} team sheet downloaded!`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -234,7 +244,7 @@ export default function Teams() {
                   </button>
                 )}
                 <button 
-                  onClick={() => generateTeamPDF(team)}
+                  onClick={() => handleDownloadPDF(team)}
                   className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
                   title="Download Team Sheet"
                 >
@@ -303,7 +313,13 @@ export default function Teams() {
                   <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">{managingTeam.name} Roster</h2>
                   <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Manage players and roles</p>
                 </div>
-                <button onClick={() => setManagingTeam(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setManagingTeam(null);
+                  }} 
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
                   <X className="w-6 h-6 text-slate-400" />
                 </button>
               </div>
@@ -410,7 +426,13 @@ export default function Teams() {
             <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Edit Team</h2>
-                <button onClick={() => setEditingTeam(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingTeam(null);
+                  }} 
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
                   <X className="w-6 h-6 text-slate-400" />
                 </button>
               </div>

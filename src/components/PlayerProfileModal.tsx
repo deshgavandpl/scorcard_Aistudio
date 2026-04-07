@@ -1,80 +1,93 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Trophy, Zap, Target, TrendingUp, Shield, Download } from 'lucide-react';
+import { X, User, Trophy, Zap, Target, TrendingUp, Shield, Download, History } from 'lucide-react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
 import { generatePlayerPDF } from '../lib/pdfGenerator';
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '../firebase';
 import { Match, BatterStats, BowlerStats } from '../types/cricket';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 export default function PlayerProfileModal() {
   const { selectedPlayer, closePlayerProfile, allMatches, loadingMatches } = usePlayerProfile();
 
-  const calculateStats = () => {
+  const stats = useMemo(() => {
     if (!selectedPlayer) return null;
-    const stats = {
-      batting: {
-        matches: 0,
-        runs: 0,
-        balls: 0,
-        fours: 0,
-        sixes: 0,
-        highestScore: 0,
-        notOuts: 0,
-      },
-      bowling: {
-        innings: 0,
-        overs: 0,
-        balls: 0,
-        runs: 0,
-        wickets: 0,
-        maidens: 0,
-        bestBowling: { wickets: 0, runs: 0 }
-      }
-    };
-
-    allMatches.forEach(m => {
-      let playedInMatch = false;
-      [m.innings1, m.innings2].forEach(inn => {
-        if (!inn) return;
-
-        // Batting
-        const batter = (Object.values(inn.battingStats) as BatterStats[]).find(s => s.playerName === selectedPlayer.name || s.playerId === selectedPlayer.id);
-        if (batter) {
-          playedInMatch = true;
-          stats.batting.runs += batter.runs;
-          stats.batting.balls += batter.balls;
-          stats.batting.fours += batter.fours;
-          stats.batting.sixes += batter.sixes;
-          if (!batter.isOut) stats.batting.notOuts += 1;
-          if (batter.runs > stats.batting.highestScore) stats.batting.highestScore = batter.runs;
+    try {
+      const stats = {
+        batting: {
+          matches: 0,
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          highestScore: 0,
+          notOuts: 0,
+        },
+        bowling: {
+          innings: 0,
+          overs: 0,
+          balls: 0,
+          runs: 0,
+          wickets: 0,
+          maidens: 0,
+          bestBowling: { wickets: 0, runs: 0 }
         }
+      };
 
-        // Bowling
-        const bowler = (Object.values(inn.bowlingStats) as BowlerStats[]).find(s => s.playerName === selectedPlayer.name || s.playerId === selectedPlayer.id);
-        if (bowler) {
-          playedInMatch = true;
-          stats.bowling.innings += 1;
-          stats.bowling.overs += bowler.overs;
-          stats.bowling.balls += bowler.balls;
-          stats.bowling.runs += bowler.runs;
-          stats.bowling.wickets += bowler.wickets;
-          stats.bowling.maidens += bowler.maiden;
+      allMatches.forEach(m => {
+        let playedInMatch = false;
+        [m.innings1, m.innings2].forEach(inn => {
+          if (!inn) return;
 
-          if (bowler.wickets > stats.bowling.bestBowling.wickets || 
-             (bowler.wickets === stats.bowling.bestBowling.wickets && bowler.runs < stats.bowling.bestBowling.runs)) {
-            stats.bowling.bestBowling = { wickets: bowler.wickets, runs: bowler.runs };
+          // Batting
+          const batter = (Object.values(inn.battingStats) as BatterStats[]).find(s => s.playerName === selectedPlayer.name || s.playerId === selectedPlayer.id);
+          if (batter) {
+            playedInMatch = true;
+            stats.batting.runs += batter.runs;
+            stats.batting.balls += batter.balls;
+            stats.batting.fours += batter.fours;
+            stats.batting.sixes += batter.sixes;
+            if (!batter.isOut) stats.batting.notOuts += 1;
+            if (batter.runs > stats.batting.highestScore) stats.batting.highestScore = batter.runs;
           }
-        }
+
+          // Bowling
+          const bowler = (Object.values(inn.bowlingStats) as BowlerStats[]).find(s => s.playerName === selectedPlayer.name || s.playerId === selectedPlayer.id);
+          if (bowler) {
+            playedInMatch = true;
+            stats.bowling.innings += 1;
+            stats.bowling.overs += bowler.overs;
+            stats.bowling.balls += bowler.balls;
+            stats.bowling.runs += bowler.runs;
+            stats.bowling.wickets += bowler.wickets;
+            stats.bowling.maidens += bowler.maiden;
+
+            if (bowler.wickets > stats.bowling.bestBowling.wickets || 
+               (bowler.wickets === stats.bowling.bestBowling.wickets && bowler.runs < stats.bowling.bestBowling.runs)) {
+              stats.bowling.bestBowling = { wickets: bowler.wickets, runs: bowler.runs };
+            }
+          }
+        });
+        if (playedInMatch) stats.batting.matches += 1;
       });
-      if (playedInMatch) stats.batting.matches += 1;
-    });
 
-    return stats;
+      return stats;
+    } catch (error) {
+      console.error("Error calculating stats:", error);
+      return null;
+    }
+  }, [selectedPlayer, allMatches]);
+
+  const handleDownload = async () => {
+    if (!selectedPlayer || !stats) return;
+    try {
+      await generatePlayerPDF(selectedPlayer, stats);
+      toast.success('Profile downloaded successfully!');
+    } catch (error) {
+      console.error("PDF Download failed:", error);
+      toast.error('Failed to download profile. Please try again.');
+    }
   };
-
-  const stats = calculateStats();
 
   return (
     <AnimatePresence mode="wait">
@@ -106,7 +119,10 @@ export default function PlayerProfileModal() {
               <div className="absolute top-6 right-6 flex items-center gap-2 z-20">
                 {!loadingMatches && stats && (
                   <button 
-                    onClick={() => generatePlayerPDF(selectedPlayer, stats)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload();
+                    }}
                     className="p-2.5 bg-white/10 hover:bg-brand-red text-white rounded-full transition-all active:scale-90 flex items-center gap-2 group"
                     title="Download Profile"
                   >
@@ -115,7 +131,10 @@ export default function PlayerProfileModal() {
                   </button>
                 )}
                 <button 
-                  onClick={closePlayerProfile}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closePlayerProfile();
+                  }}
                   className="p-2.5 hover:bg-white/10 rounded-full transition-all active:scale-90"
                 >
                   <X className="w-6 h-6" />
@@ -231,7 +250,7 @@ export default function PlayerProfileModal() {
 function StatCard({ label, value, highlight }: { label: string; value: string | number; highlight?: boolean }) {
   return (
     <div className={cn(
-      "p-4 rounded-2xl border transition-all",
+      "p-4 rounded-2xl border transition-all hover:scale-105 duration-300",
       highlight ? "bg-red-50 border-red-100 shadow-sm" : "bg-white border-slate-100"
     )}>
       <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</p>
@@ -240,26 +259,5 @@ function StatCard({ label, value, highlight }: { label: string; value: string | 
         highlight ? "text-brand-red" : "text-slate-900"
       )}>{value}</p>
     </div>
-  );
-}
-
-function History({ className }: { className?: string }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M12 7v5l4 2" />
-    </svg>
   );
 }

@@ -45,61 +45,64 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
     };
   }, [tournamentId, isOpen]);
 
-  const pointsTable = tournament ? tournament.teams.map(team => {
-    const teamMatches = matches.filter(m => m.status === 'Finished' && (m.teamAId === team.id || m.teamBId === team.id));
-    const wins = teamMatches.filter(m => m.winnerId === team.id).length;
-    const losses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
-    const draws = teamMatches.filter(m => m.winnerId === 'Draw').length;
-    
-    let runsScored = 0;
-    let oversFaced = 0;
-    let runsConceded = 0;
-    let oversBowled = 0;
+  const pointsTable = React.useMemo(() => {
+    if (!tournament) return [];
+    return tournament.teams.map(team => {
+      const teamMatches = matches.filter(m => m.status === 'Finished' && (m.teamAId === team.id || m.teamBId === team.id));
+      const wins = teamMatches.filter(m => m.winnerId === team.id).length;
+      const losses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
+      const draws = teamMatches.filter(m => m.winnerId === 'Draw').length;
+      
+      let runsScored = 0;
+      let oversFaced = 0;
+      let runsConceded = 0;
+      let oversBowled = 0;
 
-    teamMatches.forEach(m => {
-      // Correctly identify which innings the team batted and bowled in
-      const teamInnings = m.innings1?.battingTeamId === team.id ? m.innings1 : (m.innings2?.battingTeamId === team.id ? m.innings2 : null);
-      const oppInnings = m.innings1?.bowlingTeamId === team.id ? m.innings1 : (m.innings2?.bowlingTeamId === team.id ? m.innings2 : null);
+      teamMatches.forEach(m => {
+        // Correctly identify which innings the team batted and bowled in
+        const teamInnings = m.innings1?.battingTeamId === team.id ? m.innings1 : (m.innings2?.battingTeamId === team.id ? m.innings2 : null);
+        const oppInnings = m.innings1?.bowlingTeamId === team.id ? m.innings1 : (m.innings2?.bowlingTeamId === team.id ? m.innings2 : null);
 
-      if (teamInnings) {
-        runsScored += teamInnings.runs;
-        // If all out, count full overs for NRR calculation
-        // Standard rule: if a team is all out, the full quota of overs is used
-        if (teamInnings.wickets >= 10) {
-          oversFaced += m.oversLimit;
-        } else {
-          oversFaced += teamInnings.overs + (teamInnings.balls / 6);
+        if (teamInnings) {
+          runsScored += teamInnings.runs;
+          // If all out, count full overs for NRR calculation
+          // Standard rule: if a team is all out, the full quota of overs is used
+          if (teamInnings.wickets >= 10) {
+            oversFaced += m.oversLimit;
+          } else {
+            oversFaced += teamInnings.overs + (teamInnings.balls / 6);
+          }
         }
-      }
 
-      if (oppInnings) {
-        runsConceded += oppInnings.runs;
-        // If opponent all out, count full overs for NRR calculation
-        if (oppInnings.wickets >= 10) {
-          oversBowled += m.oversLimit;
-        } else {
-          oversBowled += oppInnings.overs + (oppInnings.balls / 6);
+        if (oppInnings) {
+          runsConceded += oppInnings.runs;
+          // If opponent all out, count full overs for NRR calculation
+          if (oppInnings.wickets >= 10) {
+            oversBowled += m.oversLimit;
+          } else {
+            oversBowled += oppInnings.overs + (oppInnings.balls / 6);
+          }
         }
-      }
+      });
+
+      const nrr = (oversFaced > 0 && oversBowled > 0) 
+        ? (runsScored / oversFaced) - (runsConceded / oversBowled)
+        : 0;
+
+      return {
+        name: team.name,
+        played: teamMatches.length,
+        wins,
+        losses,
+        draws,
+        points: (wins * 2) + draws,
+        nrr: nrr.toFixed(5)
+      };
+    }).sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      return parseFloat(b.nrr) - parseFloat(a.nrr);
     });
-
-    const nrr = (oversFaced > 0 && oversBowled > 0) 
-      ? (runsScored / oversFaced) - (runsConceded / oversBowled)
-      : 0;
-
-    return {
-      name: team.name,
-      played: teamMatches.length,
-      wins,
-      losses,
-      draws,
-      points: (wins * 2) + draws,
-      nrr: nrr.toFixed(5)
-    };
-  }).sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    return parseFloat(b.nrr) - parseFloat(a.nrr);
-  }) : [];
+  }, [tournament, matches]);
 
   return (
     <AnimatePresence>
