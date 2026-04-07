@@ -341,14 +341,15 @@ export default function TournamentDetail() {
     let oversBowled = 0;
 
     teamMatches.forEach(m => {
-      const isTeamA = m.teamAId === team.id;
-      const teamInnings = isTeamA ? m.innings1 : m.innings2;
-      const oppInnings = isTeamA ? m.innings2 : m.innings1;
+      // Correctly identify which innings the team batted and bowled in
+      const teamInnings = m.innings1?.battingTeamId === team.id ? m.innings1 : (m.innings2?.battingTeamId === team.id ? m.innings2 : null);
+      const oppInnings = m.innings1?.bowlingTeamId === team.id ? m.innings1 : (m.innings2?.bowlingTeamId === team.id ? m.innings2 : null);
 
       if (teamInnings) {
         runsScored += teamInnings.runs;
-        // If all out, count full overs
-        if (teamInnings.wickets === 10) {
+        // If all out, count full overs for NRR calculation
+        // Standard rule: if a team is all out, the full quota of overs is used
+        if (teamInnings.wickets >= 10) {
           oversFaced += m.oversLimit;
         } else {
           oversFaced += teamInnings.overs + (teamInnings.balls / 6);
@@ -357,8 +358,8 @@ export default function TournamentDetail() {
 
       if (oppInnings) {
         runsConceded += oppInnings.runs;
-        // If opponent all out, count full overs
-        if (oppInnings.wickets === 10) {
+        // If opponent all out, count full overs for NRR calculation
+        if (oppInnings.wickets >= 10) {
           oversBowled += m.oversLimit;
         } else {
           oversBowled += oppInnings.overs + (oppInnings.balls / 6);
@@ -377,7 +378,7 @@ export default function TournamentDetail() {
       losses,
       draws,
       points: (wins * 2) + draws,
-      nrr: nrr.toFixed(3)
+      nrr: nrr.toFixed(5)
     };
   }).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
