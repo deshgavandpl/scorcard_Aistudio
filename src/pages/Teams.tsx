@@ -10,8 +10,10 @@ import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
+import { usePlayerProfile } from '../context/PlayerProfileContext';
 
 export default function Teams() {
+  const { openPlayerProfile } = usePlayerProfile();
   const [teams, setTeams] = useState<Team[]>([]);
   const [newTeamName, setNewTeamName] = useState('');
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
@@ -258,9 +260,13 @@ export default function Teams() {
               
               <div className="space-y-2">
                 {team.players.slice(0, 3).map((p, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                  <button 
+                    key={idx} 
+                    onClick={() => openPlayerProfile(p.id, p.name)}
+                    className="flex items-center gap-2 text-sm text-slate-600 font-medium hover:text-brand-red transition-colors w-full text-left"
+                  >
                     <User className="w-3 h-3 text-slate-300" /> {p.name}
-                  </div>
+                  </button>
                 ))}
                 {team.players.length > 3 && (
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">+{team.players.length - 3} more</p>
@@ -355,13 +361,16 @@ export default function Teams() {
                         )}>
                           {player.isCaptain ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-900 uppercase tracking-tight text-sm flex items-center gap-2">
+                        <button 
+                          onClick={() => openPlayerProfile(player.id, player.name)}
+                          className="text-left"
+                        >
+                          <p className="font-bold text-slate-900 uppercase tracking-tight text-sm flex items-center gap-2 hover:text-brand-red transition-colors">
                             {player.name}
-                            {player.isCaptain && <span className="text-[8px] bg-brand-red text-white px-1.5 py-0.5 rounded-full">CAPTAIN</span>}
+                            {player.isCaptain && <span className="text-[8px] font-black bg-brand-red text-white px-1.5 py-0.5 rounded-full">CAPTAIN</span>}
                           </p>
                           <p className="text-[10px] font-black text-brand-red uppercase tracking-widest">{player.role}</p>
-                        </div>
+                        </button>
                       </div>
                       <div className="flex items-center gap-1">
                         {canManage && (

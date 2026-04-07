@@ -11,10 +11,12 @@ import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
+import { usePlayerProfile } from '../context/PlayerProfileContext';
 
 export default function TournamentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openPlayerProfile } = usePlayerProfile();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams'>('fixtures');
@@ -28,7 +30,6 @@ export default function TournamentDetail() {
   
   // Player Management State
   const [teamPlayerInputs, setTeamPlayerInputs] = useState<Record<string, { name: string, role: 'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper' }>>({});
-  const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<{player: Player, teamName: string} | null>(null);
   
   const handlePlayerInputChange = (teamId: string, field: 'name' | 'role', value: string) => {
     setTeamPlayerInputs(prev => ({
@@ -781,7 +782,7 @@ export default function TournamentDetail() {
                       <div key={player.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 group">
                         <div 
                           className="flex items-center gap-3 cursor-pointer hover:bg-slate-100/50 p-1 rounded-lg transition-colors flex-1"
-                          onClick={() => setSelectedPlayerForStats({ player, teamName: team.name })}
+                          onClick={() => openPlayerProfile(player.id, player.name)}
                         >
                           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-100 relative">
                             {player.isCaptain && (
@@ -829,140 +830,6 @@ export default function TournamentDetail() {
         confirmText="Delete Now"
         isDestructive={true}
       />
-
-      <AnimatePresence>
-        {selectedPlayerForStats && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"
-            onClick={() => setSelectedPlayerForStats(null)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="bg-slate-900 p-8 text-white relative">
-                <div className="absolute top-0 right-0 p-6">
-                  <button onClick={() => setSelectedPlayerForStats(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-brand-red rounded-3xl flex items-center justify-center shadow-xl transform -rotate-6">
-                    <User className="w-10 h-10 text-white" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h2 className="text-3xl font-black uppercase tracking-tight italic transform -skew-x-6">
-                        {selectedPlayerForStats.player.name}
-                      </h2>
-                      {selectedPlayerForStats.player.isCaptain && (
-                        <span className="bg-brand-red text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
-                          <Shield className="w-3 h-3" /> Captain
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
-                      {selectedPlayerForStats.player.role} • {selectedPlayerForStats.teamName}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats Content */}
-              <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                {(() => {
-                  const stats = getPlayerTournamentStats(selectedPlayerForStats.player.name);
-                  const battingAvg = stats.batting.innings - stats.batting.notOuts > 0 
-                    ? (stats.batting.runs / (stats.batting.innings - stats.batting.notOuts)).toFixed(2) 
-                    : stats.batting.runs.toString();
-                  const battingSR = stats.batting.balls > 0 
-                    ? ((stats.batting.runs / stats.batting.balls) * 100).toFixed(2) 
-                    : '0.00';
-                  
-                  const totalBalls = (stats.bowling.overs * 6) + stats.bowling.balls;
-                  const bowlingEco = totalBalls > 0 
-                    ? ((stats.bowling.runs / totalBalls) * 6).toFixed(2) 
-                    : '0.00';
-                  const bowlingAvg = stats.bowling.wickets > 0 
-                    ? (stats.bowling.runs / stats.bowling.wickets).toFixed(2) 
-                    : '-';
-
-                  return (
-                    <div className="space-y-8">
-                      {/* Batting Stats */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 border-l-4 border-brand-red pl-4">
-                          <Target className="w-5 h-5 text-brand-red" />
-                          <h3 className="text-lg font-black uppercase tracking-widest text-slate-900">Batting Performance</h3>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {[
-                            { label: 'Matches', value: stats.batting.matches },
-                            { label: 'Innings', value: stats.batting.innings },
-                            { label: 'Runs', value: stats.batting.runs, highlight: true },
-                            { label: 'Avg', value: battingAvg },
-                            { label: 'S/R', value: battingSR },
-                            { label: 'Highest', value: stats.batting.highestScore },
-                            { label: '4s / 6s', value: `${stats.batting.fours} / ${stats.batting.sixes}` },
-                            { label: 'Not Outs', value: stats.batting.notOuts },
-                          ].map((stat, i) => (
-                            <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                              <p className={cn("text-xl font-black", stat.highlight ? "text-brand-red" : "text-slate-900")}>{stat.value}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Bowling Stats */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 border-l-4 border-brand-red pl-4">
-                          <Zap className="w-5 h-5 text-brand-red" />
-                          <h3 className="text-lg font-black uppercase tracking-widest text-slate-900">Bowling Performance</h3>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {[
-                            { label: 'Innings', value: stats.bowling.innings },
-                            { label: 'Wickets', value: stats.bowling.wickets, highlight: true },
-                            { label: 'Overs', value: `${stats.bowling.overs}.${stats.bowling.balls}` },
-                            { label: 'Economy', value: bowlingEco },
-                            { label: 'Avg', value: bowlingAvg },
-                            { label: 'Best', value: `${stats.bowling.bestBowling.wickets}/${stats.bowling.bestBowling.runs}` },
-                            { label: 'Maidens', value: stats.bowling.maidens },
-                            { label: 'Runs', value: stats.bowling.runs },
-                          ].map((stat, i) => (
-                            <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                              <p className={cn("text-xl font-black", stat.highlight ? "text-brand-red" : "text-slate-900")}>{stat.value}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Footer */}
-              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center">
-                <button 
-                  onClick={() => setSelectedPlayerForStats(null)}
-                  className="px-8 py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red transition-all shadow-lg"
-                >
-                  Close Profile
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

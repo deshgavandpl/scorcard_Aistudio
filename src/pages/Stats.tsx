@@ -7,8 +7,10 @@ import { cn } from '../lib/utils';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { usePlayerProfile } from '../context/PlayerProfileContext';
 
 export default function Stats() {
+  const { openPlayerProfile } = usePlayerProfile();
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'batting' | 'bowling'>('batting');
 
@@ -151,12 +153,15 @@ export default function Stats() {
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 shadow-lg">
                   <User className="w-6 h-6 text-white" />
                 </div>
-                <div>
-                  <p className="text-xl font-black uppercase tracking-tight leading-none">{(activeTab === 'batting' ? battingStats : bowlingStats)[0].name}</p>
+                <button 
+                  onClick={() => openPlayerProfile('', (activeTab === 'batting' ? battingStats : bowlingStats)[0].name)}
+                  className="text-left group/name"
+                >
+                  <p className="text-xl font-black uppercase tracking-tight leading-none group-hover/name:text-white/80 transition-colors">{(activeTab === 'batting' ? battingStats : bowlingStats)[0].name}</p>
                   <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">
                     {activeTab === 'batting' ? 'Leading Scorer' : 'Top Wicket Taker'}
                   </p>
-                </div>
+                </button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white/10 p-3 rounded-xl border border-white/20">
@@ -244,10 +249,13 @@ export default function Stats() {
               {(activeTab === 'batting' ? battingStats : bowlingStats).map((s, idx) => (
                 <tr key={idx} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-3 md:px-6 py-3">
-                    <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => openPlayerProfile('', s.name)}
+                      className="flex items-center gap-2 group/row text-left"
+                    >
                       <span className="text-[10px] font-black text-slate-300 w-3">{idx + 1}</span>
-                      <span className="text-xs font-bold text-slate-900 uppercase tracking-tight group-hover:text-brand-red transition-colors truncate max-w-[80px] md:max-w-none">{s.name}</span>
-                    </div>
+                      <span className="text-xs font-bold text-slate-900 uppercase tracking-tight group-hover/row:text-brand-red transition-colors truncate max-w-[80px] md:max-w-none">{s.name}</span>
+                    </button>
                   </td>
                   {activeTab === 'batting' ? (
                     <>
@@ -284,11 +292,17 @@ export default function Stats() {
 }
 
 function RecordItem({ label, value, player }: any) {
+  const { openPlayerProfile } = usePlayerProfile();
   return (
     <div className="flex justify-between items-center py-3 border-b border-slate-50 last:border-0">
       <div>
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
-        <p className="font-bold text-slate-900 text-sm uppercase">{player}</p>
+        <button 
+          onClick={() => openPlayerProfile('', player)}
+          className="font-bold text-slate-900 text-sm uppercase hover:text-brand-red transition-colors text-left"
+        >
+          {player}
+        </button>
       </div>
       <span className="text-xl font-black text-brand-red">{value}</span>
     </div>

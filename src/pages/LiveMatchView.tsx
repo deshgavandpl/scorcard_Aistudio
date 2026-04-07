@@ -23,12 +23,16 @@ import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import Scorecard from '../components/Scorecard';
 import Certificate from '../components/Certificate';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePlayerProfile } from '../context/PlayerProfileContext';
+import TournamentSidebar from '../components/TournamentSidebar';
 
 export default function LiveMatchView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openPlayerProfile } = usePlayerProfile();
   const { match, setMatch, loading } = useCricketScoring(id);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const certificateRef = useRef<HTMLDivElement>(null);
 
   if (loading) return (
@@ -470,6 +474,30 @@ export default function LiveMatchView() {
           )}
         </div>
       </div>
+
+      {/* Tournament Sidebar Trigger (Floating Button) */}
+      {match.tournamentId && (
+        <>
+          <motion.button
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsSidebarOpen(true)}
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-slate-900 text-white p-3 rounded-l-2xl shadow-2xl flex flex-col items-center gap-2 border-l-4 border-brand-red group"
+          >
+            <Trophy className="w-5 h-5 text-brand-red group-hover:animate-bounce" />
+            <span className="[writing-mode:vertical-lr] text-[8px] font-black uppercase tracking-widest rotate-180">Tournament</span>
+          </motion.button>
+
+          <TournamentSidebar 
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            tournamentId={match.tournamentId}
+            currentMatchId={match.id}
+          />
+        </>
+      )}
     </div>
   );
 }

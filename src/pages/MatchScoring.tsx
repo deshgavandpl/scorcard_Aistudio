@@ -28,7 +28,9 @@ import Scorecard from '../components/Scorecard';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
 import { toPng } from 'html-to-image';
+import { usePlayerProfile } from '../context/PlayerProfileContext';
 import { Tournament, Team } from '../types/cricket';
+import TournamentSidebar from '../components/TournamentSidebar';
 
 const getHypeCommentary = (ball: BallEvent) => {
   if (ball.isWicket) return "Khatam! Tata! Bye Bye! 💀 Gaya Bhai 🚶‍♂️";
@@ -106,7 +108,9 @@ const calculateManOfTheMatch = (match: Match, winningTeamId: string) => {
 export default function MatchScoring() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openPlayerProfile } = usePlayerProfile();
   const [isSettingUp, setIsSettingUp] = useState(id === 'new');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [setupStep, setSetupStep] = useState(1);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
@@ -1646,9 +1650,9 @@ export default function MatchScoring() {
                     backgroundColor: 'rgb(254 242 242)',
                     borderColor: 'rgb(239 68 68)'
                   }}
-                  className="p-2 rounded-xl border-2 shadow-sm relative overflow-hidden group"
+                  className="p-2 rounded-xl border-2 shadow-sm relative overflow-hidden group/player"
                 >
-                  <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <div className="absolute top-0 right-0 p-1 opacity-10 group-hover/player:opacity-20 transition-opacity">
                     <Zap className="w-8 h-8 text-brand-red" />
                   </div>
                   <div className="flex items-center justify-between mb-0.5 relative z-10">
@@ -1658,18 +1662,28 @@ export default function MatchScoring() {
                     </span>
                     <Zap className="w-2.5 h-2.5 text-brand-red fill-brand-red animate-bounce" />
                   </div>
-                  <p className="text-xs font-black text-slate-900 truncate relative z-10">{striker?.playerName || 'Batsman'}</p>
+                  <button 
+                    onClick={() => openPlayerProfile(striker?.playerId || '', striker?.playerName || '')}
+                    className="text-xs font-black text-slate-900 truncate relative z-10 hover:text-brand-red transition-colors text-left w-full"
+                  >
+                    {striker?.playerName || 'Batsman'}
+                  </button>
                   <p className="text-[10px] font-bold text-brand-red mt-0.5 relative z-10">{striker?.runs || 0} <span className="text-slate-400 font-medium">({striker?.balls || 0})</span></p>
                 </motion.div>
 
                 <motion.div 
                   initial={false}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50/50 shadow-sm"
+                  className="p-2 rounded-xl border border-slate-200 bg-slate-50/50 shadow-sm group/player"
                 >
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</span>
                   </div>
-                  <p className="text-xs font-black text-slate-900 truncate">{nonStriker?.playerName || 'Batsman'}</p>
+                  <button 
+                    onClick={() => openPlayerProfile(nonStriker?.playerId || '', nonStriker?.playerName || '')}
+                    className="text-xs font-black text-slate-900 truncate hover:text-brand-red transition-colors text-left w-full"
+                  >
+                    {nonStriker?.playerName || 'Batsman'}
+                  </button>
                   <p className="text-[10px] font-bold text-slate-500 mt-0.5">{nonStriker?.runs || 0} <span className="text-slate-400 font-medium">({nonStriker?.balls || 0})</span></p>
                 </motion.div>
 
@@ -1679,7 +1693,7 @@ export default function MatchScoring() {
                     borderColor: 'rgb(15 23 42)',
                     backgroundColor: 'rgb(15 23 42)'
                   }}
-                  className="p-2 rounded-xl border-2 text-white flex flex-col justify-center shadow-lg relative overflow-hidden group"
+                  className="p-2 rounded-xl border-2 text-white flex flex-col justify-center shadow-lg relative overflow-hidden group/player"
                 >
                   <div className="absolute top-0 right-0 p-1 opacity-20">
                     <Flame className="w-8 h-8 text-red-500" />
@@ -1690,7 +1704,12 @@ export default function MatchScoring() {
                       Bowler
                     </span>
                   </div>
-                  <p className="text-xs font-black truncate relative z-10">{bowler?.playerName || 'Bowler'}</p>
+                  <button 
+                    onClick={() => openPlayerProfile(bowler?.playerId || '', bowler?.playerName || '')}
+                    className="text-xs font-black truncate relative z-10 hover:text-brand-red transition-colors text-left w-full"
+                  >
+                    {bowler?.playerName || 'Bowler'}
+                  </button>
                   <p className="text-[10px] font-bold text-slate-300 mt-0.5 relative z-10">{bowler?.wickets || 0}-{bowler?.runs || 0} <span className="opacity-50">({bowler?.overs || 0}.{bowler?.balls || 0})</span></p>
                 </motion.div>
               </div>
@@ -1981,6 +2000,30 @@ export default function MatchScoring() {
           </div>
         </div>
       </div>
+
+      {/* Tournament Sidebar Trigger (Floating Button) */}
+      {match?.tournamentId && (
+        <>
+          <motion.button
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsSidebarOpen(true)}
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-slate-900 text-white p-3 rounded-l-2xl shadow-2xl flex flex-col items-center gap-2 border-l-4 border-brand-red group"
+          >
+            <Trophy className="w-5 h-5 text-brand-red group-hover:animate-bounce" />
+            <span className="[writing-mode:vertical-lr] text-[8px] font-black uppercase tracking-widest rotate-180">Tournament</span>
+          </motion.button>
+
+          <TournamentSidebar 
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            tournamentId={match.tournamentId}
+            currentMatchId={match.id}
+          />
+        </>
+      )}
     </div>
   );
 }
