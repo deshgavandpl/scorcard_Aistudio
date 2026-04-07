@@ -359,7 +359,10 @@ export default function MatchScoring() {
         isOver = true;
       }
 
-      if (isOver) return;
+      if (isOver) {
+        if (isSelectingPlayers) setIsSelectingPlayers(false);
+        return;
+      }
 
       const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
       const nonStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
@@ -373,10 +376,6 @@ export default function MatchScoring() {
       const needsSomething = !striker || !nonStriker || !bowlerId;
       
       if (needsSomething && !isSelectingPlayers) {
-        // Clear inputs when we need new ones
-        if (!striker) setStrikerName('');
-        if (!nonStriker) setNonStrikerName('');
-        if (!bowlerId) setBowlerName('');
         setIsSelectingPlayers(true);
       } else if (!needsSomething) {
         setIsSelectingPlayers(false);
