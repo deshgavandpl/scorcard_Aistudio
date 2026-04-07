@@ -11,6 +11,8 @@ import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as Fireba
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
+import { generateTeamPDF } from '../lib/pdfGenerator';
+import { Download } from 'lucide-react';
 
 export default function Teams() {
   const { openPlayerProfile } = usePlayerProfile();
@@ -170,24 +172,6 @@ export default function Teams() {
 
   return (
     <div className="space-y-8">
-      {!canManage && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-brand-red shrink-0 mt-0.5" />
-            <div>
-              <p className="text-lg font-black text-brand-red uppercase tracking-tight">Admin Access Required</p>
-              <p className="text-sm text-red-700 font-medium">You can view all teams, but you must be logged in or use Admin PIN to add or delete teams.</p>
-            </div>
-          </div>
-          <button 
-            onClick={handleLogin}
-            className="px-8 py-3 bg-brand-red text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2"
-          >
-            <LogIn className="w-4 h-4" /> Login with Google
-          </button>
-        </div>
-      )}
-
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">Teams</h1>
@@ -199,7 +183,7 @@ export default function Teams() {
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
             disabled={!canManage}
-            placeholder={canManage ? "New Team Name" : "Admin access required"}
+            placeholder="New Team Name"
             className="flex-grow md:w-64 px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red outline-none transition-all font-bold disabled:bg-slate-50 disabled:text-slate-400 text-sm"
           />
           <button 
@@ -249,6 +233,13 @@ export default function Teams() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
+                <button 
+                  onClick={() => generateTeamPDF(team)}
+                  className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                  title="Download Team Sheet"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
               </div>
             </div>
             

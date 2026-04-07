@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Trophy, Zap, Target, TrendingUp, Shield } from 'lucide-react';
+import { X, User, Trophy, Zap, Target, TrendingUp, Shield, Download } from 'lucide-react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
+import { generatePlayerPDF } from '../lib/pdfGenerator';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Match, BatterStats, BowlerStats } from '../types/cricket';
@@ -102,12 +103,24 @@ export default function PlayerProfileModal() {
               </div>
               <div className="absolute -top-10 -left-10 w-40 h-40 bg-brand-red/20 rounded-full blur-3xl" />
               
-              <button 
-                onClick={closePlayerProfile}
-                className="absolute top-6 right-6 p-2.5 hover:bg-white/10 rounded-full transition-all active:scale-90 z-20"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              <div className="absolute top-6 right-6 flex items-center gap-2 z-20">
+                {!loadingMatches && stats && (
+                  <button 
+                    onClick={() => generatePlayerPDF(selectedPlayer, stats)}
+                    className="p-2.5 bg-white/10 hover:bg-brand-red text-white rounded-full transition-all active:scale-90 flex items-center gap-2 group"
+                    title="Download Profile"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500">Download PDF</span>
+                  </button>
+                )}
+                <button 
+                  onClick={closePlayerProfile}
+                  className="p-2.5 hover:bg-white/10 rounded-full transition-all active:scale-90"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
               
               <div className="flex items-center gap-8 relative z-10">
                 <motion.div 
