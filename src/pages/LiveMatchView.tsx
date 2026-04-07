@@ -348,24 +348,24 @@ export default function LiveMatchView() {
       )}
 
       {/* Main Score Display */}
-      <div className="bg-slate-900 rounded-3xl md:rounded-[40px] p-6 md:p-10 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-slate-900 rounded-[2rem] md:rounded-[40px] p-5 md:p-10 text-white shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-5">
           <Zap className="w-64 h-64 text-white" />
         </div>
         
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
-          <div className="space-y-4 md:space-y-6">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+          <div className="space-y-3 md:space-y-6">
             <div>
-              <p className="text-brand-red text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-2">{battingTeamName} is Batting</p>
-              <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-none">
-                {currentInnings?.runs}<span className="text-2xl md:text-4xl text-slate-500">/{currentInnings?.wickets}</span>
+              <p className="text-brand-red text-[8px] md:text-xs font-black uppercase tracking-[0.3em] mb-1 md:mb-2">{battingTeamName} is Batting</p>
+              <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-none">
+                {currentInnings?.runs}<span className="text-xl md:text-4xl text-slate-500">/{currentInnings?.wickets}</span>
               </h1>
-              <div className="flex items-center gap-4 mt-4">
-                <p className="text-2xl md:text-3xl font-black text-slate-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[10px] md:text-sm font-bold opacity-50 uppercase tracking-widest">Overs</span></p>
-                <div className="h-8 w-px bg-slate-800"></div>
+              <div className="flex items-center gap-3 md:gap-4 mt-2 md:mt-4">
+                <p className="text-xl md:text-3xl font-black text-slate-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[8px] md:text-sm font-bold opacity-50 uppercase tracking-widest">Overs</span></p>
+                <div className="h-6 md:h-8 w-px bg-slate-800"></div>
                 <div className="text-center">
-                  <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">Run Rate</p>
-                  <p className="text-lg md:text-xl font-black text-brand-red">
+                  <p className="text-[7px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">Run Rate</p>
+                  <p className="text-base md:text-xl font-black text-brand-red">
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
@@ -375,52 +375,72 @@ export default function LiveMatchView() {
             </div>
 
             {match.currentInnings === 2 && match.innings1 && (
-              <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-brand-red/20 border border-brand-red/30 backdrop-blur-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <Target className="w-4 h-4 md:w-5 md:h-5 text-brand-red" />
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-brand-red">Target: {match.innings1.runs + 1}</span>
+              <div className="p-3 md:p-6 rounded-2xl md:rounded-3xl bg-brand-red/20 border border-brand-red/30 backdrop-blur-sm">
+                <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
+                  <Target className="w-3 h-3 md:w-5 md:h-5 text-brand-red" />
+                  <span className="text-[8px] md:text-xs font-black uppercase tracking-widest text-brand-red">Target: {match.innings1.runs + 1}</span>
                 </div>
-                <p className="text-lg md:text-xl font-black text-white">
+                <p className="text-sm md:text-xl font-black text-white">
                   Need {match.innings1.runs + 1 - (currentInnings?.runs || 0)} runs in {(match.oversLimit * 6) - ((currentInnings?.overs || 0) * 6 + (currentInnings?.balls || 0))} balls
                 </p>
               </div>
             )}
           </div>
 
-          <div className="flex flex-col justify-end space-y-4 md:space-y-6">
+          <div className="flex flex-col justify-end space-y-3 md:space-y-6">
             {/* Active Batter Stats */}
             <div className="grid grid-cols-1 gap-2 md:gap-3">
               <div className={cn(
-                "p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
+                "p-2.5 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
                 striker?.isStriker ? "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50" : "bg-slate-800/40 border-slate-700"
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
-                  {striker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
-                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{striker?.playerName || 'Batsman'}</p>
+                  {striker?.isStriker && <Zap className="w-2.5 h-2.5 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
+                  <button 
+                    onClick={() => striker && openPlayerProfile(striker.playerId, striker.playerName)}
+                    className="text-sm md:text-lg font-black truncate max-w-[100px] md:max-w-none text-left hover:text-brand-red transition-colors"
+                  >
+                    {striker?.playerName || 'Batsman'}
+                  </button>
                 </div>
-                <p className="text-lg md:text-xl font-black">{striker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({striker?.balls || 0})</span></p>
+                <div className="text-right">
+                  <p className="text-sm md:text-xl font-black">{striker?.runs || 0} <span className="text-[8px] md:text-sm font-bold text-slate-500">({striker?.balls || 0})</span></p>
+                </div>
               </div>
+
               <div className={cn(
-                "p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
+                "p-2.5 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
                 nonStriker?.isStriker ? "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50" : "bg-slate-800/40 border-slate-700"
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
-                  {nonStriker?.isStriker && <Zap className="w-3 h-3 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
-                  <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{nonStriker?.playerName || 'Batsman'}</p>
+                  {nonStriker?.isStriker && <Zap className="w-2.5 h-2.5 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
+                  <button 
+                    onClick={() => nonStriker && openPlayerProfile(nonStriker.playerId, nonStriker.playerName)}
+                    className="text-sm md:text-lg font-black truncate max-w-[100px] md:max-w-none text-left hover:text-brand-red transition-colors"
+                  >
+                    {nonStriker?.playerName || 'Batsman'}
+                  </button>
                 </div>
-                <p className="text-lg md:text-xl font-black">{nonStriker?.runs || 0} <span className="text-xs md:text-sm font-bold text-slate-500">({nonStriker?.balls || 0})</span></p>
+                <div className="text-right">
+                  <p className="text-sm md:text-xl font-black">{nonStriker?.runs || 0} <span className="text-[8px] md:text-sm font-bold text-slate-500">({nonStriker?.balls || 0})</span></p>
+                </div>
               </div>
             </div>
 
             {/* Current Bowler */}
-            <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-brand-red text-white flex justify-between items-center shadow-lg">
+            <div className="p-2.5 md:p-4 rounded-xl md:rounded-2xl bg-brand-red text-white flex justify-between items-center shadow-lg">
               <div>
-                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-60">Bowling Now</span>
-                <p className="text-base md:text-lg font-black truncate max-w-[120px] md:max-w-none">{bowler?.playerName || 'Bowler'}</p>
+                <span className="text-[7px] md:text-[10px] font-black uppercase tracking-widest opacity-60">Bowling Now</span>
+                <button 
+                  onClick={() => bowler && openPlayerProfile(bowler.playerId, bowler.playerName)}
+                  className="text-sm md:text-lg font-black truncate max-w-[100px] md:max-w-none text-left hover:text-white/80 transition-colors block"
+                >
+                  {bowler?.playerName || 'Bowler'}
+                </button>
               </div>
               <div className="text-right">
-                <p className="text-xl md:text-2xl font-black">{bowler?.wickets || 0}-{bowler?.runs || 0}</p>
-                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-60">{bowler?.overs || 0}.{bowler?.balls || 0} Overs</p>
+                <p className="text-lg md:text-2xl font-black">{bowler?.wickets || 0}-{bowler?.runs || 0}</p>
+                <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest opacity-60">{bowler?.overs || 0}.{bowler?.balls || 0} Overs</p>
               </div>
             </div>
           </div>

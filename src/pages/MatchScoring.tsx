@@ -1365,8 +1365,33 @@ export default function MatchScoring() {
         </div>
       )}
 
+      {/* Tournament Sidebar FAB */}
+      {match.tournamentId && (
+        <div className="fixed bottom-24 right-6 z-[150] md:hidden">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="w-14 h-14 bg-brand-red text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group"
+          >
+            <Trophy className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+            <div className="absolute -top-2 -right-2 bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest border-2 border-white">
+              Center
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Tournament Sidebar */}
+      {match.tournamentId && (
+        <TournamentSidebar 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)} 
+          tournamentId={match.tournamentId}
+          currentMatchId={match.id}
+        />
+      )}
+
       {/* Header */}
-      <div className="flex justify-between items-center bg-white p-2 sm:p-3 rounded-xl border border-slate-200 shadow-sm mb-2">
+      <div className="flex justify-between items-center bg-white p-2 sm:p-3 rounded-[1.5rem] border border-slate-200 shadow-sm mb-2">
         <div className="flex items-center gap-2 sm:gap-4">
           <button onClick={() => navigate('/live')} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
             <ChevronLeft className="w-5 h-5 text-slate-600" />
@@ -1420,9 +1445,6 @@ export default function MatchScoring() {
             title="View Public Live Score"
           >
             <Zap className="w-4 h-4" />
-          </button>
-          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400">
-            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -1524,7 +1546,7 @@ export default function MatchScoring() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 space-y-3">
           {/* Live Score Card - Reduced Size */}
-          <div className="bg-brand-red rounded-2xl p-3 sm:p-4 text-white shadow-xl relative overflow-hidden">
+          <div className="bg-brand-red rounded-[2rem] p-4 sm:p-5 text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-10">
               <Zap className="w-12 h-12 text-white" />
             </div>
@@ -1532,19 +1554,19 @@ export default function MatchScoring() {
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-800 border border-red-700 text-[7px] font-black uppercase tracking-[0.1em] text-red-200 mb-1">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-800 border border-red-700 text-[8px] font-black uppercase tracking-[0.1em] text-red-200 mb-1.5">
                     <span className={cn("w-1 h-1 rounded-full bg-white", match.status === 'Live' && "animate-pulse")}></span>
                     {match.status === 'Live' ? 'Live' : 'Final'}
                   </span>
-                  <h3 className="text-base font-black uppercase tracking-tight text-red-100 leading-tight">{battingTeamName}</h3>
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tighter leading-none mt-0.5">
-                    {currentInnings?.runs}<span className="text-xl text-red-400">/{currentInnings?.wickets}</span>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-red-100 leading-tight">{battingTeamName}</h3>
+                  <h1 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none mt-1">
+                    {currentInnings?.runs}<span className="text-2xl text-red-400">/{currentInnings?.wickets}</span>
                   </h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs font-bold text-red-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[9px] opacity-50">/ {match.oversLimit} ov</span></p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <p className="text-sm font-bold text-red-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[10px] opacity-50 uppercase tracking-widest">/ {match.oversLimit} Overs</span></p>
                     {match.umpireName && (
-                      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-800/50 border border-red-700/50 text-[8px] font-black uppercase tracking-widest text-red-400">
-                        <User className="w-2 h-2" /> {match.umpireName}
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-800/50 border border-red-700/50 text-[8px] font-black uppercase tracking-widest text-red-400">
+                        <User className="w-2.5 h-2.5" /> {match.umpireName}
                       </div>
                     )}
                   </div>
@@ -1555,43 +1577,52 @@ export default function MatchScoring() {
                       <div className="flex flex-col">
                         <span className="text-[7px] font-black text-red-400 uppercase tracking-widest">Batting</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-white flex items-center gap-1">
+                          <button 
+                            onClick={() => openPlayerProfile(striker?.playerId || '', striker?.playerName || '')}
+                            className="text-[10px] font-black text-white flex items-center gap-1 hover:text-red-200 transition-colors"
+                          >
                             {striker?.playerName}* <span className="text-[8px] text-red-300">({striker?.runs})</span>
-                          </span>
-                          <span className="text-[10px] font-bold text-red-300">
+                          </button>
+                          <button 
+                            onClick={() => openPlayerProfile(nonStriker?.playerId || '', nonStriker?.playerName || '')}
+                            className="text-[10px] font-bold text-red-300 hover:text-white transition-colors"
+                          >
                             {nonStriker?.playerName} <span className="text-[8px] opacity-70">({nonStriker?.runs})</span>
-                          </span>
+                          </button>
                         </div>
                       </div>
                     </div>
                     <div className="w-px h-6 bg-red-800/50"></div>
                     <div className="flex flex-col">
                       <span className="text-[7px] font-black text-red-400 uppercase tracking-widest">Bowling</span>
-                      <span className="text-[10px] font-black text-white">
+                      <button 
+                        onClick={() => openPlayerProfile(bowler?.playerId || '', bowler?.playerName || '')}
+                        className="text-[10px] font-black text-white hover:text-red-200 transition-colors"
+                      >
                         {bowler?.playerName} <span className="text-[8px] text-red-300">({bowler?.wickets}-{bowler?.runs})</span>
-                      </span>
+                      </button>
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[7px] font-black text-red-400 uppercase tracking-widest mb-0.5">Run Rate</div>
-                  <div className="text-base font-black">
+                  <div className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-0.5">Run Rate</div>
+                  <div className="text-xl font-black">
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
                   </div>
                   {match.currentInnings === 2 && match.innings1 && (
-                    <div className="mt-1">
-                      <div className="text-[7px] font-black text-red-400 uppercase tracking-widest mb-0.5">Target</div>
-                      <div className="text-base font-black">{match.innings1.runs + 1}</div>
+                    <div className="mt-2">
+                      <div className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-0.5">Target</div>
+                      <div className="text-xl font-black">{match.innings1.runs + 1}</div>
                     </div>
                   )}
                 </div>
               </div>
 
               {match.currentInnings === 2 && match.innings1 && (
-                <div className="bg-red-800/50 rounded-lg p-1.5 border border-red-700/50 mb-1">
-                  <p className="text-[9px] font-bold text-center">
+                <div className="bg-red-800/50 rounded-xl p-2 border border-red-700/50 mb-1">
+                  <p className="text-[10px] font-black text-center uppercase tracking-tight">
                     {match.teamAId === match.innings2?.battingTeamId ? match.teamAName : match.teamBName} needs {match.innings1.runs + 1 - (match.innings2?.runs || 0)} runs in {(match.oversLimit * 6) - ((match.innings2?.overs || 0) * 6 + (match.innings2?.balls || 0))} balls
                   </p>
                 </div>

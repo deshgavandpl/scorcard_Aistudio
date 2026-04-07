@@ -169,39 +169,42 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                       to={`/match/${match.id}`}
                       onClick={onClose}
                       className={cn(
-                        "block p-4 rounded-2xl border transition-all group",
-                        match.id === currentMatchId 
-                          ? "bg-brand-red/5 border-brand-red/20 ring-1 ring-brand-red/20" 
+                        "block p-6 rounded-[2rem] border transition-all group relative",
+                        match.status === 'Live' 
+                          ? "bg-[#fff5f5] border-red-100 ring-1 ring-red-50" 
                           : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
                       )}
                     >
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                          {match.name || 'League Match'}
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                          MATCH {matches.length - matches.indexOf(match)}
                         </span>
                         <span className={cn(
-                          "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
-                          match.status === 'Live' ? "bg-red-100 text-red-600 animate-pulse" : 
-                          match.status === 'Finished' ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"
+                          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                          match.status === 'Live' ? "bg-red-50 text-red-600 animate-pulse" : 
+                          match.status === 'Finished' ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
                         )}>
                           {match.status}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between gap-2">
+                      
+                      <div className="flex items-center justify-between gap-4">
                         <div className="flex-1 text-center">
-                          <p className="text-[10px] font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
+                          <p className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamAName}</p>
                           {match.status !== 'Upcoming' && match.innings1 && (
-                            <p className="text-[10px] font-bold text-brand-red mt-0.5">
+                            <p className="text-sm font-black text-brand-red">
                               {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
                                match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
                             </p>
                           )}
                         </div>
-                        <div className="text-[8px] font-black text-slate-300 italic">VS</div>
+                        
+                        <div className="text-[10px] font-black text-slate-200 italic uppercase tracking-widest">VS</div>
+                        
                         <div className="flex-1 text-center">
-                          <p className="text-[10px] font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
+                          <p className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamBName}</p>
                           {match.status !== 'Upcoming' && match.innings1 && (
-                            <p className="text-[10px] font-bold text-brand-red mt-0.5">
+                            <p className="text-sm font-black text-brand-red">
                               {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
                                match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
                             </p>
@@ -215,23 +218,23 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-[10px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-3 py-3 font-black uppercase tracking-widest text-slate-400">Team</th>
-                        <th className="px-1 py-3 font-black uppercase tracking-widest text-slate-400 text-center">P</th>
-                        <th className="px-1 py-3 font-black uppercase tracking-widest text-slate-400 text-center">W</th>
-                        <th className="px-1 py-3 font-black uppercase tracking-widest text-slate-400 text-center">Pts</th>
-                        <th className="px-2 py-3 font-black uppercase tracking-widest text-slate-400 text-center">NRR</th>
+                      <tr className="bg-slate-50/50 border-b border-slate-100">
+                        <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Team</th>
+                        <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">P</th>
+                        <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">W</th>
+                        <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
+                        <th className="px-3 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {pointsTable.map((team, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-3 py-3 font-bold text-slate-900 uppercase truncate max-w-[80px]">{team.name}</td>
-                          <td className="px-1 py-3 text-center font-bold text-slate-600">{team.played}</td>
-                          <td className="px-1 py-3 text-center font-bold text-emerald-600">{team.wins}</td>
-                          <td className="px-1 py-3 text-center font-black text-brand-red">{team.points}</td>
+                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-4 py-5 font-black text-slate-900 uppercase tracking-tight text-xs truncate max-w-[100px]">{team.name}</td>
+                          <td className="px-2 py-5 text-center font-bold text-slate-600 text-xs">{team.played}</td>
+                          <td className="px-2 py-5 text-center font-bold text-emerald-600 text-xs">{team.wins}</td>
+                          <td className="px-2 py-5 text-center font-black text-brand-red text-xs">{team.points}</td>
                           <td className={cn(
-                            "px-2 py-3 text-center font-bold",
+                            "px-3 py-5 text-center font-bold text-xs",
                             parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
                           )}>
                             {team.nrr}

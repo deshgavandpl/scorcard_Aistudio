@@ -59,12 +59,12 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Batsman</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">R</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">B</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">4s</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">6s</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">SR</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Batsman</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">R</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">B</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">4s</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">6s</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">SR</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,12 +126,12 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Bowler</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">O</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">M</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">R</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">W</th>
-                  <th className="py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Econ</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Bowler</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">O</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">M</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">R</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">W</th>
+                  <th className="py-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-right">Econ</th>
                 </tr>
               </thead>
               <tbody>

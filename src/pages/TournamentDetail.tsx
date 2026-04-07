@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield } from 'lucide-react';
 import { Tournament, Match, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -625,22 +625,34 @@ export default function TournamentDetail() {
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 border-l-4 border-brand-red pl-3">{stage}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(stageMatches as Match[]).map((match, idx) => (
-                  <div key={match.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group">
+                  <Link 
+                    key={match.id}
+                    to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
+                    className={cn(
+                      "block p-6 rounded-[2rem] border transition-all group relative",
+                      match.status === 'Live' 
+                        ? "bg-[#fff5f5] border-red-100 ring-1 ring-red-50" 
+                        : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
+                    )}
+                  >
                     <div className="flex justify-between items-center mb-4">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match {idx + 1}</span>
-                      </div>
+                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                        MATCH {idx + 1}
+                      </span>
                       <div className="flex items-center gap-2">
                         <span className={cn(
-                          "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest",
-                          match.status === 'Live' ? "bg-red-100 text-red-600 animate-pulse" : 
-                          match.status === 'Finished' ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"
+                          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                          match.status === 'Live' ? "bg-red-50 text-red-600 animate-pulse" : 
+                          match.status === 'Finished' ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
                         )}>
                           {match.status}
                         </span>
                         {canManage && (
                           <button 
-                            onClick={() => deleteMatch(match.id)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              deleteMatch(match.id);
+                            }}
                             className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Delete Match"
                           >
@@ -650,80 +662,73 @@ export default function TournamentDetail() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center justify-between gap-4">
                       <div className="flex-1 text-center">
-                        <div className="font-black uppercase text-slate-900 truncate">{match.teamAName}</div>
+                        <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamAName}</p>
                         {match.status !== 'Upcoming' && match.innings1 && (
-                          <div className="text-xs font-bold text-brand-red mt-1">
+                          <p className="text-sm md:text-base font-black text-brand-red">
                             {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
                              match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
-                          </div>
+                          </p>
                         )}
                       </div>
-                      <div className="text-slate-300 font-black italic">VS</div>
+                      
+                      <div className="text-[10px] font-black text-slate-200 italic uppercase tracking-widest">VS</div>
+                      
                       <div className="flex-1 text-center">
-                        <div className="font-black uppercase text-slate-900 truncate">{match.teamBName}</div>
+                        <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamBName}</p>
                         {match.status !== 'Upcoming' && match.innings1 && (
-                          <div className="text-xs font-bold text-brand-red mt-1">
+                          <p className="text-sm md:text-base font-black text-brand-red">
                             {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
                              match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
-                          </div>
+                          </p>
                         )}
                       </div>
                     </div>
 
-                    {match.status !== 'Finished' ? (
-                      <Link 
-                        to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
-                        className="w-full py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-brand-red transition-all"
-                      >
-                        <Play className="w-3 h-3 fill-white" /> {match.status === 'Live' ? (canManage ? 'Resume Scoring' : 'View Live Score') : (canManage ? 'Start Scoring' : 'View Match')}
-                      </Link>
-                    ) : (
-                      <Link 
-                        to={`/match/${match.id}`}
-                        className="w-full py-3 rounded-xl bg-emerald-50 text-emerald-700 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle className="w-3 h-3" /> Match Completed
-                      </Link>
-                    )}
-                  </div>
+                    <div className="mt-6 pt-4 border-t border-slate-100/50 flex justify-center">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-red transition-colors flex items-center gap-2">
+                        {match.status === 'Live' ? 'View Live Score' : match.status === 'Finished' ? 'View Results' : 'View Match Details'}
+                        <ChevronRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
           ))}
         </div>
       ) : activeTab === 'points' ? (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto no-scrollbar">
             <table className="w-full text-left min-w-[600px] md:min-w-0">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Team</th>
-                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">P</th>
-                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">W</th>
-                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">L</th>
-                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">D</th>
-                  <th className="px-2 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pts</th>
-                  <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">NRR</th>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Team</th>
+                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">P</th>
+                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">W</th>
+                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">L</th>
+                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">D</th>
+                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {pointsTable.map((team, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 md:px-6 py-4">
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <span className="text-[10px] md:text-xs font-black text-slate-300 w-4">{idx + 1}</span>
-                        <span className="font-bold text-slate-900 uppercase tracking-tight text-xs md:text-sm">{team.name}</span>
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-black text-slate-300 w-4">{idx + 1}</span>
+                        <span className="font-black text-slate-900 uppercase tracking-tight text-sm">{team.name}</span>
                       </div>
                     </td>
-                    <td className="px-2 md:px-6 py-4 text-center font-bold text-slate-600 text-xs md:text-sm">{team.played}</td>
-                    <td className="px-2 md:px-6 py-4 text-center font-bold text-emerald-600 text-xs md:text-sm">{team.wins}</td>
-                    <td className="px-2 md:px-6 py-4 text-center font-bold text-red-500 text-xs md:text-sm">{team.losses}</td>
-                    <td className="px-2 md:px-6 py-4 text-center font-bold text-slate-400 text-xs md:text-sm">{team.draws}</td>
-                    <td className="px-2 md:px-6 py-4 text-center font-black text-brand-red text-xs md:text-sm">{team.points}</td>
+                    <td className="px-4 py-6 text-center font-bold text-slate-600 text-sm">{team.played}</td>
+                    <td className="px-4 py-6 text-center font-bold text-emerald-600 text-sm">{team.wins}</td>
+                    <td className="px-4 py-6 text-center font-bold text-red-500 text-sm">{team.losses}</td>
+                    <td className="px-4 py-6 text-center font-bold text-slate-400 text-sm">{team.draws}</td>
+                    <td className="px-4 py-6 text-center font-black text-brand-red text-sm">{team.points}</td>
                     <td className={cn(
-                      "px-4 md:px-6 py-4 text-center font-bold text-[10px] md:text-xs",
+                      "px-6 py-6 text-center font-bold text-sm",
                       parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
                     )}>
                       {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
