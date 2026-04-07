@@ -132,9 +132,10 @@ export default function TournamentSetup() {
       });
 
       const pair = allPairs.shift()!;
+      const matchNumber = orderedMatches.length + 1;
       orderedMatches.push({
         id: Math.random().toString(36).substr(2, 9),
-        name: `${pair.teamA.name} vs ${pair.teamB.name}`,
+        name: `Match ${matchNumber}: ${pair.teamA.name} vs ${pair.teamB.name}`,
         tournamentId,
         tournamentName,
         teamAId: pair.teamA.id,
@@ -146,6 +147,7 @@ export default function TournamentSetup() {
         oversLimit: 6,
         status: 'Upcoming',
         currentInnings: 1,
+        order: matchNumber,
         createdAt: Date.now() + orderedMatches.length,
       });
 
@@ -191,10 +193,11 @@ export default function TournamentSetup() {
     
     const finalMatches = openingMatch ? [openingMatch, ...otherMatches] : generatedMatches;
     
-    // Update createdAt to maintain order
+    // Update order and createdAt to maintain order
     const now = Date.now();
     const orderedMatches = finalMatches.map((m, idx) => ({
       ...m,
+      order: idx + 1,
       createdAt: now + idx
     }));
 

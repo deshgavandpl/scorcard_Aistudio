@@ -4,6 +4,7 @@ import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCirc
 import { Tournament, Match, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { generateFixturesPDF } from '../lib/pdfGenerator';
 
 import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -546,10 +547,7 @@ export default function TournamentDetail() {
         {canManage && activeTab === 'fixtures' && (
           <div className="flex gap-2 w-full md:w-auto">
             <button 
-              onClick={() => {
-                const { generateFixturesPDF } = require('../lib/pdfGenerator');
-                generateFixturesPDF(tournament.name, matches);
-              }}
+              onClick={() => generateFixturesPDF(tournament.name, matches)}
               className="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-slate-900 transition-all shadow-lg"
             >
               <Download className="w-4 h-4" /> Download Fixtures
