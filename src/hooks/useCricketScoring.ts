@@ -38,7 +38,10 @@ export function useCricketScoring(matchId: string | undefined) {
 
   const addBall = async (event: Omit<BallEvent, 'over' | 'ball'>) => {
     if (!match) return;
-    const currentInnings = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const currentInnings = match.isSuperOver
+      ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+      : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+    
     if (!currentInnings) return;
 
     const newInnings = { ...currentInnings };
@@ -152,27 +155,39 @@ export function useCricketScoring(matchId: string | undefined) {
     }
 
     const updatedMatch = { ...match };
-    if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
-    else updatedMatch.innings2 = newInnings;
+    if (match.isSuperOver) {
+      if (match.currentInnings === 1) updatedMatch.superOverInnings1 = newInnings;
+      else updatedMatch.superOverInnings2 = newInnings;
+    } else {
+      if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
+      else updatedMatch.innings2 = newInnings;
+    }
 
     // Check for match end (Innings 2 only)
-    if (match.currentInnings === 2 && updatedMatch.innings1 && updatedMatch.innings2) {
-      const inn1Runs = updatedMatch.innings1.runs;
-      const inn2Runs = updatedMatch.innings2.runs;
-      const inn2Wickets = updatedMatch.innings2.wickets;
-      const battingTeamName = updatedMatch.innings2.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
-      const bowlingTeamName = updatedMatch.innings2.bowlingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+    if (match.currentInnings === 2) {
+      const inn1 = match.isSuperOver ? updatedMatch.superOverInnings1 : updatedMatch.innings1;
+      const inn2 = match.isSuperOver ? updatedMatch.superOverInnings2 : updatedMatch.innings2;
 
-      if (inn2Runs > inn1Runs) {
-        updatedMatch.winnerId = updatedMatch.innings2.battingTeamId;
-        updatedMatch.resultMessage = `${battingTeamName} won by ${10 - inn2Wickets} wickets`;
-      } else if (inn2Wickets === 10 || newInnings.overs === match.oversLimit) {
-        if (inn1Runs > inn2Runs) {
-          updatedMatch.winnerId = updatedMatch.innings1.battingTeamId;
-          updatedMatch.resultMessage = `${bowlingTeamName} won by ${inn1Runs - inn2Runs} runs`;
-        } else {
-          updatedMatch.winnerId = 'Draw';
-          updatedMatch.resultMessage = 'Match Draw';
+      if (inn1 && inn2) {
+        const inn1Runs = inn1.runs;
+        const inn2Runs = inn2.runs;
+        const inn2Wickets = inn2.wickets;
+        const battingTeamName = inn2.battingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+        const bowlingTeamName = inn2.bowlingTeamId === updatedMatch.teamAId ? updatedMatch.teamAName : updatedMatch.teamBName;
+        const maxOvers = match.isSuperOver ? 1 : match.oversLimit;
+        const maxWickets = match.isSuperOver ? 2 : 10; // Super over usually has 2 wickets limit
+
+        if (inn2Runs > inn1Runs) {
+          updatedMatch.winnerId = inn2.battingTeamId;
+          updatedMatch.resultMessage = `${battingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${maxWickets - inn2Wickets} wickets`;
+        } else if (inn2Wickets === maxWickets || newInnings.overs === maxOvers) {
+          if (inn1Runs > inn2Runs) {
+            updatedMatch.winnerId = inn1.battingTeamId;
+            updatedMatch.resultMessage = `${bowlingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${inn1Runs - inn2Runs} runs`;
+          } else {
+            updatedMatch.winnerId = 'Draw';
+            updatedMatch.resultMessage = 'Match Draw';
+          }
         }
       }
     }
@@ -181,13 +196,53 @@ export function useCricketScoring(matchId: string | undefined) {
   };
 
   const startSecondInnings = async () => {
-    if (!match || match.currentInnings !== 1) return;
+    if (!match) return;
     
     const updatedMatch = { ...match };
     updatedMatch.currentInnings = 2;
-    updatedMatch.innings2 = {
-      battingTeamId: match.teamBId === (match.innings1?.battingTeamId || '') ? match.teamAId : match.teamBId,
-      bowlingTeamId: match.innings1?.battingTeamId || '',
+    
+    const battingTeamId = match.isSuperOver 
+      ? (match.superOverInnings1?.bowlingTeamId || '')
+      : (match.teamBId === (match.innings1?.battingTeamId || '') ? match.teamAId : match.teamBId);
+      
+    const bowlingTeamId = match.isSuperOver
+      ? (match.superOverInnings1?.battingTeamId || '')
+      : (match.innings1?.battingTeamId || '');
+
+    const newInnings = {
+      battingTeamId,
+      bowlingTeamId,
+      runs: 0,
+      wickets: 0,
+      overs: 0,
+      balls: 0,
+      extras: { wide: 0, noBall: 0, bye: 0, legBye: 0 },
+      battingStats: {},
+      bowlingStats: {},
+      fallOfWickets: [],
+      ballHistory: []
+    };
+
+    if (match.isSuperOver) updatedMatch.superOverInnings2 = newInnings;
+    else updatedMatch.innings2 = newInnings;
+
+    await saveMatch(updatedMatch);
+  };
+
+  const startSuperOver = async () => {
+    if (!match) return;
+    
+    const updatedMatch = { ...match };
+    updatedMatch.isSuperOver = true;
+    updatedMatch.currentInnings = 1;
+    updatedMatch.winnerId = undefined;
+    updatedMatch.resultMessage = undefined;
+    updatedMatch.status = 'Live';
+    
+    // In super over, teams usually swap or decide. Let's assume team B bats first if they were chasing.
+    updatedMatch.superOverInnings1 = {
+      battingTeamId: match.innings2?.battingTeamId || match.teamBId,
+      bowlingTeamId: match.innings2?.bowlingTeamId || match.teamAId,
       runs: 0,
       wickets: 0,
       overs: 0,
@@ -250,7 +305,10 @@ export function useCricketScoring(matchId: string | undefined) {
 
   const undoLastBall = async () => {
     if (!match) return;
-    const currentInnings = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const currentInnings = match.isSuperOver
+      ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+      : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+      
     if (!currentInnings || currentInnings.ballHistory.length === 0) return;
 
     const newInnings = { ...currentInnings };
@@ -343,13 +401,19 @@ export function useCricketScoring(matchId: string | undefined) {
     }
 
     const updatedMatch = { ...match };
-    if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
-    else updatedMatch.innings2 = newInnings;
+    if (match.isSuperOver) {
+      if (match.currentInnings === 1) updatedMatch.superOverInnings1 = newInnings;
+      else updatedMatch.superOverInnings2 = newInnings;
+    } else {
+      if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
+      else updatedMatch.innings2 = newInnings;
+    }
 
     // Reset status if it was finished
     if (updatedMatch.status === 'Finished') {
       updatedMatch.status = 'Live';
-      delete updatedMatch.winnerId;
+      updatedMatch.winnerId = undefined;
+      updatedMatch.resultMessage = undefined;
     }
 
     await saveMatch(updatedMatch);
@@ -357,7 +421,10 @@ export function useCricketScoring(matchId: string | undefined) {
 
   const swapStrike = async () => {
     if (!match) return;
-    const currentInnings = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const currentInnings = match.isSuperOver
+      ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+      : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+      
     if (!currentInnings) return;
 
     const newInnings = { ...currentInnings };
@@ -368,11 +435,16 @@ export function useCricketScoring(matchId: string | undefined) {
     });
 
     const updatedMatch = { ...match };
-    if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
-    else updatedMatch.innings2 = newInnings;
+    if (match.isSuperOver) {
+      if (match.currentInnings === 1) updatedMatch.superOverInnings1 = newInnings;
+      else updatedMatch.superOverInnings2 = newInnings;
+    } else {
+      if (match.currentInnings === 1) updatedMatch.innings1 = newInnings;
+      else updatedMatch.innings2 = newInnings;
+    }
 
     await saveMatch(updatedMatch);
   };
 
-  return { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, startSecondInnings, loading };
+  return { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, startSecondInnings, startSuperOver, loading };
 }

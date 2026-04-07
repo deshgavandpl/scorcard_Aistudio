@@ -41,22 +41,39 @@ export default function LiveMatchView() {
   const [lastBallKey, setLastBallKey] = useState<string>('');
   const certificateRef = useRef<HTMLDivElement>(null);
 
+  const toggleAudio = () => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    if (!newMuted) {
+      // Unlocks speech synthesis on mobile browsers
+      speakHype("Commentary Enabled");
+    } else {
+      window.speechSynthesis?.cancel();
+    }
+  };
+
   // Audio Commentary Effect
   useEffect(() => {
     if (!match || isMuted) return;
 
-    const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const currentInn = match.isSuperOver
+      ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+      : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+      
     if (!currentInn || currentInn.ballHistory.length === 0) return;
 
     const lastBall = currentInn.ballHistory[currentInn.ballHistory.length - 1];
-    const currentBallKey = `${match.currentInnings}-${lastBall.over}-${lastBall.ball}`;
+    const currentBallKey = `${match.isSuperOver ? 'SO-' : ''}${match.currentInnings}-${lastBall.over}-${lastBall.ball}`;
 
     if (currentBallKey !== lastBallKey) {
-      const commentary = getHypeCommentary(lastBall);
-      speakHype(commentary);
+      // Only speak if we already had a previous ball key (prevents speaking old balls on first load/unmute)
+      if (lastBallKey !== '') {
+        const commentary = getHypeCommentary(lastBall);
+        speakHype(commentary);
+      }
       setLastBallKey(currentBallKey);
     }
-  }, [match, isMuted, lastBallKey]);
+  }, [match?.innings1?.ballHistory, match?.innings2?.ballHistory, match?.superOverInnings1?.ballHistory, match?.superOverInnings2?.ballHistory, isMuted, lastBallKey, match?.currentInnings, match?.isSuperOver]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -77,9 +94,12 @@ export default function LiveMatchView() {
     </div>
   );
 
-  const currentInnings = match.currentInnings === 1 ? match.innings1 : match.innings2;
-  const battingTeamName = currentInnings?.battingTeamId === 'team_a' ? match.teamAName : match.teamBName;
-  const bowlingTeamName = currentInnings?.battingTeamId === 'team_a' ? match.teamBName : match.teamAName;
+  const currentInnings = match.isSuperOver
+    ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+    : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+    
+  const battingTeamName = currentInnings?.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
+  const bowlingTeamName = currentInnings?.battingTeamId === match.teamAId ? match.teamBName : match.teamAName;
 
   const striker = (Object.values(currentInnings?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
   const nonStriker = (Object.values(currentInnings?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
@@ -252,19 +272,37 @@ export default function LiveMatchView() {
             </button>
           </div>
           
-          {match.innings1 && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-black uppercase tracking-widest text-slate-900 bg-slate-100 p-4 rounded-2xl border border-slate-200">1st Innings: {match.innings1.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}</h3>
-              <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
-            </div>
-          )}
+            {match.innings1 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-black uppercase tracking-widest text-slate-900 bg-slate-100 p-4 rounded-2xl border border-slate-200">1st Innings: {match.innings1.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}</h3>
+                <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
+              </div>
+            )}
 
-          {match.innings2 && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-black uppercase tracking-widest text-slate-900 bg-slate-100 p-4 rounded-2xl border border-slate-200">2nd Innings: {match.innings2.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}</h3>
-              <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
-            </div>
-          )}
+            {match.innings2 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-black uppercase tracking-widest text-slate-900 bg-slate-100 p-4 rounded-2xl border border-slate-200">2nd Innings: {match.innings2.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}</h3>
+                <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
+              </div>
+            )}
+
+            {match.superOverInnings1 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-black uppercase tracking-widest text-brand-red bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-2">
+                  <Zap className="w-5 h-5" /> Super Over: 1st Innings
+                </h3>
+                <Scorecard match={match} innings={match.superOverInnings1} inningsNumber={1} />
+              </div>
+            )}
+
+            {match.superOverInnings2 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-black uppercase tracking-widest text-brand-red bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-2">
+                  <Zap className="w-5 h-5" /> Super Over: 2nd Innings
+                </h3>
+                <Scorecard match={match} innings={match.superOverInnings2} inningsNumber={2} />
+              </div>
+            )}
         </div>
 
         {/* Ball History for PDF/Print */}
@@ -327,23 +365,26 @@ export default function LiveMatchView() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsMuted(!isMuted)}
-            className={cn(
-              "p-3 rounded-xl transition-all flex items-center gap-2 font-black uppercase tracking-widest text-[10px]",
-              isMuted ? "bg-slate-100 text-slate-400" : "bg-red-50 text-brand-red border border-red-100 shadow-sm"
-            )}
-          >
-            {isMuted ? (
-              <>
-                <VolumeX className="w-4 h-4" /> Audio Off
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-4 h-4 animate-pulse" /> Audio On
-              </>
-            )}
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button 
+              onClick={toggleAudio}
+              className={cn(
+                "p-3 rounded-xl transition-all flex items-center gap-2 font-black uppercase tracking-widest text-[10px]",
+                isMuted ? "bg-slate-100 text-slate-400" : "bg-red-50 text-brand-red border border-red-100 shadow-sm"
+              )}
+            >
+              {isMuted ? (
+                <>
+                  <VolumeX className="w-4 h-4" /> Audio Off
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4 h-4 animate-pulse" /> Audio On
+                </>
+              )}
+            </button>
+            {isMuted && <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Enable Commentary</p>}
+          </div>
           {match.status === 'Live' && (
             <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
@@ -421,7 +462,17 @@ export default function LiveMatchView() {
                 {currentInnings?.runs}<span className="text-xl md:text-4xl text-slate-500">/{currentInnings?.wickets}</span>
               </h1>
               <div className="flex items-center gap-3 md:gap-4 mt-2 md:mt-4">
-                <p className="text-xl md:text-3xl font-black text-slate-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[8px] md:text-sm font-bold opacity-50 uppercase tracking-widest">Overs</span></p>
+                <p className="text-xl md:text-3xl font-black text-slate-300">
+                  {currentInnings?.overs}.{currentInnings?.balls} 
+                  <span className="text-[8px] md:text-sm font-bold opacity-50 uppercase tracking-widest ml-1">
+                    / {match.isSuperOver ? 1 : match.oversLimit} Overs
+                  </span>
+                </p>
+                {match.isSuperOver && (
+                  <span className="px-3 py-1 rounded-full bg-yellow-400 text-slate-900 text-[10px] font-black uppercase tracking-widest animate-bounce">
+                    Super Over
+                  </span>
+                )}
                 <div className="h-6 md:h-8 w-px bg-slate-800"></div>
                 <div className="text-center">
                   <p className="text-[7px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">Run Rate</p>
@@ -434,14 +485,16 @@ export default function LiveMatchView() {
               </div>
             </div>
 
-            {match.currentInnings === 2 && match.innings1 && (
+            {match.currentInnings === 2 && (match.isSuperOver ? match.superOverInnings1 : match.innings1) && (
               <div className="p-3 md:p-6 rounded-2xl md:rounded-3xl bg-brand-red/20 border border-brand-red/30 backdrop-blur-sm">
                 <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
                   <Target className="w-3 h-3 md:w-5 md:h-5 text-brand-red" />
-                  <span className="text-[8px] md:text-xs font-black uppercase tracking-widest text-brand-red">Target: {match.innings1.runs + 1}</span>
+                  <span className="text-[8px] md:text-xs font-black uppercase tracking-widest text-brand-red">
+                    Target: {((match.isSuperOver ? match.superOverInnings1?.runs : match.innings1?.runs) || 0) + 1}
+                  </span>
                 </div>
                 <p className="text-sm md:text-xl font-black text-white">
-                  Need {match.innings1.runs + 1 - (currentInnings?.runs || 0)} runs in {(match.oversLimit * 6) - ((currentInnings?.overs || 0) * 6 + (currentInnings?.balls || 0))} balls
+                  Need {((match.isSuperOver ? match.superOverInnings1?.runs : match.innings1?.runs) || 0) + 1 - (currentInnings?.runs || 0)} runs in {((match.isSuperOver ? 1 : match.oversLimit) * 6) - ((currentInnings?.overs || 0) * 6 + (currentInnings?.balls || 0))} balls
                 </p>
               </div>
             )}
@@ -596,10 +649,32 @@ export default function LiveMatchView() {
         
         <div className="space-y-8 md:space-y-12">
           {match.innings1 && (
-            <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 px-1">1st Innings</h3>
+              <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
+            </div>
           )}
           {match.innings2 && (
-            <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 px-1">2nd Innings</h3>
+              <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
+            </div>
+          )}
+          {match.superOverInnings1 && (
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-widest text-brand-red px-1 flex items-center gap-2">
+                <Zap className="w-3 h-3" /> Super Over: 1st Innings
+              </h3>
+              <Scorecard match={match} innings={match.superOverInnings1} inningsNumber={1} />
+            </div>
+          )}
+          {match.superOverInnings2 && (
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-widest text-brand-red px-1 flex items-center gap-2">
+                <Zap className="w-3 h-3" /> Super Over: 2nd Innings
+              </h3>
+              <Scorecard match={match} innings={match.superOverInnings2} inningsNumber={2} />
+            </div>
           )}
         </div>
       </div>

@@ -85,6 +85,9 @@ export interface Match {
   currentInnings: 1 | 2;
   innings1?: MatchInnings;
   innings2?: MatchInnings;
+  superOverInnings1?: MatchInnings;
+  superOverInnings2?: MatchInnings;
+  isSuperOver?: boolean;
   winnerId?: string;
   resultMessage?: string;
   manOfTheMatch?: string;

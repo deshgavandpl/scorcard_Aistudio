@@ -130,7 +130,17 @@ export default function MatchScoring() {
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
   // Scoring State
-  const { match, addBall, undoLastBall, swapStrike, setMatch, finishMatch, startSecondInnings, loading } = useCricketScoring(id === 'new' ? undefined : id);
+  const { 
+    match, 
+    addBall, 
+    undoLastBall, 
+    swapStrike, 
+    setMatch, 
+    finishMatch, 
+    startSecondInnings, 
+    startSuperOver,
+    loading 
+  } = useCricketScoring(id === 'new' ? undefined : id);
   
   const [strikerName, setStrikerName] = useState('');
   const [nonStrikerName, setNonStrikerName] = useState('');
@@ -571,8 +581,15 @@ export default function MatchScoring() {
   };
   const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string, fName?: string) => {
     if (!match || !canManage) return;
-    const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const currentInn = match.isSuperOver
+      ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+      : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+      
     if (!currentInn) return;
+    
+    const isOver = match.isSuperOver 
+      ? (currentInn.overs === 1 || currentInn.wickets === 2)
+      : (currentInn.overs === match.oversLimit || currentInn.wickets === 10);
     
     const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const bowler = currentInn.currentBowlerId ? currentInn.bowlingStats[currentInn.currentBowlerId] : null;
@@ -1037,9 +1054,12 @@ export default function MatchScoring() {
 
   if (!match) return null;
 
-  const currentInnings = match.currentInnings === 1 ? match.innings1 : match.innings2;
-  const battingTeamName = currentInnings?.battingTeamId === 'team_a' ? match.teamAName : match.teamBName;
-  const bowlingTeamName = currentInnings?.battingTeamId === 'team_a' ? match.teamBName : match.teamAName;
+  const currentInnings = match.isSuperOver
+    ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+    : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+    
+  const battingTeamName = currentInnings?.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
+  const bowlingTeamName = currentInnings?.battingTeamId === match.teamAId ? match.teamBName : match.teamAName;
 
   const striker = (Object.values(currentInnings?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
   const nonStriker = (Object.values(currentInnings?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
@@ -1503,6 +1523,18 @@ export default function MatchScoring() {
               >
                 <CheckCircle2 className="w-3 h-3" /> Update Result
               </button>
+              {winnerId === 'Draw' && (
+                <button 
+                  onClick={() => {
+                    if (window.confirm('Start a Super Over? This will reset the score for a 1-over tie-breaker.')) {
+                      startSuperOver();
+                    }
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest text-[10px] hover:bg-brand-red/90 transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-3 h-3" /> Start Super Over
+                </button>
+              )}
               <button 
                 onClick={() => {
                   if (window.confirm('Are you sure you want to resume scoring? This will set match status back to Live.')) {
@@ -1545,7 +1577,17 @@ export default function MatchScoring() {
                     {currentInnings?.runs}<span className="text-2xl text-red-400">/{currentInnings?.wickets}</span>
                   </h1>
                   <div className="flex items-center gap-3 mt-2">
-                    <p className="text-sm font-bold text-red-300">{currentInnings?.overs}.{currentInnings?.balls} <span className="text-[10px] opacity-50 uppercase tracking-widest">/ {match.oversLimit} Overs</span></p>
+                    <p className="text-sm font-bold text-red-300">
+                      {currentInnings?.overs}.{currentInnings?.balls} 
+                      <span className="text-[10px] opacity-50 uppercase tracking-widest ml-1">
+                        / {match.isSuperOver ? 1 : match.oversLimit} Overs
+                      </span>
+                    </p>
+                    {match.isSuperOver && (
+                      <span className="px-2 py-0.5 rounded bg-yellow-400 text-slate-900 text-[8px] font-black uppercase tracking-widest animate-bounce">
+                        Super Over
+                      </span>
+                    )}
                     {match.umpireName && (
                       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-800/50 border border-red-700/50 text-[8px] font-black uppercase tracking-widest text-red-400">
                         <User className="w-2.5 h-2.5" /> {match.umpireName}
@@ -1612,19 +1654,19 @@ export default function MatchScoring() {
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
                   </div>
-                  {match.currentInnings === 2 && match.innings1 && (
+                  {match.currentInnings === 2 && (match.isSuperOver ? match.superOverInnings1 : match.innings1) && (
                     <div className="mt-2">
                       <div className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-0.5">Target</div>
-                      <div className="text-xl font-black">{match.innings1.runs + 1}</div>
+                      <div className="text-xl font-black">{((match.isSuperOver ? match.superOverInnings1?.runs : match.innings1?.runs) || 0) + 1}</div>
                     </div>
                   )}
                 </div>
               </div>
 
-              {match.currentInnings === 2 && match.innings1 && (
+              {match.currentInnings === 2 && (match.isSuperOver ? match.superOverInnings1 : match.innings1) && (
                 <div className="bg-red-800/50 rounded-xl p-2 border border-red-700/50 mb-1">
                   <p className="text-[10px] font-black text-center uppercase tracking-tight">
-                    {match.teamAId === match.innings2?.battingTeamId ? match.teamAName : match.teamBName} needs {match.innings1.runs + 1 - (match.innings2?.runs || 0)} runs in {(match.oversLimit * 6) - ((match.innings2?.overs || 0) * 6 + (match.innings2?.balls || 0))} balls
+                    {match.teamAId === currentInnings?.battingTeamId ? match.teamAName : match.teamBName} needs {((match.isSuperOver ? match.superOverInnings1?.runs : match.innings1?.runs) || 0) + 1 - (currentInnings?.runs || 0)} runs in {((match.isSuperOver ? 1 : match.oversLimit) * 6) - ((currentInnings?.overs || 0) * 6 + (currentInnings?.balls || 0))} balls
                   </p>
                 </div>
               )}
@@ -1790,11 +1832,35 @@ export default function MatchScoring() {
             </div>
 
             {match.innings1 && (
-              <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
+              <div className="space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 px-1">1st Innings</h3>
+                <Scorecard match={match} innings={match.innings1} inningsNumber={1} />
+              </div>
             )}
             
             {match.innings2 && (
-              <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
+              <div className="space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 px-1">2nd Innings</h3>
+                <Scorecard match={match} innings={match.innings2} inningsNumber={2} />
+              </div>
+            )}
+
+            {match.superOverInnings1 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-widest text-brand-red px-1 flex items-center gap-2">
+                  <Zap className="w-3 h-3" /> Super Over: 1st Innings
+                </h3>
+                <Scorecard match={match} innings={match.superOverInnings1} inningsNumber={1} />
+              </div>
+            )}
+
+            {match.superOverInnings2 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-widest text-brand-red px-1 flex items-center gap-2">
+                  <Zap className="w-3 h-3" /> Super Over: 2nd Innings
+                </h3>
+                <Scorecard match={match} innings={match.superOverInnings2} inningsNumber={2} />
+              </div>
             )}
           </div>
         </div>

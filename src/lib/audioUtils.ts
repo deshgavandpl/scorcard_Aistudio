@@ -5,8 +5,8 @@ export const getHypeCommentary = (ball: BallEvent) => {
   if (ball.runs === 6) return "Bawaal 6! 🚀🔥 Khatarnak Chhakka!";
   if (ball.runs === 4) return "Chauka! 💥 Boundary paar!";
   if (ball.isExtra) return "Faltu Ball! 🙄 (Extra)";
-  if (ball.runs === 0) return "Shanti 🤫 Dot Ball";
-  return `${ball.runs} Run(s) 🏏`;
+  if (ball.runs === 0) return "Dot Ball";
+  return `${ball.runs} Run`;
 };
 
 export const speakHype = (text: string) => {
