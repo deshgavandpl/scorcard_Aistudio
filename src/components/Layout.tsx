@@ -345,10 +345,10 @@ export default function Layout({ children }: LayoutProps) {
               
               <div className="space-y-4 text-slate-600">
                 <p className="text-sm font-medium leading-relaxed">
-                  <span className="font-black text-brand-red">Apna Cricket System</span> is the ultimate digital companion for local tennis cricket in India. 
+                  <span className="font-black text-brand-red">Apna Cricket System</span> is the ultimate digital companion for local tennis cricket in India, specifically designed for <span className="font-bold">Rural Cricket</span> and tournaments like the <span className="font-bold">Deshgavhan Premier League</span>. 
                 </p>
                 <p className="text-sm font-medium leading-relaxed">
-                  We empower village leagues and local legends with professional-grade scoring, real-time auctions, and comprehensive tournament management tools.
+                  Managed by <span className="font-bold">Avinash Huse</span>, we empower village leagues and local legends with professional-grade scoring, real-time auctions, and comprehensive tournament management tools at <span className="font-bold">apnacricket.co.in</span>.
                 </p>
                 <div className="p-4 bg-red-50 rounded-xl border border-red-100">
                   <p className="text-xs font-bold text-brand-red uppercase tracking-widest text-center">
@@ -539,19 +539,40 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-white py-8 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <a href="https://lightgreen-alpaca-673553.hostingersite.com/index.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-brand-red rounded flex items-center justify-center group-hover:scale-110 transition-all">
-              <span className="text-white font-black italic text-sm">A</span>
+      <footer className="bg-slate-900 text-white py-12 px-4">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <a href="https://apnacricket.co.in" className="flex items-center gap-2 group">
+              <div className="w-8 h-8 bg-brand-red rounded flex items-center justify-center group-hover:scale-110 transition-all">
+                <span className="text-white font-black italic text-sm">A</span>
+              </div>
+              <span className="text-lg font-black uppercase tracking-tighter">Apna Cricket</span>
+            </a>
+            <div className="flex flex-wrap justify-center gap-6">
+              <button onClick={() => setShowAbout(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">About</button>
+              <button onClick={() => setShowContact(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Contact</button>
+              <button onClick={() => setShowPrivacy(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Privacy</button>
             </div>
-            <span className="text-lg font-black uppercase tracking-tighter">Apna Cricket</span>
-          </a>
-          <p className="text-slate-400 text-sm">© 2026 Apna Cricket. Built for local legends.</p>
-          <div className="flex gap-4">
-            <button onClick={() => setShowAbout(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">About</button>
-            <button onClick={() => setShowContact(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Contact</button>
-            <button onClick={() => setShowPrivacy(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Privacy</button>
+          </div>
+
+          <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+            <div className="space-y-1">
+              <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">
+                Official Platform: <span className="text-white">apnacricket.co.in</span>
+              </p>
+              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
+                Managed by Avinash Huse • Rural Cricket Specialist
+              </p>
+            </div>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+              © 2026 Apna Cricket. Powering Deshgavhan Premier League & Local Legends.
+            </p>
+          </div>
+
+          {/* Hidden SEO Keywords for Indexing */}
+          <div className="sr-only">
+            <h2>Rural Cricket Live Scoring</h2>
+            <p>Apna Cricket by Avinash Huse provides live scoring for Deshgavhan Premier League and other rural cricket tournaments in India. Visit apnacricket.co.in for the best cricket scoring experience.</p>
           </div>
         </div>
       </footer>

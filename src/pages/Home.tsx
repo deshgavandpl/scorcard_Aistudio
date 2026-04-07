@@ -104,8 +104,8 @@ export default function Home() {
               transition={{ delay: 0.1 }}
               className="text-4xl sm:text-6xl md:text-8xl font-black mb-6 md:mb-8 leading-[0.9] md:leading-[0.85] tracking-tighter uppercase transform -skew-x-6"
             >
-              Every Run <br />
-              <span className="text-red-200">Counts.</span>
+              Rural Cricket <br />
+              <span className="text-red-200">Revolution.</span>
             </motion.h1>
             
             <div className="space-y-6 md:space-y-8 max-w-2xl">
@@ -115,7 +115,7 @@ export default function Home() {
                 transition={{ delay: 0.2 }}
                 className="text-base md:text-xl text-red-50 font-medium leading-relaxed"
               >
-                The ultimate scoring platform for local tennis cricket. Track your matches, manage tournaments, and become a local legend.
+                The ultimate scoring platform for local tennis cricket, managed by <span className="font-black">Avinash Huse</span>. Powering the <span className="font-black">Deshgavhan Premier League</span> and local legends across India.
               </motion.p>
 
               {/* Gen-Z Inspired Feature List */}
@@ -183,21 +183,21 @@ export default function Home() {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ActionCard 
             title="Live Scoring" 
-            desc="Start a single match or continue an ongoing one." 
+            desc="Ball-by-ball updates for Rural Cricket matches and local tournaments." 
             icon={PlayCircle} 
             link="/live"
             color="bg-emerald-500"
           />
           <ActionCard 
             title="Tournaments" 
-            desc="Create leagues, generate fixtures, and track points." 
+            desc="Manage Deshgavhan Premier League and other local cricket events with ease." 
             icon={Trophy} 
             link="/tournaments"
             color="bg-amber-500"
           />
           <ActionCard 
             title="Player Stats" 
-            desc="View top performers and all-time records." 
+            desc="Track career records for local legends. Managed by Avinash Huse." 
             icon={BarChart2} 
             link="/stats"
             color="bg-brand-red"

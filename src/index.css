@@ -8,8 +8,12 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-white text-slate-900 antialiased;
+    transition: background-color 0.3s ease;
   }
 }
 
