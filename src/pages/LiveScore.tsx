@@ -9,6 +9,7 @@ import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import TournamentWidget from '../components/TournamentWidget';
 
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -49,7 +50,20 @@ export default function LiveScore() {
     return () => unsub();
   }, []);
 
-  const groupedMatches = matches.reduce((groups: Record<string, Match[]>, match) => {
+  const [activeSegment, setActiveSegment] = useState<'Live' | 'Upcoming' | 'Finished'>('Live');
+  const [relevantTournamentId, setRelevantTournamentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Find the first match that belongs to a tournament to show its context in the sidebar
+    const matchWithTournament = matches.find(m => m.tournamentId);
+    if (matchWithTournament?.tournamentId) {
+      setRelevantTournamentId(matchWithTournament.tournamentId);
+    }
+  }, [matches]);
+
+  const filteredMatches = matches.filter(m => m.status === activeSegment);
+
+  const groupedMatches = filteredMatches.reduce((groups: Record<string, Match[]>, match) => {
     const date = new Date(match.createdAt).toLocaleDateString(undefined, { 
       weekday: 'long', 
       year: 'numeric', 
@@ -91,62 +105,57 @@ export default function LiveScore() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-brand-red shrink-0 mt-0.5" />
-            <div>
-              <p className="text-lg font-black text-brand-red uppercase tracking-tight">Admin Access Required</p>
-              <p className="text-sm text-red-700 font-medium">You can view all live scores, but you must be logged in or use Admin PIN to manage matches.</p>
-            </div>
-          </div>
-          <button 
-            onClick={handleLogin}
-            className="px-8 py-3 bg-brand-red text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2"
-          >
-            <LogIn className="w-4 h-4" /> Login with Google
-          </button>
-        </div>
-
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight transform -skew-x-6">
-            {canManage ? 'Match Management' : 'Live Score Center'}
-          </h1>
           <p className="text-slate-500 font-medium">
-            {canManage ? 'Manage your matches and tournaments in real-time.' : 'Follow live matches and tournament standings.'}
+            Follow live matches and tournament standings.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={createNewMatch}
-            disabled={!canManage}
-            className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-wider hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
-          >
-            <Plus className="w-5 h-5" /> {canManage ? 'New Match' : 'Single Match'}
-          </button>
-          <Link 
-            to={canManage ? "/tournaments/new" : "#"}
-            onClick={(e) => !canManage && e.preventDefault()}
+        {canManage && (
+          <div className="flex gap-3">
+            <button 
+              onClick={createNewMatch}
+              className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-wider hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" /> New Match
+            </button>
+            <Link 
+              to="/tournaments/new"
+              className="px-6 py-3 rounded-xl bg-red-600 text-white font-black uppercase tracking-wider hover:bg-red-700 transition-all shadow-lg flex items-center gap-2"
+            >
+              <Trophy className="w-5 h-5" /> New Tournament
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Segments */}
+      <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+        {(['Live', 'Upcoming', 'Finished'] as const).map((segment) => (
+          <button
+            key={segment}
+            onClick={() => setActiveSegment(segment)}
             className={cn(
-              "px-6 py-3 rounded-xl bg-red-600 text-white font-black uppercase tracking-wider hover:bg-red-700 transition-all shadow-lg flex items-center gap-2",
-              !canManage && "opacity-50 cursor-not-allowed"
+              "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+              activeSegment === segment 
+                ? "bg-white text-slate-900 shadow-sm" 
+                : "text-slate-500 hover:text-slate-700"
             )}
           >
-            <Trophy className="w-5 h-5" /> {canManage ? 'New Tournament' : 'Tournament'}
-          </Link>
-        </div>
+            {segment}
+            {segment === 'Live' && matches.filter(m => m.status === 'Live').length > 0 && (
+              <span className="ml-2 w-2 h-2 rounded-full bg-brand-red inline-block animate-pulse"></span>
+            )}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Active Matches */}
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-            <Play className="w-5 h-5 fill-emerald-500 text-emerald-500" /> Recent & Live
-          </h2>
-          
-          {matches.length === 0 ? (
+          {filteredMatches.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-400 italic">
-              No matches found. Start a new one to see it here.
+              No {activeSegment.toLowerCase()} matches found.
             </div>
           ) : (
             <div className="space-y-12">
@@ -158,13 +167,8 @@ export default function LiveScore() {
                     <div className="h-px bg-slate-200 flex-1"></div>
                   </div>
                   
-                  <div className="grid grid-cols-1 gap-4">
-                    {groupedMatches[date]
-                      .sort((a, b) => {
-                        const statusOrder = { 'Live': 0, 'Upcoming': 1, 'Finished': 2 };
-                        return statusOrder[a.status] - statusOrder[b.status];
-                      })
-                      .map((match) => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {groupedMatches[date].map((match) => (
                       <motion.div 
                         key={match.id}
                         initial={{ opacity: 0, y: 10 }}
@@ -208,20 +212,20 @@ export default function LiveScore() {
                           )}
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                          <div className="flex-1 text-center">
-                            <p className="text-base md:text-lg font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
-                            <p className="text-xl md:text-2xl font-black text-brand-red">
+                        <div className="flex flex-col items-center justify-between gap-4 mb-6">
+                          <div className="w-full text-center">
+                            <p className="text-sm font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
+                            <p className="text-xl font-black text-brand-red">
                               {match.innings1?.battingTeamId === match.teamAId ? match.innings1.runs : match.innings2?.runs || 0}
-                              <span className="text-xs md:text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                              <span className="text-xs text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
                             </p>
                           </div>
-                          <div className="text-slate-300 font-black italic text-lg md:text-xl transform sm:rotate-0 rotate-90">VS</div>
-                          <div className="flex-1 text-center">
-                            <p className="text-base md:text-lg font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
-                            <p className="text-xl md:text-2xl font-black text-brand-red">
+                          <div className="text-slate-300 font-black italic text-sm">VS</div>
+                          <div className="w-full text-center">
+                            <p className="text-sm font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
+                            <p className="text-xl font-black text-brand-red">
                               {match.innings1?.battingTeamId === match.teamBId ? match.innings1.runs : match.innings2?.runs || 0}
-                              <span className="text-xs md:text-sm text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                              <span className="text-xs text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
                             </p>
                           </div>
                         </div>
@@ -243,45 +247,17 @@ export default function LiveScore() {
           )}
         </div>
 
-        {/* Sidebar Info */}
-        <div className="space-y-6">
-          <div className="bg-brand-red rounded-2xl p-6 text-white shadow-xl">
-            <h3 className="text-lg font-black uppercase tracking-tight mb-4 flex items-center gap-2">
-              <History className="w-5 h-5" /> Quick Stats
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center border-b border-red-800 pb-2">
-                <span className="text-red-200 text-xs font-bold uppercase">Total Matches</span>
-                <span className="font-black">{matches.length}</span>
-              </div>
-              <div className="flex justify-between items-center border-b border-red-800 pb-2">
-                <span className="text-red-200 text-xs font-bold uppercase">Live Now</span>
-                <span className="font-black text-emerald-400">{matches.filter(m => m.status === 'Live').length}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-red-200 text-xs font-bold uppercase">Finished</span>
-                <span className="font-black">{matches.filter(m => m.status === 'Finished').length}</span>
-              </div>
+        {/* Sidebar - Tournament Widget */}
+        <div className="hidden lg:block">
+          {relevantTournamentId ? (
+            <TournamentWidget tournamentId={relevantTournamentId} />
+          ) : (
+            <div className="bg-white rounded-3xl p-8 border border-dashed border-slate-200 text-center space-y-4 sticky top-24">
+              <Trophy className="w-12 h-12 text-slate-200 mx-auto" />
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Tournament Center</p>
+              <p className="text-slate-300 text-[10px]">Select a tournament match to see standings</p>
             </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">Scoring Tips</h3>
-            <ul className="space-y-3 text-sm text-slate-500 font-medium">
-              <li className="flex gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-red mt-1.5 shrink-0"></div>
-                Auto-strike change happens on odd runs and over completion.
-              </li>
-              <li className="flex gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-red mt-1.5 shrink-0"></div>
-                Use "Wicket" button to record dismissals and set new batters.
-              </li>
-              <li className="flex gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-red mt-1.5 shrink-0"></div>
-                Extras like Wide and No Ball add 1 run and don't count as a legal ball.
-              </li>
-            </ul>
-          </div>
+          )}
         </div>
       </div>
     </div>

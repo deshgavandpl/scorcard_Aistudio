@@ -19,7 +19,8 @@ import { useCricketScoring } from '../hooks/useCricketScoring';
 import { cn } from '../lib/utils';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { generateTeamPDF } from '../lib/pdfGenerator';
+import { Team } from '../types/cricket';
 import Scorecard from '../components/Scorecard';
 import Certificate from '../components/Certificate';
 import { motion, AnimatePresence } from 'motion/react';
@@ -124,6 +125,26 @@ export default function LiveMatchView() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const downloadTeamSheet = (teamId: 'team_a' | 'team_b') => {
+    const teamName = teamId === 'team_a' ? match.teamAName : match.teamBName;
+    // We need to fetch the full team object or construct it from match data
+    // For now, we'll construct it from the match data we have
+    const team: Team = {
+      id: teamId,
+      name: teamName,
+      players: match.innings1?.battingTeamId === teamId 
+        ? (Object.values(match.innings1.battingStats) as BatterStats[]).map(b => ({ id: b.playerId, name: b.playerName, role: 'Batsman' as any }))
+        : match.innings2?.battingTeamId === teamId
+          ? (Object.values(match.innings2.battingStats) as BatterStats[]).map(b => ({ id: b.playerId, name: b.playerName, role: 'Batsman' as any }))
+          : [] // Fallback if no innings data yet
+    };
+    
+    // If we don't have players yet (upcoming match), we might need to fetch them.
+    // But usually live matches have players in innings stats.
+    
+    generateTeamPDF(team, match.tournamentName, match);
   };
 
   if (match.status === 'Finished') {
@@ -443,6 +464,55 @@ export default function LiveMatchView() {
                 <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest opacity-60">{bowler?.overs || 0}.{bowler?.balls || 0} Overs</p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Partnership & Recent Overs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Users className="w-4 h-4" /> Current Partnership
+          </h3>
+          <div className="flex items-center justify-between">
+            <div className="text-center flex-1">
+              <p className="text-sm font-black text-slate-900 uppercase">{striker?.playerName}</p>
+              <p className="text-xl font-black text-brand-red">{striker?.runs || 0}</p>
+            </div>
+            <div className="px-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center border-2 border-slate-100">
+                <span className="text-lg font-black text-slate-300">&</span>
+              </div>
+              <p className="text-[10px] font-black text-slate-400 mt-2">
+                {((striker?.runs || 0) + (nonStriker?.runs || 0))} Runs
+              </p>
+            </div>
+            <div className="text-center flex-1">
+              <p className="text-sm font-black text-slate-900 uppercase">{nonStriker?.playerName}</p>
+              <p className="text-xl font-black text-brand-red">{nonStriker?.runs || 0}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Download className="w-4 h-4" /> Official Team Sheets
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button 
+              onClick={() => downloadTeamSheet('team_a')}
+              className="p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-brand-red hover:bg-red-50 transition-all text-left group"
+            >
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest group-hover:text-brand-red">Download</p>
+              <p className="text-xs font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
+            </button>
+            <button 
+              onClick={() => downloadTeamSheet('team_b')}
+              className="p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-brand-red hover:bg-red-50 transition-all text-left group"
+            >
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest group-hover:text-brand-red">Download</p>
+              <p className="text-xs font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
+            </button>
           </div>
         </div>
       </div>
