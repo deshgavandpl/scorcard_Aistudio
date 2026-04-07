@@ -848,7 +848,7 @@ export default function MatchScoring() {
                     onClick={startMatch}
                     className="w-full py-4 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50"
                   >
-                    Start Match
+                    Confirm Toss & Start 1st Inning
                   </button>
                 </div>
               </motion.div>
@@ -1653,7 +1653,8 @@ export default function MatchScoring() {
                   <div 
                     key={idx}
                     className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border",
+                      "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border transition-all",
+                      idx === 0 && "ring-2 ring-brand-red ring-offset-1 scale-110",
                       ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
                       ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
                       ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
@@ -1661,7 +1662,7 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
+                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs)}
                   </div>
                 ))}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
@@ -1752,37 +1753,33 @@ export default function MatchScoring() {
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic transform -skew-x-6">Tap to add runs</h3>
               </div>
 
-              <div className="grid grid-cols-4 gap-2">
-                {[0, 1, 2, 3].map((run) => (
-                  <motion.button
-                    key={run}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleBall(run)}
-                    className="aspect-square rounded-xl bg-slate-50 border-2 border-slate-100 text-slate-900 font-black text-xl hover:bg-brand-red hover:text-white hover:border-brand-red transition-all shadow-sm flex items-center justify-center"
-                  >
-                    {run}
-                  </motion.button>
-                ))}
-              </div>
               <div className="grid grid-cols-5 gap-2">
-                {[4, 6].map((run) => (
+                {[0, 1, 2, 3, 4].map((run) => (
                   <motion.button
                     key={run}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => handleBall(run)}
                     className={cn(
-                      "aspect-square rounded-xl border-2 font-black text-xl transition-all shadow-lg flex items-center justify-center",
-                      run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" : 
-                      "bg-purple-50 border-purple-500 text-purple-700 hover:bg-purple-600 hover:text-white"
+                      "aspect-square rounded-xl border-2 font-black text-xl transition-all shadow-sm flex items-center justify-center",
+                      run === 0 ? "bg-slate-50 border-slate-200 text-slate-400" :
+                      run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" :
+                      "bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white"
                     )}
                   >
                     {run}
                   </motion.button>
                 ))}
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleBall(6)}
+                  className="aspect-square rounded-xl bg-purple-50 border-2 border-purple-500 text-purple-700 font-black text-xl hover:bg-purple-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
+                >
+                  6
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setShowWicketModal(true)}
                   className="aspect-square rounded-xl bg-red-50 border-2 border-red-500 text-red-600 font-black text-xl hover:bg-red-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
@@ -1790,17 +1787,17 @@ export default function MatchScoring() {
                   W
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={undoLastBall}
-                  className="aspect-square rounded-xl bg-red-50 border-2 border-red-200 text-brand-red font-black text-xl hover:bg-brand-red hover:text-white transition-all shadow-lg flex items-center justify-center"
+                  className="aspect-square rounded-xl bg-amber-50 border-2 border-amber-200 text-amber-600 font-black text-xl hover:bg-amber-500 hover:text-white transition-all shadow-lg flex items-center justify-center"
                 >
                   <RotateCcw className="w-5 h-5" />
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={swapStrike}
-                  className="aspect-square rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center shadow-sm"
+                  className="aspect-square rounded-xl bg-slate-100 border-2 border-slate-200 text-slate-600 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center shadow-sm"
                   title="Swap Strike"
                 >
                   <RotateCcw className="w-5 h-5 rotate-180" />
@@ -1930,7 +1927,8 @@ export default function MatchScoring() {
                   <div 
                     key={idx}
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2",
+                      "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 transition-all",
+                      idx === 0 && "ring-4 ring-brand-red ring-offset-2 scale-110",
                       ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
                       ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
                       ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
@@ -1938,7 +1936,7 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
+                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs)}
                   </div>
                 ))}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
