@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download } from 'lucide-react';
 import { Tournament, Match, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -58,6 +58,12 @@ export default function TournamentDetail() {
   const [matchName, setMatchName] = useState('');
   const [overs, setOvers] = useState(6);
   const [umpireName, setUmpireName] = useState('');
+  const [matchDate, setMatchDate] = useState('');
+  const [matchTime, setMatchTime] = useState('');
+
+  // Edit Match State
+  const [editMatchDate, setEditMatchDate] = useState('');
+  const [editMatchTime, setEditMatchTime] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -251,6 +257,8 @@ export default function TournamentDetail() {
       status: 'Upcoming',
       currentInnings: 1,
       order: matches.length + 1,
+      matchDate,
+      matchTime,
       createdAt: Date.now()
     };
 
@@ -261,6 +269,8 @@ export default function TournamentDetail() {
       setTeamBId('');
       setMatchName('');
       setUmpireName('');
+      setMatchDate('');
+      setMatchTime('');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `matches/${matchId}`);
     }
@@ -294,6 +304,8 @@ export default function TournamentDetail() {
     setEditMatchOrder(match.order || 0);
     setEditMatchOvers(match.oversLimit);
     setEditMatchUmpire(match.umpireName || '');
+    setEditMatchDate(match.matchDate || '');
+    setEditMatchTime(match.matchTime || '');
   };
 
   const updateMatch = async () => {
@@ -313,7 +325,9 @@ export default function TournamentDetail() {
       teamBName: teamB.name,
       order: editMatchOrder,
       oversLimit: editMatchOvers,
-      umpireName: editMatchUmpire
+      umpireName: editMatchUmpire,
+      matchDate: editMatchDate,
+      matchTime: editMatchTime
     };
 
     try {
@@ -530,12 +544,23 @@ export default function TournamentDetail() {
         </div>
 
         {canManage && activeTab === 'fixtures' && (
-          <button 
-            onClick={() => setShowAddMatch(true)}
-            className="w-full md:w-auto px-6 py-3 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
-          >
-            <Plus className="w-4 h-4" /> Add Stage Match
-          </button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <button 
+              onClick={() => {
+                const { generateFixturesPDF } = require('../lib/pdfGenerator');
+                generateFixturesPDF(tournament.name, matches);
+              }}
+              className="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-slate-900 transition-all shadow-lg"
+            >
+              <Download className="w-4 h-4" /> Download Fixtures
+            </button>
+            <button 
+              onClick={() => setShowAddMatch(true)}
+              className="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
+            >
+              <Plus className="w-4 h-4" /> Add Stage Match
+            </button>
+          </div>
         )}
       </div>
 
@@ -589,6 +614,27 @@ export default function TournamentDetail() {
                       <option value="">Select Team</option>
                       {tournament.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Date</label>
+                    <input 
+                      type="date" 
+                      value={matchDate}
+                      onChange={(e) => setMatchDate(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Time</label>
+                    <input 
+                      type="time" 
+                      value={matchTime}
+                      onChange={(e) => setMatchTime(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    />
                   </div>
                 </div>
 
@@ -770,6 +816,27 @@ export default function TournamentDetail() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Date</label>
+                    <input 
+                      type="date" 
+                      value={editMatchDate}
+                      onChange={(e) => setEditMatchDate(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Time</label>
+                    <input 
+                      type="time" 
+                      value={editMatchTime}
+                      onChange={(e) => setEditMatchTime(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Umpire Name</label>
                   <input 
@@ -859,9 +926,16 @@ export default function TournamentDetail() {
                       )}
                     >
                       <div className="flex justify-between items-center mb-4">
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                          {match.name || 'MATCH'}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                            {match.name || 'MATCH'}
+                          </span>
+                          {(match.matchDate || match.matchTime) && (
+                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                              {match.matchDate} {match.matchTime && `• ${match.matchTime}`}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className={cn(
                             "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",

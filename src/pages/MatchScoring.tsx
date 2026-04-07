@@ -859,7 +859,7 @@ export default function MatchScoring() {
     );
   }
 
-  if (isSelectingPlayers && match) {
+  if (isSelectingPlayers && match && match.status === 'Live') {
     const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
     const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);

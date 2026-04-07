@@ -91,6 +91,8 @@ export interface Match {
   umpireName?: string;
   hypeCount?: number;
   order?: number;
+  matchDate?: string;
+  matchTime?: string;
   createdAt: number;
 }
 

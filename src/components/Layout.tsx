@@ -57,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminId === 'admin' && adminPass === '1010') {
+    if (adminId === 'admin' && adminPass === '5007') {
       setIsAdminMode(true);
       localStorage.setItem('isAdminMode', 'true');
       setShowAdminLogin(false);
