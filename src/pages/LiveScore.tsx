@@ -63,21 +63,52 @@ export default function LiveScore() {
 
   const filteredMatches = matches.filter(m => m.status === activeSegment);
 
-  const groupedMatches = filteredMatches.reduce((groups: Record<string, Match[]>, match) => {
-    const date = new Date(match.createdAt).toLocaleDateString(undefined, { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-    if (!groups[date]) groups[date] = [];
-    groups[date].push(match);
+  // For Finished matches, we want the most recently created at the top
+  // For Upcoming matches, we might want the ones starting soonest at the top
+  const sortedFilteredMatches = [...filteredMatches].sort((a, b) => {
+    if (activeSegment === 'Finished') {
+      return b.createdAt - a.createdAt;
+    }
+    if (activeSegment === 'Upcoming') {
+      // If matchDate exists, sort by it
+      if (a.matchDate && b.matchDate) {
+        const dateA = new Date(`${a.matchDate} ${a.matchTime || '00:00'}`).getTime();
+        const dateB = new Date(`${b.matchDate} ${b.matchTime || '00:00'}`).getTime();
+        return dateA - dateB;
+      }
+      return a.createdAt - b.createdAt;
+    }
+    return b.createdAt - a.createdAt;
+  });
+
+  const groupedMatches = sortedFilteredMatches.reduce((groups: Record<string, Match[]>, match) => {
+    let dateStr = '';
+    if (match.matchDate) {
+      dateStr = new Date(match.matchDate).toLocaleDateString(undefined, { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } else {
+      dateStr = new Date(match.createdAt).toLocaleDateString(undefined, { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    
+    if (!groups[dateStr]) groups[dateStr] = [];
+    groups[dateStr].push(match);
     return groups;
   }, {});
 
-  // Sort dates descending
+  // Sort dates: Upcoming matches should show earliest date first, Finished should show latest date first
   const sortedDates = Object.keys(groupedMatches).sort((a, b) => {
-    return new Date(b).getTime() - new Date(a).getTime();
+    const timeA = new Date(a).getTime();
+    const timeB = new Date(b).getTime();
+    return activeSegment === 'Upcoming' ? timeA - timeB : timeB - timeA;
   });
 
   const handleLogin = async () => {
@@ -154,8 +185,28 @@ export default function LiveScore() {
         {/* Active Matches */}
         <div className="lg:col-span-2 space-y-6">
           {filteredMatches.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-400 italic">
-              No {activeSegment.toLowerCase()} matches found.
+            <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-20 text-center space-y-6">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle className="w-10 h-10 text-slate-200" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">No {activeSegment} Matches</h3>
+                <p className="text-slate-400 max-w-xs mx-auto text-sm font-medium">
+                  {activeSegment === 'Live' 
+                    ? "There are no matches currently in progress. Check the upcoming tab for scheduled games."
+                    : activeSegment === 'Upcoming'
+                    ? "No matches are currently scheduled. Stay tuned for future tournament announcements."
+                    : "No matches have been completed yet."}
+                </p>
+              </div>
+              {activeSegment === 'Live' && matches.some(m => m.status === 'Upcoming') && (
+                <button 
+                  onClick={() => setActiveSegment('Upcoming')}
+                  className="px-8 py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red transition-all shadow-lg"
+                >
+                  View Upcoming Fixtures
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-12">
@@ -200,6 +251,11 @@ export default function LiveScore() {
                             )}>
                               {match.status}
                             </span>
+                            {match.order && (
+                              <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">
+                                Match {match.order}
+                              </span>
+                            )}
                           </div>
                           {canManage && (
                             <button 
