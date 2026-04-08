@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Plus, Calendar, Users, ChevronRight, Trash2 } from 'lucide-react';
-import { Tournament } from '../types/cricket';
+import { Trophy, Plus, Calendar, Users, ChevronRight, Trash2, Copy } from 'lucide-react';
+import { Tournament, Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
-import { collection, onSnapshot, query, deleteDoc, doc, getDocs, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, deleteDoc, doc, getDocs, where, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -79,6 +79,64 @@ export default function TournamentList() {
     }
   };
 
+  const cloneTournament = async (tournament: Tournament) => {
+    if (!canManage) return;
+    
+    const toastId = toast.loading('Cloning tournament...');
+    
+    try {
+      const newTournamentId = Math.random().toString(36).substr(2, 9);
+      const newTournamentName = `${tournament.name} (Copy)`;
+      
+      // 1. Clone matches with new IDs and reset states
+      const newMatches: Match[] = tournament.matches.map((m, idx) => {
+        const newMatchId = Math.random().toString(36).substr(2, 9);
+        return {
+          ...m,
+          id: newMatchId,
+          tournamentId: newTournamentId,
+          tournamentName: newTournamentName,
+          status: 'Upcoming',
+          currentInnings: 1,
+          innings1: undefined,
+          innings2: undefined,
+          superOverInnings1: undefined,
+          superOverInnings2: undefined,
+          isSuperOver: false,
+          winnerId: undefined,
+          resultMessage: undefined,
+          manOfTheMatch: undefined,
+          createdAt: Date.now() + idx,
+          order: idx + 1
+        } as Match;
+      });
+
+      const newTournament: Tournament = {
+        ...tournament,
+        id: newTournamentId,
+        name: newTournamentName,
+        matches: newMatches,
+        status: 'Live',
+        winnerId: undefined,
+        resultMessage: undefined
+      };
+
+      // 2. Save new tournament
+      await setDoc(doc(db, 'tournaments', newTournamentId), newTournament);
+      
+      // 3. Save each new match to the matches collection
+      for (const match of newMatches) {
+        await setDoc(doc(db, 'matches', match.id), match);
+      }
+      
+      toast.success('Tournament cloned successfully!', { id: toastId });
+    } catch (error) {
+      console.error("Error cloning tournament:", error);
+      handleFirestoreError(error, OperationType.WRITE, 'tournaments');
+      toast.error('Failed to clone tournament.', { id: toastId });
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -135,19 +193,34 @@ export default function TournamentList() {
                   )}>
                     {t.status}
                   </span>
-                  {canManage && (
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTournamentToDelete(t.id);
-                      }}
-                      className="p-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                      title="Delete Tournament"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {canManage && (
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          cloneTournament(t);
+                        }}
+                        className="p-2.5 rounded-xl bg-slate-700 text-slate-300 hover:bg-brand-red hover:text-white transition-all shadow-sm"
+                        title="Clone Tournament"
+                      >
+                        <Copy className="w-5 h-5" />
+                      </button>
+                    )}
+                    {canManage && (
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setTournamentToDelete(t.id);
+                        }}
+                        className="p-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-50 hover:text-white transition-all shadow-sm"
+                        title="Delete Tournament"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <h3 className="text-2xl font-black uppercase tracking-tight truncate">{t.name}</h3>
               </div>
