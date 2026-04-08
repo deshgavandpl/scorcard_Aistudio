@@ -23,6 +23,7 @@ export default function TournamentSetup() {
   const [openingMatchId, setOpeningMatchId] = useState<string>('');
   const [teams, setTeams] = useState<Team[]>([]);
   const [tournamentId, setTournamentId] = useState<string>('');
+  const [overs, setOvers] = useState(6);
 
   useEffect(() => {
     const q = query(collection(db, 'teams'));
@@ -144,7 +145,7 @@ export default function TournamentSetup() {
         teamBName: pair.teamB.name,
         tossWinnerId: '',
         tossDecision: 'Bat',
-        oversLimit: 6,
+        oversLimit: overs,
         status: 'Upcoming',
         currentInnings: 1,
         order: matchNumber,
@@ -334,6 +335,30 @@ export default function TournamentSetup() {
                       </div>
                     </motion.div>
                   ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Overs per Match</label>
+                <div className="flex gap-2">
+                  {[2, 4, 6, 8, 10, 12].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setOvers(num)}
+                      className={cn(
+                        "flex-1 py-3 rounded-xl font-black transition-all",
+                        overs === num ? "bg-brand-red text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <input 
+                    type="number" 
+                    value={overs}
+                    onChange={(e) => setOvers(parseInt(e.target.value) || 0)}
+                    className="w-20 px-4 py-3 rounded-xl border border-slate-200 text-center font-black"
+                  />
                 </div>
               </div>
 

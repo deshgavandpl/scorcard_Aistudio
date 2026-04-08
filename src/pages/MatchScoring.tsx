@@ -169,6 +169,7 @@ export default function MatchScoring() {
   const [lastInnings, setLastInnings] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
   const [isHypeMuted, setIsHypeMuted] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [teamARoster, setTeamARoster] = useState<Player[]>([]);
   const [teamBRoster, setTeamBRoster] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
@@ -356,15 +357,16 @@ export default function MatchScoring() {
   };
 
   useEffect(() => {
-    if (match?.status === 'Upcoming') {
+    if (match?.status === 'Upcoming' && !isInitialized) {
       setIsSettingUp(true);
       setTeamA(match.teamAName || '');
       setTeamB(match.teamBName || '');
       setTeamAId(match.teamAId || '');
       setTeamBId(match.teamBId || '');
       setOvers(match.oversLimit || 6);
+      setIsInitialized(true);
     }
-  }, [match?.status, match?.teamAName, match?.teamBName, match?.teamAId, match?.teamBId, match?.oversLimit]);
+  }, [match?.status, match?.teamAName, match?.teamBName, match?.teamAId, match?.teamBId, match?.oversLimit, isInitialized]);
 
   useEffect(() => {
     if (match && !isSettingUp && match.status === 'Live') {
@@ -885,7 +887,13 @@ export default function MatchScoring() {
                   </motion.div>
                 )}
 
-                <div className="flex gap-4 pt-4">
+                <div className="flex flex-col gap-3 pt-4">
+                  <button 
+                    onClick={() => setSetupStep(1)}
+                    className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 transition-all text-[10px]"
+                  >
+                    Back to Match Details
+                  </button>
                   <button 
                     disabled={!tossWinner}
                     onClick={startMatch}
