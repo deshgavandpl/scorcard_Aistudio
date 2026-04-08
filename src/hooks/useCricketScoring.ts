@@ -284,9 +284,14 @@ export function useCricketScoring(matchId: string | undefined) {
     
     try {
       await saveMatch(updatedMatch);
-      
-      // If part of a tournament, update the tournament document
-      if (match.tournamentId) {
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `matches/${matchId}`);
+      return; // Stop if match save fails
+    }
+
+    // If part of a tournament, update the tournament document
+    if (match.tournamentId) {
+      try {
         const tournamentRef = doc(db, 'tournaments', match.tournamentId);
         const tournamentSnap = await getDoc(tournamentRef);
         if (tournamentSnap.exists()) {
@@ -294,10 +299,12 @@ export function useCricketScoring(matchId: string | undefined) {
           
           // Update the match in the tournament's matches array
           const strippedMatch = stripMatchForTournament(updatedMatch);
-          const updatedMatches = tournamentData.matches.map(m => m.id === matchId ? strippedMatch : m);
+          const matches = tournamentData.matches || [];
+          const updatedMatches = matches.map(m => m.id === matchId ? strippedMatch : m);
           
           // Update team points
-          const updatedTeams = tournamentData.teams.map(team => {
+          const teams = tournamentData.teams || [];
+          const updatedTeams = teams.map(team => {
             if (team.id === winnerId) {
               return { ...team, points: (team.points || 0) + 2 };
             }
@@ -313,9 +320,9 @@ export function useCricketScoring(matchId: string | undefined) {
             teams: updatedTeams
           });
         }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `tournaments/${match.tournamentId}`);
       }
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `matches/${matchId}`);
     }
   };
 
