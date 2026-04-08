@@ -64,12 +64,20 @@ export default function LiveScore() {
   const filteredMatches = matches.filter(m => m.status === activeSegment);
 
   // For Finished matches, we want the most recently created at the top
-  // For Upcoming matches, we might want the ones starting soonest at the top
+  // For Upcoming matches, we want Match 1, 2, 3... order
   const sortedFilteredMatches = [...filteredMatches].sort((a, b) => {
     if (activeSegment === 'Finished') {
+      // Sort by order descending if available, else by createdAt descending
+      if (a.order !== undefined && b.order !== undefined) {
+        return b.order - a.order;
+      }
       return b.createdAt - a.createdAt;
     }
     if (activeSegment === 'Upcoming') {
+      // Sort by order ascending if available
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
       // If matchDate exists, sort by it
       if (a.matchDate && b.matchDate) {
         const dateA = new Date(`${a.matchDate} ${a.matchTime || '00:00'}`).getTime();
@@ -78,6 +86,7 @@ export default function LiveScore() {
       }
       return a.createdAt - b.createdAt;
     }
+    // For Live matches, show newest first
     return b.createdAt - a.createdAt;
   });
 

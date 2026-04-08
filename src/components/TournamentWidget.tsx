@@ -87,10 +87,11 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
       losses,
       draws,
       points: (wins * 2) + draws,
-      nrr: nrr.toFixed(5)
+      nrr: nrr.toFixed(3)
     };
   }).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
+    if (b.wins !== a.wins) return b.wins - a.wins;
     return parseFloat(b.nrr) - parseFloat(a.nrr);
   }) : [];
 
@@ -139,7 +140,24 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 max-h-[500px]">
         {activeTab === 'fixtures' ? (
           <div className="space-y-3">
-            {matches.sort((a, b) => b.createdAt - a.createdAt).map((match) => (
+            {[...matches].sort((a, b) => {
+              // Priority: Live > Upcoming > Finished
+              const statusOrder = { 'Live': 0, 'Upcoming': 1, 'Finished': 2 };
+              if (statusOrder[a.status] !== statusOrder[b.status]) {
+                return statusOrder[a.status] - statusOrder[b.status];
+              }
+              
+              // Within same status:
+              if (a.status === 'Finished') {
+                // Latest finished at top
+                if (a.order !== undefined && b.order !== undefined) return b.order - a.order;
+                return b.createdAt - a.createdAt;
+              }
+              
+              // Upcoming: Match 1, 2, 3... order
+              if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
+              return a.createdAt - b.createdAt;
+            }).map((match) => (
               <Link
                 key={match.id}
                 to={`/match/${match.id}`}
@@ -152,7 +170,7 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
               >
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                    MATCH {matches.length - matches.indexOf(match)}
+                    {match.order ? `MATCH ${match.order}` : 'MATCH'}
                   </span>
                   <span className={cn(
                     "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest",

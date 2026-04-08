@@ -27,7 +27,7 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
     const q = query(
       collection(db, `matches/${matchId}/chat`),
       orderBy('timestamp', 'desc'),
-      limit(30)
+      limit(7)
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
@@ -72,9 +72,7 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
     }
   };
 
-  // Filter out messages older than 5 minutes to keep it "gone kind of"
-  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-  const visibleMessages = messages.filter(m => m.timestamp > fiveMinutesAgo);
+  const visibleMessages = messages;
 
   return (
     <div className="fixed bottom-6 left-6 z-50">
@@ -106,7 +104,7 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-2 opacity-40">
                   <MessageSquare className="w-8 h-8" />
                   <p className="text-[10px] font-black uppercase tracking-widest">No recent messages</p>
-                  <p className="text-[8px] font-medium">Messages disappear after 5 minutes</p>
+                  <p className="text-[8px] font-medium">Only the 7 most recent messages are shown</p>
                 </div>
               ) : (
                 visibleMessages.map((msg) => (

@@ -456,10 +456,11 @@ export default function TournamentDetail() {
       losses,
       draws,
       points: (wins * 2) + draws,
-      nrr: nrr.toFixed(5)
+      nrr: nrr.toFixed(3)
     };
   }).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
+    if (b.wins !== a.wins) return b.wins - a.wins;
     return parseFloat(b.nrr) - parseFloat(a.nrr);
   });
 
