@@ -28,6 +28,7 @@ import Certificate from '../components/Certificate';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
 import TournamentSidebar from '../components/TournamentSidebar';
+import LiveChat from '../components/LiveChat';
 import { getHypeCommentary, speakHype } from '../lib/audioUtils';
 
 export default function LiveMatchView() {
@@ -702,6 +703,8 @@ export default function LiveMatchView() {
           />
         </>
       )}
+
+      <LiveChat matchId={match.id} />
     </div>
   );
 }

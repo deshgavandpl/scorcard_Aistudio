@@ -108,3 +108,12 @@ export interface Tournament {
   winnerId?: string;
   resultMessage?: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  text: string;
+  timestamp: number;
+  type: 'text' | 'emoji';
+}

@@ -31,6 +31,7 @@ import { toPng } from 'html-to-image';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
 import { Tournament, Team } from '../types/cricket';
 import TournamentSidebar from '../components/TournamentSidebar';
+import LiveChat from '../components/LiveChat';
 import { getHypeCommentary, speakHype } from '../lib/audioUtils';
 
 const calculateManOfTheMatch = (match: Match, winningTeamId: string) => {
@@ -2073,6 +2074,8 @@ export default function MatchScoring() {
           />
         </>
       )}
+
+      <LiveChat matchId={match.id} userName="Scorer" />
     </div>
   );
 }
