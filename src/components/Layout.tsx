@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User, Mail, Shield, Phone, MessageSquare, Send } from 'lucide-react';
+import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User, Mail, Shield, Phone, MessageSquare, Send, BookOpen } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
@@ -103,7 +103,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Live Score', path: '/live', icon: PlayCircle },
     { name: 'Tournaments', path: '/tournaments', icon: Trophy },
     { name: 'Stats', path: '/stats', icon: BarChart2 },
-    { name: 'Teams', path: '/teams', icon: Users },
+    { name: 'Help', path: '/help', icon: BookOpen },
   ];
 
   return (
@@ -549,6 +549,7 @@ export default function Layout({ children }: LayoutProps) {
               <span className="text-lg font-black uppercase tracking-tighter">Apna Cricket</span>
             </a>
             <div className="flex flex-wrap justify-center gap-6">
+              <Link to="/help" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Help Guide</Link>
               <button onClick={() => setShowAbout(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">About</button>
               <button onClick={() => setShowContact(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Contact</button>
               <button onClick={() => setShowPrivacy(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Privacy</button>
