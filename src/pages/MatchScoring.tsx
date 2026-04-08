@@ -546,6 +546,13 @@ export default function MatchScoring() {
     try {
       await setDoc(doc(db, 'matches', match.id), updatedMatch);
       
+      // Announce new player if not muted
+      if (!isHypeMuted) {
+        if (needsStriker) speakHype(`New batter on strike, ${strikerName}`);
+        else if (needsNonStriker) speakHype(`New batter at the non-striker end, ${nonStrikerName}`);
+        else if (needsBowler) speakHype(`New bowler into the attack, ${bowlerName}`);
+      }
+
       // Clear local states
       setStrikerName('');
       setNonStrikerName('');
