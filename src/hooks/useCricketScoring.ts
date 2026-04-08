@@ -257,6 +257,21 @@ export function useCricketScoring(matchId: string | undefined) {
     await saveMatch(updatedMatch);
   };
 
+  const stripMatchForTournament = (m: Match): Match => {
+    // Return a copy of the match without heavy ball history to save space in tournament doc
+    const stripInnings = (inn?: any) => {
+      if (!inn) return undefined;
+      return { ...inn, ballHistory: [] };
+    };
+    return {
+      ...m,
+      innings1: stripInnings(m.innings1),
+      innings2: stripInnings(m.innings2),
+      superOverInnings1: stripInnings(m.superOverInnings1),
+      superOverInnings2: stripInnings(m.superOverInnings2)
+    } as Match;
+  };
+
   const finishMatch = async (winnerId: string, resultMessage: string, manOfTheMatch?: string) => {
     if (!match || !matchId) return;
     const updatedMatch: Match = { 
@@ -278,7 +293,8 @@ export function useCricketScoring(matchId: string | undefined) {
           const tournamentData = tournamentSnap.data() as Tournament;
           
           // Update the match in the tournament's matches array
-          const updatedMatches = tournamentData.matches.map(m => m.id === matchId ? updatedMatch : m);
+          const strippedMatch = stripMatchForTournament(updatedMatch);
+          const updatedMatches = tournamentData.matches.map(m => m.id === matchId ? strippedMatch : m);
           
           // Update team points
           const updatedTeams = tournamentData.teams.map(team => {

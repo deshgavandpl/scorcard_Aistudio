@@ -75,8 +75,12 @@ const calculateManOfTheMatch = (match: Match, winningTeamId: string) => {
 
   processBatting(match.innings1);
   processBatting(match.innings2);
+  processBatting(match.superOverInnings1);
+  processBatting(match.superOverInnings2);
   processBowlingAndFielding(match.innings1);
   processBowlingAndFielding(match.innings2);
+  processBowlingAndFielding(match.superOverInnings1);
+  processBowlingAndFielding(match.superOverInnings2);
 
   let bestPlayer = { name: 'N/A', score: -1 };
   Object.values(points).forEach(p => {
@@ -270,8 +274,13 @@ export default function MatchScoring() {
   }, [match?.status]);
 
   useEffect(() => {
-    if (match?.currentInnings === 1 && match.innings1) {
-      const isOver = match.innings1.wickets === 10 || match.innings1.overs === match.oversLimit;
+    if (match?.currentInnings === 1) {
+      const currentInn = match.isSuperOver ? match.superOverInnings1 : match.innings1;
+      if (!currentInn) return;
+      const maxWickets = match.isSuperOver ? 2 : 10;
+      const maxOvers = match.isSuperOver ? 1 : match.oversLimit;
+      const isOver = currentInn.wickets === maxWickets || currentInn.overs === maxOvers;
+      
       if (isOver && !showInningsOverModal && lastInnings === 1) {
         setShowInningsOverModal(true);
         setLastInnings(2);
@@ -279,7 +288,7 @@ export default function MatchScoring() {
         setLastInnings(1);
       }
     }
-  }, [match?.innings1, match?.oversLimit, showInningsOverModal, lastInnings]);
+  }, [match?.innings1, match?.superOverInnings1, match?.oversLimit, match?.isSuperOver, showInningsOverModal, lastInnings]);
 
   useEffect(() => {
     if (match) {
@@ -291,10 +300,12 @@ export default function MatchScoring() {
 
   useEffect(() => {
     if (match && match.status === 'Live' && match.currentInnings === 2) {
-      const inn1 = match.innings1;
-      const inn2 = match.innings2;
+      const inn1 = match.isSuperOver ? match.superOverInnings1 : match.innings1;
+      const inn2 = match.isSuperOver ? match.superOverInnings2 : match.innings2;
       if (inn1 && inn2) {
-        const isOver = inn2.wickets === 10 || inn2.overs === match.oversLimit || inn2.runs > inn1.runs;
+        const maxWickets = match.isSuperOver ? 2 : 10;
+        const maxOvers = match.isSuperOver ? 1 : match.oversLimit;
+        const isOver = inn2.wickets === maxWickets || inn2.overs === maxOvers || inn2.runs > inn1.runs;
         if (isOver && !showFinishConfirm) {
           // Calculate winner and MoM automatically
           let finalWinnerId = '';
@@ -304,11 +315,11 @@ export default function MatchScoring() {
 
           if (inn2.runs > inn1.runs) {
             finalWinnerId = inn2.battingTeamId;
-            finalResultMessage = `${battingTeamName} won by ${10 - inn2.wickets} wickets`;
-          } else if (inn1.runs > inn2.runs && (inn2.overs === match.oversLimit || inn2.wickets === 10)) {
+            finalResultMessage = `${battingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${maxWickets - inn2.wickets} wickets`;
+          } else if (inn1.runs > inn2.runs && (inn2.overs === maxOvers || inn2.wickets === maxWickets)) {
             finalWinnerId = inn1.battingTeamId;
-            finalResultMessage = `${bowlingTeamName} won by ${inn1.runs - inn2.runs} runs`;
-          } else if (inn1.runs === inn2.runs && (inn2.overs === match.oversLimit || inn2.wickets === 10)) {
+            finalResultMessage = `${bowlingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${inn1.runs - inn2.runs} runs`;
+          } else if (inn1.runs === inn2.runs && (inn2.overs === maxOvers || inn2.wickets === maxWickets)) {
             finalWinnerId = 'Draw';
             finalResultMessage = 'Match Draw';
           }
@@ -1189,13 +1200,26 @@ export default function MatchScoring() {
                 >
                   Cancel
                 </button>
-                <button 
-                  disabled={!winnerId}
-                  onClick={onFinishConfirm}
-                  className="flex-1 py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50"
-                >
-                  Confirm Win
-                </button>
+                {winnerId === 'Draw' ? (
+                  <button 
+                    onClick={() => {
+                      startSuperOver();
+                      setShowFinishConfirm(false);
+                      setIsSelectingPlayers(true);
+                    }}
+                    className="flex-1 py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Zap className="w-4 h-4" /> Start Super Over
+                  </button>
+                ) : (
+                  <button 
+                    disabled={!winnerId}
+                    onClick={onFinishConfirm}
+                    className="flex-1 py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red/90 transition-all shadow-lg disabled:opacity-50"
+                  >
+                    Confirm Win
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -1528,6 +1552,7 @@ export default function MatchScoring() {
                   onClick={() => {
                     if (window.confirm('Start a Super Over? This will reset the score for a 1-over tie-breaker.')) {
                       startSuperOver();
+                      setIsSelectingPlayers(true);
                     }
                   }}
                   className="flex-1 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest text-[10px] hover:bg-brand-red/90 transition-all shadow-lg flex items-center justify-center gap-2"
