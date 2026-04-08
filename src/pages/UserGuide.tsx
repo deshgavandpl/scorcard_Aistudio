@@ -19,7 +19,7 @@ export default function UserGuide() {
       color: "bg-blue-50 text-blue-600",
       steps: [
         "Click the 'Admin' button in the top navigation bar.",
-        "Enter Admin ID: 'admin' and PIN: '5007' to unlock management features.",
+        "Enter Admin ID: 'xxxx' and PIN: 'xxxx' to unlock management features.",
         "Once unlocked, you can create tournaments, delete matches, and manage players."
       ]
     },
