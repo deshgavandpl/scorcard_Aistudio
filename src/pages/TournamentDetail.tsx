@@ -256,6 +256,7 @@ export default function TournamentDetail() {
       tossDecision: 'Bat',
       oversLimit: overs,
       status: 'Upcoming',
+      isKnockout: true,
       currentInnings: 1,
       order: matches.length + 1,
       matchDate,
@@ -408,7 +409,12 @@ export default function TournamentDetail() {
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
 
   const pointsTable = tournament.teams.map(team => {
-    const teamMatches = matches.filter(m => m.status === 'Finished' && (m.teamAId === team.id || m.teamBId === team.id));
+    const teamMatches = matches.filter(m => {
+      const isKnockout = m.isKnockout || 
+                        m.name?.toLowerCase().includes('semi') || 
+                        m.name?.toLowerCase().includes('final');
+      return m.status === 'Finished' && !isKnockout && (m.teamAId === team.id || m.teamBId === team.id);
+    });
     const wins = teamMatches.filter(m => m.winnerId === team.id).length;
     const losses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
     const draws = teamMatches.filter(m => m.winnerId === 'Draw').length;

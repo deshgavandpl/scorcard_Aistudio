@@ -304,7 +304,11 @@ export function useCricketScoring(matchId: string | undefined) {
           
           // Update team points
           const teams = tournamentData.teams || [];
-          const updatedTeams = teams.map(team => {
+          const isKnockout = match.isKnockout || 
+                           match.name?.toLowerCase().includes('semi') || 
+                           match.name?.toLowerCase().includes('final');
+
+          const updatedTeams = isKnockout ? teams : teams.map(team => {
             if (team.id === winnerId) {
               return { ...team, points: (team.points || 0) + 2 };
             }

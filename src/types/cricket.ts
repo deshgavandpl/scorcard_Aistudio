@@ -92,6 +92,7 @@ export interface Match {
   resultMessage?: string;
   manOfTheMatch?: string;
   umpireName?: string;
+  isKnockout?: boolean;
   hypeCount?: number;
   order?: number;
   matchDate?: string;
