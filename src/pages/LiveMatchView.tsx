@@ -5,16 +5,19 @@ import { jsPDF } from 'jspdf';
 import { 
   ChevronLeft, 
   Zap, 
+  Play,
   Trophy, 
   History,
   Users,
   User,
   Target,
+  AlertCircle,
   CheckCircle2,
   Loader2,
   Download,
   Volume2,
-  VolumeX
+  VolumeX,
+  X
 } from 'lucide-react';
 import { Match, BatterStats, BowlerStats, BallEvent } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
@@ -39,8 +42,15 @@ export default function LiveMatchView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Default to muted for better UX
+  const [showLiveVideo, setShowLiveVideo] = useState(false);
   const [lastBallKey, setLastBallKey] = useState<string>('');
   const certificateRef = useRef<HTMLDivElement>(null);
+
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   const toggleAudio = () => {
     const newMuted = !isMuted;
@@ -332,8 +342,15 @@ export default function LiveMatchView() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
-      {/* Transition Message */}
+    <div className={cn(
+      "max-w-4xl mx-auto space-y-6 pb-20 transition-all duration-500",
+      showLiveVideo && "h-screen overflow-hidden flex flex-col max-w-none px-0 space-y-0 pb-0"
+    )}>
+      <div className={cn(
+        "space-y-6 transition-all duration-500",
+        showLiveVideo ? "flex-1 overflow-y-auto p-4 bg-slate-50" : ""
+      )}>
+        {/* Transition Message */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div 
@@ -366,6 +383,20 @@ export default function LiveMatchView() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {match.youtubeLiveUrl && (
+            <button 
+              onClick={() => setShowLiveVideo(!showLiveVideo)}
+              className={cn(
+                "px-4 py-2 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-all shadow-lg",
+                showLiveVideo 
+                  ? "bg-slate-900 text-white ring-2 ring-brand-red" 
+                  : "bg-brand-red text-white hover:bg-brand-red/90 animate-pulse"
+              )}
+            >
+              <Play className="w-4 h-4 fill-current" />
+              {showLiveVideo ? "Close Live" : "Watch Live"}
+            </button>
+          )}
           <div className="flex flex-col items-end gap-1">
             <button 
               onClick={toggleAudio}
@@ -705,6 +736,35 @@ export default function LiveMatchView() {
       )}
 
       <LiveChat matchId={match.id} />
+      </div>
+      
+      {showLiveVideo && match.youtubeLiveUrl && (
+        <motion.div 
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          className="h-[45vh] md:h-[50vh] bg-black border-t-4 border-brand-red relative z-50"
+        >
+          <button 
+            onClick={() => setShowLiveVideo(false)}
+            className="absolute -top-10 right-4 bg-slate-900 text-white px-4 py-2 rounded-t-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 border-t-2 border-x-2 border-brand-red shadow-2xl"
+          >
+            <X className="w-3 h-3" /> Close Video
+          </button>
+          {getYoutubeId(match.youtubeLiveUrl) ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${getYoutubeId(match.youtubeLiveUrl)}?autoplay=1&mute=0`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-white space-y-4">
+              <AlertCircle className="w-12 h-12 text-brand-red" />
+              <p className="font-black uppercase tracking-widest text-sm">Invalid YouTube URL</p>
+            </div>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }

@@ -93,6 +93,7 @@ export interface Match {
   manOfTheMatch?: string;
   umpireName?: string;
   isKnockout?: boolean;
+  youtubeLiveUrl?: string;
   hypeCount?: number;
   order?: number;
   matchDate?: string;

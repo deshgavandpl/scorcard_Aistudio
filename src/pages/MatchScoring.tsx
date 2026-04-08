@@ -131,6 +131,7 @@ export default function MatchScoring() {
   const [teamBId, setTeamBId] = useState('');
   const [overs, setOvers] = useState(6);
   const [umpireName, setUmpireName] = useState('');
+  const [youtubeLiveUrl, setYoutubeLiveUrl] = useState('');
   const [tossWinner, setTossWinner] = useState('');
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
@@ -164,12 +165,20 @@ export default function MatchScoring() {
   const [showFanfare, setShowFanfare] = useState(false);
   const [showInningsOverModal, setShowInningsOverModal] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [lastInnings, setLastInnings] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
   const [isHypeMuted, setIsHypeMuted] = useState(false);
   const [teamARoster, setTeamARoster] = useState<Player[]>([]);
   const [teamBRoster, setTeamBRoster] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
+
+  // Sync youtubeLiveUrl when match loads
+  useEffect(() => {
+    if (match?.youtubeLiveUrl) {
+      setYoutubeLiveUrl(match.youtubeLiveUrl);
+    }
+  }, [match?.youtubeLiveUrl]);
 
   // Fetch all teams for selection
   useEffect(() => {
@@ -411,6 +420,7 @@ export default function MatchScoring() {
       teamAName: teamA,
       teamBName: teamB,
       umpireName: umpireName,
+      youtubeLiveUrl: youtubeLiveUrl,
       tossWinnerId: tossWinner === teamA ? tAId : tBId,
       tossDecision,
       oversLimit: overs,
@@ -776,6 +786,17 @@ export default function MatchScoring() {
                     value={umpireName}
                     onChange={(e) => setUmpireName(e.target.value)}
                     placeholder="e.g. Nitin Menon"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">YouTube Live Video URL (Optional)</label>
+                  <input 
+                    type="text" 
+                    value={youtubeLiveUrl}
+                    onChange={(e) => setYoutubeLiveUrl(e.target.value)}
+                    placeholder="e.g. https://www.youtube.com/watch?v=..."
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-red focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold"
                   />
                 </div>
@@ -1399,6 +1420,55 @@ export default function MatchScoring() {
         )}
       </AnimatePresence>
 
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-6"
+          >
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Match Settings</h2>
+              <button onClick={() => setShowSettingsModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">YouTube Live Video URL</label>
+                <input 
+                  type="text" 
+                  value={youtubeLiveUrl}
+                  onChange={(e) => setYoutubeLiveUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-brand-red transition-all"
+                />
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Enter the full YouTube URL to show live video to users.</p>
+              </div>
+
+              <button
+                onClick={async () => {
+                  if (match && id) {
+                    try {
+                      await updateDoc(doc(db, 'matches', id), { youtubeLiveUrl });
+                      toast.success('Settings updated!');
+                      setShowSettingsModal(false);
+                    } catch (err) {
+                      toast.error('Failed to update settings');
+                    }
+                  }
+                }}
+                className="w-full py-4 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg"
+              >
+                Save Settings
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Wicket Modal */}
       {showWicketModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -1526,6 +1596,13 @@ export default function MatchScoring() {
             title="Delete Match"
           >
             <Trash2 className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => setShowSettingsModal(true)}
+            className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" 
+            title="Match Settings"
+          >
+            <Settings className="w-4 h-4" />
           </button>
           <button onClick={() => setIsSelectingPlayers(true)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400" title="Change Players">
             <User className="w-4 h-4" />
