@@ -187,44 +187,48 @@ export default function MatchScoring() {
 
     const fetchRosters = async () => {
       try {
-        // 1. Try fetching from global teams collection first (most up-to-date)
-        const teamsQuery = query(collection(db, 'teams'));
-        const teamsSnapshot = await getDocs(teamsQuery);
-        const allTeamsData = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
-        
-        const tA = allTeamsData.find(t => t.id === match.teamAId || t.name === match.teamAName);
-        const tB = allTeamsData.find(t => t.id === match.teamBId || t.name === match.teamBName);
-        
-        if (tA && tA.players?.length > 0) {
-          setTeamARoster(tA.players);
-        } else if (match.tournamentId) {
-          // Fallback to tournament data if global team has no players
+        let tARoster: Player[] = [];
+        let tBRoster: Player[] = [];
+
+        // 1. Try fetching from tournament first (most specific to this match)
+        if (match.tournamentId) {
           const tournamentDoc = await getDoc(doc(db, 'tournaments', match.tournamentId));
           if (tournamentDoc.exists()) {
             const tournamentData = tournamentDoc.data() as Tournament;
-            const tourTeamA = tournamentData.teams.find(t => t.id === match.teamAId);
-            if (tourTeamA) setTeamARoster(tourTeamA.players || []);
+            const tourTeamA = tournamentData.teams.find(t => t.id === match.teamAId || t.name === match.teamAName);
+            const tourTeamB = tournamentData.teams.find(t => t.id === match.teamBId || t.name === match.teamBName);
+            
+            if (tourTeamA) tARoster = tourTeamA.players || [];
+            if (tourTeamB) tBRoster = tourTeamB.players || [];
           }
         }
 
-        if (tB && tB.players?.length > 0) {
-          setTeamBRoster(tB.players);
-        } else if (match.tournamentId) {
-          // Fallback to tournament data if global team has no players
-          const tournamentDoc = await getDoc(doc(db, 'tournaments', match.tournamentId));
-          if (tournamentDoc.exists()) {
-            const tournamentData = tournamentDoc.data() as Tournament;
-            const tourTeamB = tournamentData.teams.find(t => t.id === match.teamBId);
-            if (tourTeamB) setTeamBRoster(tourTeamB.players || []);
+        // 2. If rosters are still empty, try global teams collection
+        if (tARoster.length === 0 || tBRoster.length === 0) {
+          const teamsQuery = query(collection(db, 'teams'));
+          const teamsSnapshot = await getDocs(teamsQuery);
+          const allTeamsData = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+          
+          if (tARoster.length === 0) {
+            const tA = allTeamsData.find(t => t.id === match.teamAId) || allTeamsData.find(t => t.name === match.teamAName);
+            if (tA) tARoster = tA.players || [];
+          }
+          
+          if (tBRoster.length === 0) {
+            const tB = allTeamsData.find(t => t.id === match.teamBId) || allTeamsData.find(t => t.name === match.teamBName);
+            if (tB) tBRoster = tB.players || [];
           }
         }
+
+        setTeamARoster(tARoster);
+        setTeamBRoster(tBRoster);
       } catch (error) {
         console.error("Error fetching rosters:", error);
       }
     };
 
     fetchRosters();
-  }, [match?.id, match?.tournamentId, match?.teamAId, match?.teamBId]);
+  }, [match?.id, match?.tournamentId, match?.teamAId, match?.teamBId, match?.teamAName, match?.teamBName]);
 
   const handleHype = async () => {
     if (!id || !match) return;
@@ -871,7 +875,10 @@ export default function MatchScoring() {
   }
 
   if (isSelectingPlayers && match && match.status === 'Live') {
-    const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const currentInn = match.isSuperOver
+      ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+      : (match.currentInnings === 1 ? match.innings1 : match.innings2);
+    
     const striker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const nonStriker = (Object.values(currentInn?.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
     const bowlerId = currentInn?.currentBowlerId;
@@ -889,8 +896,9 @@ export default function MatchScoring() {
     const needsNonStriker = striker && !nonStriker;
     const needsBowler = striker && nonStriker && !bowlerId;
 
-    const battingRoster = currentInn?.battingTeamId === match.teamAId ? teamARoster : teamBRoster;
-    const bowlingRoster = currentInn?.bowlingTeamId === match.teamAId ? teamARoster : teamBRoster;
+    const isTeamABatting = currentInn?.battingTeamId === match.teamAId || currentInn?.battingTeamId === match.teamAName;
+    const battingRoster = isTeamABatting ? teamARoster : teamBRoster;
+    const bowlingRoster = isTeamABatting ? teamBRoster : teamARoster;
 
     const getTitle = () => {
       if (needsStriker) return currentInn?.wickets === 0 ? "First Opener" : "New Batsman";
@@ -948,20 +956,33 @@ export default function MatchScoring() {
 
             <div className="space-y-3">
               {(needsStriker || needsNonStriker) && (
-                <div className="space-y-3">
-                  <input 
-                    type="text" 
-                    autoFocus
-                    value={needsStriker ? strikerName : nonStrikerName}
-                    onChange={(e) => needsStriker ? setStrikerName(e.target.value) : setNonStrikerName(e.target.value)}
-                    placeholder="ENTER BATTER NAME"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-lg"
-                  />
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      autoFocus
+                      value={needsStriker ? strikerName : nonStrikerName}
+                      onChange={(e) => needsStriker ? setStrikerName(e.target.value) : setNonStrikerName(e.target.value)}
+                      placeholder="ENTER BATTER NAME"
+                      className="w-full px-4 py-4 rounded-2xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl shadow-sm"
+                    />
+                    {(needsStriker ? strikerName : nonStrikerName) && (
+                      <button 
+                        onClick={() => needsStriker ? setStrikerName('') : setNonStrikerName('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                      >
+                        <X className="w-4 h-4 text-slate-400" />
+                      </button>
+                    )}
+                  </div>
                   
-                  {battingRoster.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
-                      <div className="flex flex-wrap justify-center gap-2 max-h-40 overflow-y-auto p-1">
+                  {battingRoster.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select from {isTeamABatting ? match.teamAName : match.teamBName} Roster</p>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{battingRoster.length} Players</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1 custom-scrollbar">
                         {battingRoster
                           .filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name))
                           .map((p) => (
@@ -969,37 +990,60 @@ export default function MatchScoring() {
                             key={p.id}
                             onClick={() => needsStriker ? setStrikerName(p.name) : setNonStrikerName(p.name)}
                             className={cn(
-                              "px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest border-2 transition-all",
+                              "px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all text-left flex items-center gap-2",
                               (needsStriker ? strikerName : nonStrikerName) === p.name 
-                                ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" 
-                                : "bg-white border-slate-100 text-slate-600 hover:border-red-300"
+                                ? "bg-brand-red border-brand-red text-white shadow-lg translate-x-1" 
+                                : "bg-white border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50/30"
                             )}
                           >
-                            {p.name}
+                            <div className={cn(
+                              "w-2 h-2 rounded-full",
+                              (needsStriker ? strikerName : nonStrikerName) === p.name ? "bg-white" : "bg-slate-200"
+                            )} />
+                            <span className="truncate">{p.name}</span>
                           </button>
                         ))}
                       </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 text-center space-y-2">
+                      <User className="w-8 h-8 text-slate-300 mx-auto" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No roster found for this team</p>
+                      <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Please type the name manually above</p>
                     </div>
                   )}
                 </div>
               )}
 
               {needsBowler && (
-                <div className="space-y-3">
-                  <input 
-                    type="text" 
-                    autoFocus
-                    value={bowlerName}
-                    onChange={(e) => setBowlerName(e.target.value)}
-                    placeholder="ENTER BOWLER NAME"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-lg"
-                  />
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      autoFocus
+                      value={bowlerName}
+                      onChange={(e) => setBowlerName(e.target.value)}
+                      placeholder="ENTER BOWLER NAME"
+                      className="w-full px-4 py-4 rounded-2xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl shadow-sm"
+                    />
+                    {bowlerName && (
+                      <button 
+                        onClick={() => setBowlerName('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                      >
+                        <X className="w-4 h-4 text-slate-400" />
+                      </button>
+                    )}
+                  </div>
                   
-                  <div className="space-y-3">
-                    {bowlingRoster.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Select from Team Roster</p>
-                        <div className="flex flex-wrap justify-center gap-2 max-h-40 overflow-y-auto p-1">
+                  <div className="space-y-4">
+                    {bowlingRoster.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select from {isTeamABatting ? match.teamBName : match.teamAName} Roster</p>
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{bowlingRoster.length} Players</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1 custom-scrollbar">
                           {bowlingRoster.map((p) => {
                             const isLastBowler = p.name === lastOverBowler;
                             return (
@@ -1008,43 +1052,56 @@ export default function MatchScoring() {
                                 disabled={isLastBowler}
                                 onClick={() => setBowlerName(p.name)}
                                 className={cn(
-                                  "px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest border-2 transition-all",
-                                  bowlerName === p.name ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
-                                  isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
-                                  "bg-white border-slate-100 text-slate-600 hover:border-red-300"
+                                  "px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all text-left flex items-center gap-2",
+                                  bowlerName === p.name ? "bg-brand-red border-brand-red text-white shadow-lg translate-x-1" : 
+                                  isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50" :
+                                  "bg-white border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50/30"
                                 )}
                               >
-                                {p.name}
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  bowlerName === p.name ? "bg-white" : isLastBowler ? "bg-slate-300" : "bg-slate-200"
+                                )} />
+                                <span className="truncate">{p.name}</span>
+                                {isLastBowler && <span className="ml-auto text-[6px] opacity-60">LAST</span>}
                               </button>
                             );
                           })}
                         </div>
                       </div>
-                    )}
-
-                    {previousBowlers.length > 0 && !bowlingRoster.length && (
-                      <div className="space-y-3">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quick Select Previous Bowler</p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                          {previousBowlers.map((bName) => {
-                            const isLastBowler = bName === lastOverBowler;
-                            return (
-                              <button
-                                key={bName}
-                                disabled={isLastBowler}
-                                onClick={() => setBowlerName(bName)}
-                                className={cn(
-                                  "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
-                                  bowlerName === bName ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
-                                  isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
-                                  "bg-white border-slate-100 text-slate-600 hover:border-red-300"
-                                )}
-                              >
-                                {bName}
-                              </button>
-                            );
-                          })}
+                    ) : (
+                      previousBowlers.length > 0 && (
+                        <div className="space-y-3">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quick Select Previous Bowler</p>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {previousBowlers.map((bName) => {
+                              const isLastBowler = bName === lastOverBowler;
+                              return (
+                                <button
+                                  key={bName}
+                                  disabled={isLastBowler}
+                                  onClick={() => setBowlerName(bName)}
+                                  className={cn(
+                                    "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all",
+                                    bowlerName === bName ? "bg-brand-red border-brand-red text-white shadow-lg scale-105" : 
+                                    isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" :
+                                    "bg-white border-slate-100 text-slate-600 hover:border-red-300"
+                                  )}
+                                >
+                                  {bName}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
+                      )
+                    )}
+                    
+                    {!bowlingRoster.length && !previousBowlers.length && (
+                      <div className="p-6 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 text-center space-y-2">
+                        <User className="w-8 h-8 text-slate-300 mx-auto" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No bowlers found</p>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Please type the name manually above</p>
                       </div>
                     )}
                   </div>
