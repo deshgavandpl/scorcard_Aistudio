@@ -4,39 +4,14 @@ import {
   BookOpen, 
   Trophy, 
   PlayCircle, 
-  Users, 
   Shield, 
   Zap, 
   MessageSquare, 
-  BarChart2,
-  ChevronRight,
-  Sparkles,
-  Copy,
-  Check
+  BarChart2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { toast } from 'sonner';
 
 export default function UserGuide() {
-  const [copied, setCopied] = React.useState(false);
-
-  const geminiPrompt = `I am using the "Apna Cricket" scoring app. I need help with [INSERT YOUR QUESTION HERE]. 
-The app has features for:
-1. Tournament Management (Fixtures, Points Table with NRR)
-2. Live Ball-by-Ball Scoring (Innings, Toss, Wickets)
-3. Player Stats (Batting/Bowling rankings)
-4. Live Fan Chat (Ephemeral messages)
-5. Admin Mode (ID: admin, PIN: 5007)
-
-Please explain how to [INSERT ACTION] based on these features.`;
-
-  const copyPrompt = () => {
-    navigator.clipboard.writeText(geminiPrompt);
-    setCopied(true);
-    toast.success('Prompt copied to clipboard!');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const sections = [
     {
       title: "Admin & Security",
@@ -106,45 +81,6 @@ Please explain how to [INSERT ACTION] based on these features.`;
           Everything you need to know to manage your local cricket tournaments like a professional.
         </p>
       </div>
-
-      {/* Gemini Prompt Section */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <Sparkles className="w-32 h-32" />
-        </div>
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black uppercase tracking-tight">Ask Gemini Manually</h2>
-              <p className="text-blue-300 text-[10px] font-bold uppercase tracking-widest">AI Support Prompt</p>
-            </div>
-          </div>
-          
-          <p className="text-slate-300 text-sm leading-relaxed">
-            If you need specific help while using the app, copy this prompt and paste it into <a href="https://gemini.google.com" target="_blank" className="text-blue-400 underline font-bold">Google Gemini</a>. It tells the AI exactly how your app works so it can guide you.
-          </p>
-
-          <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 relative group">
-            <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
-              {geminiPrompt}
-            </pre>
-            <button 
-              onClick={copyPrompt}
-              className="absolute top-4 right-4 p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-            >
-              {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-              {copied ? 'Copied!' : 'Copy Prompt'}
-            </button>
-          </div>
-        </div>
-      </motion.div>
 
       {/* Guide Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
