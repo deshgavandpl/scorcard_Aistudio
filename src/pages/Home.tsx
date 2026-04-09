@@ -163,14 +163,14 @@ export default function Home() {
                 to="/live" 
                 className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-white text-brand-red font-black uppercase tracking-wider hover:bg-red-50 transition-all shadow-lg flex items-center justify-center gap-2 text-sm md:text-base"
               >
-                Live Scoring <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                Live Score <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </Link>
-              <Link 
-                to="/tournaments" 
-                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-red-700 text-white font-black uppercase tracking-wider hover:bg-red-800 transition-all border border-red-600 text-sm md:text-base text-center"
+              <a 
+                href="https://apnacricket.co.in" 
+                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-red-700 text-white font-black uppercase tracking-wider hover:bg-red-800 transition-all border border-red-600 text-sm md:text-base text-center flex items-center justify-center"
               >
-                Tournaments
-              </Link>
+                Home
+              </a>
             </motion.div>
           </div>
 
