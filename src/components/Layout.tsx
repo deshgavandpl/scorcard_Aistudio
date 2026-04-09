@@ -99,7 +99,7 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const navItems = [
-    { name: 'Home', path: '/', icon: Home },
+    { name: 'Home', path: 'https://apnacricket.co.in', icon: Home, isExternal: true },
     { name: 'Live Score', path: '/live', icon: PlayCircle },
     { name: 'Tournaments', path: '/tournaments', icon: Trophy },
     { name: 'Stats', path: '/stats', icon: BarChart2 },
@@ -387,19 +387,33 @@ export default function Layout({ children }: LayoutProps) {
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center space-x-4">
               {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "px-3 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-2",
-                    location.pathname === item.path
-                      ? "bg-brand-red text-white shadow-md"
-                      : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.name}
-                </Link>
+                item.isExternal ? (
+                  <a
+                    key={item.path}
+                    href={item.path}
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-2",
+                      "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.name}
+                  </a>
+                ) : (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-2",
+                      location.pathname === item.path
+                        ? "bg-brand-red text-white shadow-md"
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.name}
+                  </Link>
+                )
               ))}
               
               <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
@@ -468,20 +482,34 @@ export default function Layout({ children }: LayoutProps) {
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-slate-100 py-4 px-4 space-y-2">
             {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold uppercase tracking-wider",
-                      location.pathname === item.path
-                        ? "bg-brand-red text-white"
-                        : "text-slate-600 bg-slate-50"
-                    )}
-                  >
-                <item.icon className="w-5 h-5" />
-                {item.name}
-              </Link>
+              item.isExternal ? (
+                <a
+                  key={item.path}
+                  href={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold uppercase tracking-wider",
+                    "text-slate-600 bg-slate-50"
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.name}
+                </a>
+              ) : (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold uppercase tracking-wider",
+                    location.pathname === item.path
+                      ? "bg-brand-red text-white"
+                      : "text-slate-600 bg-slate-50"
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.name}
+                </Link>
+              )
             ))}
             
             <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
@@ -549,6 +577,7 @@ export default function Layout({ children }: LayoutProps) {
               <span className="text-lg font-black uppercase tracking-tighter">Apna Cricket</span>
             </a>
             <div className="flex flex-wrap justify-center gap-6">
+              <a href="https://apnacricket.co.in" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Home</a>
               <Link to="/help" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Help Guide</Link>
               <button onClick={() => setShowAbout(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">About</button>
               <button onClick={() => setShowContact(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Contact</button>
