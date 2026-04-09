@@ -370,12 +370,19 @@ export default function MatchScoring() {
 
   useEffect(() => {
     if (match && !isSettingUp && match.status === 'Live') {
-      const currentInn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+      const currentInn = match.isSuperOver
+        ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
+        : (match.currentInnings === 1 ? match.innings1 : match.innings2);
       if (!currentInn) return;
 
+      const maxWickets = match.isSuperOver ? 2 : 10;
+      const maxOvers = match.isSuperOver ? 1 : match.oversLimit;
+
       // Check if match/innings is over
-      let isOver = currentInn.wickets === 10 || currentInn.overs === match.oversLimit;
-      if (match.currentInnings === 2 && match.innings1 && currentInn.runs > match.innings1.runs) {
+      let isOver = currentInn.wickets === maxWickets || currentInn.overs === maxOvers;
+      const inn1 = match.isSuperOver ? match.superOverInnings1 : match.innings1;
+      
+      if (match.currentInnings === 2 && inn1 && currentInn.runs > inn1.runs) {
         isOver = true;
       }
 
@@ -461,7 +468,10 @@ export default function MatchScoring() {
     if (!canManage || !match) return;
 
     const updatedMatch = { ...match };
-    const currentInn = updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2;
+    const currentInn = updatedMatch.isSuperOver
+      ? (updatedMatch.currentInnings === 1 ? updatedMatch.superOverInnings1 : updatedMatch.superOverInnings2)
+      : (updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2);
+    
     if (!currentInn) return;
 
     // Deep copy stats to avoid mutation issues
@@ -584,22 +594,28 @@ export default function MatchScoring() {
     let finalWinnerId = winnerId;
     let finalResultMessage = resultMessage;
 
-    if (!finalWinnerId && match.innings1 && match.innings2) {
-      const inn1Runs = match.innings1.runs;
-      const inn2Runs = match.innings2.runs;
-      const inn2Wickets = match.innings2.wickets;
-      const battingTeamName = match.innings2.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
-      const bowlingTeamName = match.innings2.bowlingTeamId === match.teamAId ? match.teamAName : match.teamBName;
+    if (!finalWinnerId) {
+      const inn1 = match.isSuperOver ? match.superOverInnings1 : match.innings1;
+      const inn2 = match.isSuperOver ? match.superOverInnings2 : match.innings2;
+      
+      if (inn1 && inn2) {
+        const inn1Runs = inn1.runs;
+        const inn2Runs = inn2.runs;
+        const inn2Wickets = inn2.wickets;
+        const maxWickets = match.isSuperOver ? 2 : 10;
+        const battingTeamName = inn2.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
+        const bowlingTeamName = inn2.bowlingTeamId === match.teamAId ? match.teamAName : match.teamBName;
 
-      if (inn2Runs > inn1Runs) {
-        finalWinnerId = match.innings2.battingTeamId;
-        finalResultMessage = `${battingTeamName} won by ${10 - inn2Wickets} wickets`;
-      } else if (inn1Runs > inn2Runs) {
-        finalWinnerId = match.innings1.battingTeamId;
-        finalResultMessage = `${bowlingTeamName} won by ${inn1Runs - inn2Runs} runs`;
-      } else {
-        finalWinnerId = 'Draw';
-        finalResultMessage = 'Match Draw';
+        if (inn2Runs > inn1Runs) {
+          finalWinnerId = inn2.battingTeamId;
+          finalResultMessage = `${battingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${maxWickets - inn2Wickets} wickets`;
+        } else if (inn1Runs > inn2Runs) {
+          finalWinnerId = inn1.battingTeamId;
+          finalResultMessage = `${bowlingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${inn1Runs - inn2Runs} runs`;
+        } else {
+          finalWinnerId = 'Draw';
+          finalResultMessage = 'Match Draw';
+        }
       }
     }
 
@@ -1336,8 +1352,14 @@ export default function MatchScoring() {
               <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-2">Innings Over</h2>
               <div className="bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">1st Innings Score</p>
-                <p className="text-2xl font-black text-brand-red">{match.innings1?.runs}/{match.innings1?.wickets}</p>
-                <p className="text-[10px] font-bold text-slate-500 mt-1">in {match.innings1?.overs}.{match.innings1?.balls} overs</p>
+                <p className="text-2xl font-black text-brand-red">
+                  {match.isSuperOver ? match.superOverInnings1?.runs : match.innings1?.runs}/
+                  {match.isSuperOver ? match.superOverInnings1?.wickets : match.innings1?.wickets}
+                </p>
+                <p className="text-[10px] font-bold text-slate-500 mt-1">
+                  in {match.isSuperOver ? match.superOverInnings1?.overs : match.innings1?.overs}.
+                  {match.isSuperOver ? match.superOverInnings1?.balls : match.innings1?.balls} overs
+                </p>
               </div>
               
               <div className="bg-brand-red p-6 rounded-3xl mb-8 text-white shadow-xl relative overflow-hidden">
@@ -1345,9 +1367,13 @@ export default function MatchScoring() {
                   <Trophy className="w-12 h-12" />
                 </div>
                 <p className="text-[10px] font-black text-red-200 uppercase tracking-widest mb-1">Target for 2nd Innings</p>
-                <p className="text-4xl font-black italic transform -skew-x-6">{match.innings1 ? match.innings1.runs + 1 : 0}</p>
+                <p className="text-4xl font-black italic transform -skew-x-6">
+                  {match.isSuperOver ? (match.superOverInnings1?.runs || 0) + 1 : (match.innings1?.runs || 0) + 1}
+                </p>
                 <p className="text-[10px] font-bold text-red-300 mt-2 uppercase tracking-widest">
-                  Req. RR: {match.innings1 ? ((match.innings1.runs + 1) / match.oversLimit).toFixed(2) : '0.00'}
+                  Req. RR: {match.isSuperOver 
+                    ? (match.superOverInnings1 ? (match.superOverInnings1.runs + 1).toFixed(2) : '0.00')
+                    : (match.innings1 ? ((match.innings1.runs + 1) / match.oversLimit).toFixed(2) : '0.00')}
                 </p>
               </div>
 
@@ -2156,15 +2182,21 @@ export default function MatchScoring() {
             <div className="flex justify-center items-center gap-12">
               <div className="text-right flex-1">
                 <h2 className="text-white text-6xl font-black uppercase tracking-tighter mb-2">{match.teamAName}</h2>
-                {match.currentInnings === 1 && match.innings1 && (
-                  <p className="text-red-400 text-4xl font-black italic">{match.innings1.runs}/{match.innings1.wickets}</p>
+                {match.currentInnings === 1 && (match.isSuperOver ? match.superOverInnings1 : match.innings1) && (
+                  <p className="text-red-400 text-4xl font-black italic">
+                    {match.isSuperOver ? match.superOverInnings1?.runs : match.innings1?.runs}/
+                    {match.isSuperOver ? match.superOverInnings1?.wickets : match.innings1?.wickets}
+                  </p>
                 )}
               </div>
               <div className="w-px h-32 bg-white/20"></div>
               <div className="text-left flex-1">
                 <h2 className="text-white text-6xl font-black uppercase tracking-tighter mb-2">{match.teamBName}</h2>
-                {match.currentInnings === 2 && match.innings2 && (
-                  <p className="text-red-400 text-4xl font-black italic">{match.innings2.runs}/{match.innings2.wickets}</p>
+                {match.currentInnings === 2 && (match.isSuperOver ? match.superOverInnings2 : match.innings2) && (
+                  <p className="text-red-400 text-4xl font-black italic">
+                    {match.isSuperOver ? match.superOverInnings2?.runs : match.innings2?.runs}/
+                    {match.isSuperOver ? match.superOverInnings2?.wickets : match.innings2?.wickets}
+                  </p>
                 )}
               </div>
             </div>
