@@ -390,6 +390,7 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={item.path}
                   to={item.path}
+                  id={item.name === 'Tournaments' ? 'nav-tournaments' : undefined}
                   className={cn(
                     "px-3 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-2",
                     location.pathname === item.path

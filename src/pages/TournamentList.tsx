@@ -152,6 +152,7 @@ export default function TournamentList() {
         {canManage && (
           <Link 
             to="/tournaments/new"
+            id="btn-create-tournament"
             className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-wider hover:bg-red-700 transition-all shadow-lg flex items-center gap-2"
           >
             <Plus className="w-5 h-5" /> Create Tournament
@@ -168,6 +169,7 @@ export default function TournamentList() {
           <p className="text-slate-400 max-w-xs mx-auto mb-8">Start your first league and invite teams to compete for the glory.</p>
           <Link 
             to="/tournaments/new"
+            id="btn-create-tournament-empty"
             className="inline-flex items-center gap-2 text-brand-red font-black uppercase text-sm tracking-widest hover:text-red-700 transition-colors"
           >
             Create Now <ChevronRight className="w-4 h-4" />

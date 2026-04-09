@@ -24,6 +24,7 @@ import { cn } from '../lib/utils';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { useTutorial } from '../context/TutorialContext';
 
 const ICON_MAP: Record<string, any> = {
   Youtube,
@@ -41,6 +42,7 @@ export default function Home() {
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
+  const { startTutorial } = useTutorial();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -131,7 +133,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8 md:space-y-12">
         {/* Hero Section - Reverted to Old Style from Photo */}
-        <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-brand-red text-white p-6 md:p-16 shadow-2xl">
+        <section id="tutorial-welcome" className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-brand-red text-white p-6 md:p-16 shadow-2xl">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
           </div>
@@ -212,12 +214,12 @@ export default function Home() {
               >
                 Live Score <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </Link>
-              <a 
-                href="https://apnacricket.co.in" 
-                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-red-700 text-white font-black uppercase tracking-wider hover:bg-red-800 transition-all border border-red-600 text-sm md:text-base text-center flex items-center justify-center"
+              <button 
+                onClick={startTutorial}
+                className="flex-1 sm:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl bg-red-700 text-white font-black uppercase tracking-wider hover:bg-red-800 transition-all border border-red-600 text-sm md:text-base text-center flex items-center justify-center gap-2"
               >
-                Home
-              </a>
+                <PlayCircle className="w-4 h-4 md:w-5 md:h-5" /> Start Tutorial
+              </button>
             </motion.div>
           </div>
 

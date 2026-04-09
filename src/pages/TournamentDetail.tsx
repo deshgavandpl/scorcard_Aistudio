@@ -542,6 +542,7 @@ export default function TournamentDetail() {
           </button>
           <button 
             onClick={() => setActiveTab('teams')}
+            id="btn-add-team"
             className={cn(
               "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
               activeTab === 'teams' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
