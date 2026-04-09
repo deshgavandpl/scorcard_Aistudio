@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { toast } from 'sonner';
-import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft } from 'lucide-react';
+import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft, Megaphone, Trash2, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [announcementMessage, setAnnouncementMessage] = useState('');
   const [socials, setSocials] = useState({
     youtube: '',
     instagram: '',
@@ -19,10 +21,16 @@ export default function Settings() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const docRef = doc(db, 'settings', 'social');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setSocials(docSnap.data() as any);
+        const socialRef = doc(db, 'settings', 'social');
+        const socialSnap = await getDoc(socialRef);
+        if (socialSnap.exists()) {
+          setSocials(socialSnap.data() as any);
+        }
+
+        const announceRef = doc(db, 'settings', 'announcement');
+        const announceSnap = await getDoc(announceRef);
+        if (announceSnap.exists()) {
+          setAnnouncementMessage(announceSnap.data().message || '');
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -48,6 +56,46 @@ export default function Settings() {
     }
   };
 
+  const handleBroadcast = async () => {
+    if (!announcementMessage.trim()) {
+      toast.error('Please enter a message to broadcast');
+      return;
+    }
+    setBroadcasting(true);
+    try {
+      await setDoc(doc(db, 'settings', 'announcement'), {
+        id: Math.random().toString(36).substr(2, 9),
+        message: announcementMessage,
+        active: true,
+        timestamp: Date.now()
+      });
+      toast.success('Announcement broadcasted to all users!');
+    } catch (error) {
+      console.error('Error broadcasting:', error);
+      toast.error('Failed to broadcast announcement');
+    } finally {
+      setBroadcasting(false);
+    }
+  };
+
+  const handleClearAnnouncement = async () => {
+    setBroadcasting(true);
+    try {
+      await setDoc(doc(db, 'settings', 'announcement'), {
+        active: false,
+        message: '',
+        id: 'cleared'
+      });
+      setAnnouncementMessage('');
+      toast.success('Announcement cleared');
+    } catch (error) {
+      console.error('Error clearing:', error);
+      toast.error('Failed to clear announcement');
+    } finally {
+      setBroadcasting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -57,7 +105,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 py-8">
+    <div className="max-w-2xl mx-auto space-y-8 py-8 px-4">
       <div className="flex items-center gap-4">
         <Link to="/" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-6 h-6 text-slate-600" />
@@ -65,6 +113,53 @@ export default function Settings() {
         <div>
           <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Admin Settings</h1>
           <p className="text-slate-500 font-medium">Configure global application settings.</p>
+        </div>
+      </div>
+
+      {/* Announcement Section */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 bg-red-50/50">
+          <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-brand-red" />
+            Global Announcement
+          </h2>
+          <p className="text-sm text-slate-500">Send a real-time popup notification to all users.</p>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Message</label>
+            <textarea
+              value={announcementMessage}
+              onChange={(e) => setAnnouncementMessage(e.target.value)}
+              placeholder="Enter message to show to all users..."
+              rows={3}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all text-sm font-medium resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleBroadcast}
+              disabled={broadcasting}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-red text-white font-black uppercase tracking-widest rounded-xl hover:bg-brand-red/90 transition-all disabled:opacity-50 shadow-lg shadow-brand-red/20"
+            >
+              {broadcasting ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+              Broadcast Now
+            </button>
+            <button
+              onClick={handleClearAnnouncement}
+              disabled={broadcasting}
+              className="px-6 py-3 bg-slate-100 text-slate-600 font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
+              title="Clear current announcement"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -127,7 +222,7 @@ export default function Settings() {
               ) : (
                 <Save className="w-5 h-5" />
               )}
-              Save Changes
+              Save Social Links
             </button>
           </div>
         </form>

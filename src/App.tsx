@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import UserGuide from './pages/UserGuide';
 import { PlayerProfileProvider } from './context/PlayerProfileContext';
 import PlayerProfileModal from './components/PlayerProfileModal';
+import AnnouncementOverlay from './components/AnnouncementOverlay';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
       <Toaster position="top-right" richColors />
       <PlayerProfileProvider>
         <PlayerProfileModal />
+        <AnnouncementOverlay />
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
