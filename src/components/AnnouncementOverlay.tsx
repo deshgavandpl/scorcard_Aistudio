@@ -35,38 +35,52 @@ export default function AnnouncementOverlay() {
   return (
     <AnimatePresence>
       {isVisible && announcement && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="fixed bottom-6 left-6 right-6 md:left-auto md:right-6 md:w-96 z-[100]"
-        >
-          <div className="bg-white rounded-2xl shadow-2xl border-2 border-brand-red overflow-hidden">
-            <div className="bg-brand-red p-4 flex items-center justify-between text-white">
-              <div className="flex items-center gap-2">
-                <Megaphone className="w-5 h-5 animate-bounce" />
-                <span className="font-black uppercase tracking-widest text-sm">New Announcement</span>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border-4 border-brand-red overflow-hidden"
+          >
+            <div className="bg-brand-red p-6 flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center animate-pulse">
+                  <Megaphone className="w-7 h-7" />
+                </div>
+                <div>
+                  <span className="block font-black uppercase tracking-widest text-lg leading-none">Important Update</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">From Admin</span>
+                </div>
               </div>
               <button 
                 onClick={handleClose}
-                className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6">
-              <p className="text-slate-900 font-bold leading-relaxed whitespace-pre-wrap">
-                {announcement.message}
-              </p>
+            <div className="p-8">
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                <p className="text-slate-900 text-xl font-black leading-relaxed whitespace-pre-wrap text-center italic">
+                  "{announcement.message}"
+                </p>
+              </div>
               <button
                 onClick={handleClose}
-                className="mt-6 w-full py-3 bg-slate-900 text-white font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all text-xs"
+                className="mt-8 w-full py-4 bg-brand-red text-white font-black uppercase tracking-widest rounded-2xl hover:bg-brand-red/90 transition-all shadow-lg shadow-brand-red/20 text-sm"
               >
                 Got it, thanks!
               </button>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
