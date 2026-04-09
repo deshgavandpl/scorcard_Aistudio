@@ -1917,7 +1917,7 @@ export default function MatchScoring() {
 
           {/* Scoring Controls */}
           {match.status === 'Live' && (
-            <div id="scoring-controls" className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-lg space-y-3">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-lg space-y-3">
               {/* Scoring Grid - Simplified for Admin - Compact */}
               <div className="space-y-2">
               <div className="text-center">

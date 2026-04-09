@@ -252,7 +252,7 @@ export default function TournamentSetup() {
           <p className="text-red-100 text-sm font-medium mt-1 uppercase tracking-widest relative z-10">Setup your league and fixtures</p>
         </div>
 
-        <div id="tournament-setup-form" className="p-8 space-y-8">
+        <div className="p-8 space-y-8">
           {step === 'setup' ? (
             <>
               {!canManage && (
