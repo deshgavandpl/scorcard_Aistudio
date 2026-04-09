@@ -13,30 +13,72 @@ import {
   Globe,
   Linkedin,
   Users,
-  Settings
+  Settings,
+  Twitter,
+  Github,
+  MessageCircle,
+  Send
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+
+const ICON_MAP: Record<string, any> = {
+  Youtube,
+  Instagram,
+  Facebook,
+  Globe,
+  Linkedin,
+  Twitter,
+  Github,
+  MessageCircle,
+  Send
+};
 
 export default function Home() {
-  const [socialLinks, setSocialLinks] = useState([
-    { id: 'youtube', icon: Youtube, color: 'bg-[#FF0000]', hover: 'hover:bg-[#CC0000]', label: 'YouTube', url: '#' },
-    { id: 'instagram', icon: Instagram, color: 'bg-[#E4405F]', hover: 'hover:bg-[#D62976]', label: 'Instagram', url: '#' },
-    { id: 'facebook', icon: Facebook, color: 'bg-[#1877F2]', hover: 'hover:bg-[#0D65D9]', label: 'Facebook', url: '#' },
-    { id: 'website', icon: Globe, color: 'bg-[#00AEEF]', hover: 'hover:bg-[#008CCF]', label: 'Website', url: '#' },
-    { id: 'linkedin', icon: Linkedin, color: 'bg-[#0077B5]', hover: 'hover:bg-[#005E93]', label: 'LinkedIn', url: '#' },
-  ]);
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const [socialLinks, setSocialLinks] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    
+    const handleStorageChange = () => {
+      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const canManage = user || isAdminMode;
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'social'), (doc) => {
       if (doc.exists()) {
         const data = doc.data();
-        setSocialLinks(prev => prev.map(link => ({
-          ...link,
-          url: data[link.id] || '#'
-        })));
+        if (Array.isArray(data.links)) {
+          setSocialLinks(data.links);
+        } else {
+          // Fallback for old structure
+          const legacyLinks = [
+            { id: 'youtube', iconName: 'Youtube', color: 'bg-[#FF0000]', hover: 'hover:bg-[#CC0000]', label: 'YouTube', url: data.youtube || '#' },
+            { id: 'instagram', iconName: 'Instagram', color: 'bg-[#E4405F]', hover: 'hover:bg-[#D62976]', label: 'Instagram', url: data.instagram || '#' },
+            { id: 'facebook', iconName: 'Facebook', color: 'bg-[#1877F2]', hover: 'hover:bg-[#0D65D9]', label: 'Facebook', url: data.facebook || '#' },
+            { id: 'website', iconName: 'Globe', color: 'bg-[#00AEEF]', hover: 'hover:bg-[#008CCF]', label: 'Website', url: data.website || '#' },
+            { id: 'linkedin', iconName: 'Linkedin', color: 'bg-[#0077B5]', hover: 'hover:bg-[#005E93]', label: 'LinkedIn', url: data.linkedin || '#' },
+          ].filter(l => l.url !== '#');
+          setSocialLinks(legacyLinks);
+        }
       }
     });
     return () => unsub();
@@ -53,33 +95,38 @@ export default function Home() {
     <div className="relative min-h-[calc(100vh-4rem)]">
       {/* Floating Social Sidebar */}
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1 md:gap-1.5 pr-1 md:pr-3">
-        {socialLinks.map((social, idx) => (
-          <motion.a
-            key={social.id}
-            href={social.url === '#' ? undefined : social.url}
-            onClick={social.url === '#' ? (e) => e.preventDefault() : undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.5 + idx * 0.1 }}
-            className={cn(
-              "w-7 h-7 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1",
-              social.color,
-              social.hover
-            )}
-            title={social.label}
+        {socialLinks.map((social, idx) => {
+          const Icon = ICON_MAP[social.iconName] || Globe;
+          return (
+            <motion.a
+              key={social.id}
+              href={social.url === '#' ? undefined : social.url}
+              onClick={social.url === '#' ? (e) => e.preventDefault() : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ x: 50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.5 + idx * 0.1 }}
+              className={cn(
+                "w-7 h-7 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1",
+                social.color || 'bg-slate-500',
+                social.hover || 'hover:bg-slate-600'
+              )}
+              title={social.label}
+            >
+              <Icon className="w-3.5 h-3.5 md:w-5 md:h-5" />
+            </motion.a>
+          );
+        })}
+        {canManage && (
+          <Link 
+            to="/settings" 
+            className="w-7 h-7 md:w-10 md:h-10 rounded-lg flex items-center justify-center bg-slate-800 text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1 mt-1 md:mt-2"
+            title="Admin Settings"
           >
-            <social.icon className="w-3.5 h-3.5 md:w-5 md:h-5" />
-          </motion.a>
-        ))}
-        <Link 
-          to="/settings" 
-          className="w-7 h-7 md:w-10 md:h-10 rounded-lg flex items-center justify-center bg-slate-800 text-white shadow-lg transition-all hover:scale-110 hover:-translate-x-1 mt-1 md:mt-2"
-          title="Admin Settings"
-        >
-          <Settings className="w-3.5 h-3.5 md:w-5 md:h-5" />
-        </Link>
+            <Settings className="w-3.5 h-3.5 md:w-5 md:h-5" />
+          </Link>
+        )}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8 md:space-y-12">
