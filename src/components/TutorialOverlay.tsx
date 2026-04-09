@@ -59,42 +59,61 @@ export default function TutorialOverlay() {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
+        width: 'calc(100% - 40px)',
+        maxWidth: '320px'
       };
     }
 
     const padding = 20;
-    switch (currentStep.position) {
-      case 'bottom':
-        return {
-          top: targetRect.bottom + padding,
-          left: targetRect.left + targetRect.width / 2,
-          transform: 'translateX(-50%)',
-        };
-      case 'top':
-        return {
-          top: targetRect.top - padding,
-          left: targetRect.left + targetRect.width / 2,
-          transform: 'translate(-50%, -100%)',
-        };
-      case 'left':
-        return {
-          top: targetRect.top + targetRect.height / 2,
-          left: targetRect.left - padding,
-          transform: 'translate(-100%, -50%)',
-        };
-      case 'right':
-        return {
-          top: targetRect.top + targetRect.height / 2,
-          left: targetRect.right + padding,
-          transform: 'translate(0, -50%)',
-        };
-      default:
-        return {
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-        };
+    const viewportWidth = window.innerWidth;
+    const tooltipWidth = Math.min(viewportWidth - 40, 320);
+    
+    let top = 0;
+    let left = targetRect.left + targetRect.width / 2;
+    let transform = 'translateX(-50%)';
+
+    if (currentStep.position === 'bottom') {
+      top = targetRect.bottom + padding;
+    } else if (currentStep.position === 'top') {
+      top = targetRect.top - padding;
+      transform = 'translate(-50%, -100%)';
+    } else if (currentStep.position === 'left') {
+      top = targetRect.top + targetRect.height / 2;
+      left = targetRect.left - padding;
+      transform = 'translate(-100%, -50%)';
+    } else if (currentStep.position === 'right') {
+      top = targetRect.top + targetRect.height / 2;
+      left = targetRect.right + padding;
+      transform = 'translate(0, -50%)';
     }
+
+    // Horizontal boundary check
+    const halfWidth = tooltipWidth / 2;
+    if (left - halfWidth < 20) {
+      left = 20;
+      transform = transform.includes('-100%') ? 'translate(0, -100%)' : 'translate(0, 0)';
+      if (currentStep.position === 'left' || currentStep.position === 'right') {
+        transform = 'translate(0, -50%)';
+      }
+    } else if (left + halfWidth > viewportWidth - 20) {
+      left = viewportWidth - 20;
+      transform = transform.includes('-100%') ? 'translate(-100%, -100%)' : 'translate(-100%, 0)';
+      if (currentStep.position === 'left' || currentStep.position === 'right') {
+        transform = 'translate(-100%, -50%)';
+      }
+    }
+
+    // Vertical boundary check (simple)
+    if (top < 20) top = 20;
+    if (top > window.innerHeight - 100) top = window.innerHeight - 100;
+
+    return {
+      top,
+      left,
+      transform,
+      width: tooltipWidth,
+      maxWidth: '320px'
+    };
   };
 
   return (
@@ -123,7 +142,7 @@ export default function TutorialOverlay() {
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.9 }}
-          className="absolute pointer-events-auto w-[320px] bg-white rounded-3xl shadow-2xl p-6 border border-slate-100"
+          className="absolute pointer-events-auto bg-white rounded-3xl shadow-2xl p-6 border border-slate-100"
           style={getPositionStyles()}
         >
           <div className="flex justify-between items-start mb-4">
