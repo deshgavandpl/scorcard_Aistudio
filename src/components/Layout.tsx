@@ -7,6 +7,7 @@ import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User 
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { useAdmin } from '../context/AdminContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,9 +15,9 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { isAdminMode, login, logout } = useAdmin();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -48,8 +49,6 @@ export default function Layout({ children }: LayoutProps) {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      setIsAdminMode(false);
-      localStorage.removeItem('isAdminMode');
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -57,21 +56,20 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminId === 'admin' && adminPass === '5007') {
-      setIsAdminMode(true);
-      localStorage.setItem('isAdminMode', 'true');
+    if (login(adminId, adminPass)) {
       setShowAdminLogin(false);
       setAdminId('');
       setAdminPass('');
       setLoginError('');
+      toast.success('Admin Mode Unlocked');
     } else {
       setLoginError('Invalid ID or PIN');
     }
   };
 
   const handleAdminLogout = () => {
-    setIsAdminMode(false);
-    localStorage.removeItem('isAdminMode');
+    logout();
+    toast.info('Admin Mode Locked');
   };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
@@ -417,7 +415,7 @@ export default function Layout({ children }: LayoutProps) {
               ))}
               
               <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                {isAdminMode ? (
+                {isAdminMode && (
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end">
                       <span className="text-[10px] font-black text-brand-red uppercase tracking-widest">Admin Mode</span>
@@ -431,13 +429,6 @@ export default function Layout({ children }: LayoutProps) {
                       <LogOut className="w-5 h-5" />
                     </button>
                   </div>
-                ) : (
-                  <button 
-                    onClick={() => setShowAdminLogin(true)}
-                    className="bg-brand-red text-white px-4 py-2 rounded-md text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all flex items-center gap-2"
-                  >
-                    <LogIn className="w-4 h-4" /> Admin
-                  </button>
                 )}
 
                 {user ? (
@@ -513,20 +504,13 @@ export default function Layout({ children }: LayoutProps) {
             ))}
             
             <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
-              {isAdminMode ? (
+              {isAdminMode && (
                 <button 
                   onClick={handleAdminLogout}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-red-50 text-brand-red font-bold"
                 >
                   <span className="uppercase tracking-widest text-xs">Admin Mode: Unlocked</span>
                   <LogOut className="w-5 h-5" />
-                </button>
-              ) : (
-                <button 
-                  onClick={() => { setShowAdminLogin(true); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-red text-white font-bold uppercase tracking-widest text-xs"
-                >
-                  <LogIn className="w-5 h-5" /> Admin Login
                 </button>
               )}
 
@@ -582,6 +566,14 @@ export default function Layout({ children }: LayoutProps) {
               <button onClick={() => setShowAbout(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">About</button>
               <button onClick={() => setShowContact(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Contact</button>
               <button onClick={() => setShowPrivacy(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Privacy</button>
+              {!isAdminMode && (
+                <button 
+                  onClick={() => setShowAdminLogin(true)} 
+                  className="text-slate-600 hover:text-brand-red transition-colors text-sm font-bold uppercase tracking-wider flex items-center gap-1"
+                >
+                  <Shield className="w-4 h-4" /> Admin
+                </button>
+              )}
             </div>
           </div>
 

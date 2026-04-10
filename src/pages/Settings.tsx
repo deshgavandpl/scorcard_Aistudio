@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { toast } from 'sonner';
-import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft, Megaphone, Trash2, Send, Plus, Twitter, Github, MessageCircle } from 'lucide-react';
+import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft, Megaphone, Trash2, Send, Plus, Twitter, Github, MessageCircle, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
+
+import { useAdmin } from '../context/AdminContext';
 
 const AVAILABLE_ICONS = [
   { name: 'Youtube', icon: Youtube },
@@ -19,6 +21,28 @@ const AVAILABLE_ICONS = [
 ];
 
 export default function Settings() {
+  const { isAdminMode } = useAdmin();
+
+  if (!isAdminMode) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
+        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+          <Shield className="w-10 h-10 text-brand-red" />
+        </div>
+        <h1 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Admin Access Required</h1>
+        <p className="text-slate-500 max-w-md mb-8 font-medium">
+          You need to be in Admin Mode to access these settings. Please use the Admin Login in the footer.
+        </p>
+        <Link 
+          to="/"
+          className="px-8 py-3 bg-brand-red text-white font-black uppercase tracking-widest rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-brand-red/20"
+        >
+          Back to Home
+        </Link>
+      </div>
+    );
+  }
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -27,6 +51,7 @@ export default function Settings() {
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!isAdminMode) return;
     async function fetchSettings() {
       try {
         const socialRef = doc(db, 'settings', 'social');

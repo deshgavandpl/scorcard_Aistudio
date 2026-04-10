@@ -14,6 +14,7 @@ import Teams from './pages/Teams';
 import Settings from './pages/Settings';
 import UserGuide from './pages/UserGuide';
 import { PlayerProfileProvider } from './context/PlayerProfileContext';
+import { AdminProvider } from './context/AdminContext';
 import PlayerProfileModal from './components/PlayerProfileModal';
 import AnnouncementOverlay from './components/AnnouncementOverlay';
 
@@ -21,25 +22,27 @@ export default function App() {
   return (
     <Router>
       <Toaster position="top-right" richColors />
-      <PlayerProfileProvider>
-        <PlayerProfileModal />
-        <AnnouncementOverlay />
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/live" element={<LiveScore />} />
-            <Route path="/match/:id" element={<LiveMatchView />} />
-            <Route path="/admin/match/:id" element={<MatchScoring />} />
-            <Route path="/tournaments" element={<TournamentList />} />
-            <Route path="/tournaments/new" element={<TournamentSetup />} />
-            <Route path="/tournament/:id" element={<TournamentDetail />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/teams" element={<Teams />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/help" element={<UserGuide />} />
-          </Routes>
-        </Layout>
-      </PlayerProfileProvider>
+      <AdminProvider>
+        <PlayerProfileProvider>
+          <PlayerProfileModal />
+          <AnnouncementOverlay />
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/live" element={<LiveScore />} />
+              <Route path="/match/:id" element={<LiveMatchView />} />
+              <Route path="/admin/match/:id" element={<MatchScoring />} />
+              <Route path="/tournaments" element={<TournamentList />} />
+              <Route path="/tournaments/new" element={<TournamentSetup />} />
+              <Route path="/tournament/:id" element={<TournamentDetail />} />
+              <Route path="/stats" element={<Stats />} />
+              <Route path="/teams" element={<Teams />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/help" element={<UserGuide />} />
+            </Routes>
+          </Layout>
+        </PlayerProfileProvider>
+      </AdminProvider>
     </Router>
   );
 }

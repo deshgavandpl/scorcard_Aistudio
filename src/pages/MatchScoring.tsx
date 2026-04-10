@@ -24,6 +24,7 @@ import { doc, onSnapshot, setDoc, deleteDoc, updateDoc, increment, getDoc, getDo
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { useAdmin } from '../context/AdminContext';
 import Scorecard from '../components/Scorecard';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -97,11 +98,11 @@ export default function MatchScoring() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openPlayerProfile } = usePlayerProfile();
+  const { isAdminMode } = useAdmin();
   const [isSettingUp, setIsSettingUp] = useState(id === 'new');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [setupStep, setSetupStep] = useState(1);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -109,20 +110,12 @@ export default function MatchScoring() {
       setUser(currentUser);
     });
     
-    const handleStorageChange = () => {
-      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
-    };
-    window.addEventListener('storage', handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
-
     return () => {
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
-  const canManage = user || isAdminMode;
+  const canManage = isAdminMode;
   
   // Setup State
   const [teamA, setTeamA] = useState('');

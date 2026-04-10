@@ -24,6 +24,7 @@ import { cn } from '../lib/utils';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { useAdmin } from '../context/AdminContext';
 
 const ICON_MAP: Record<string, any> = {
   Youtube,
@@ -39,7 +40,7 @@ const ICON_MAP: Record<string, any> = {
 
 export default function Home() {
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const { isAdminMode } = useAdmin();
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
 
   useEffect(() => {
@@ -47,20 +48,12 @@ export default function Home() {
       setUser(currentUser);
     });
     
-    const handleStorageChange = () => {
-      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
-    };
-    window.addEventListener('storage', handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
-
     return () => {
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
-  const canManage = user || isAdminMode;
+  const canManage = isAdminMode;
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'social'), (doc) => {

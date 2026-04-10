@@ -9,13 +9,14 @@ import { collection, onSnapshot, query, deleteDoc, doc, getDocs, where, setDoc }
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { useAdmin } from '../context/AdminContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
 
 export default function TournamentList() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const { isAdminMode } = useAdmin();
   const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,20 +24,12 @@ export default function TournamentList() {
       setUser(currentUser);
     });
     
-    const handleStorageChange = () => {
-      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
-    };
-    window.addEventListener('storage', handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
-
     return () => {
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
-  const canManage = user || isAdminMode;
+  const canManage = isAdminMode;
 
   useEffect(() => {
     const q = query(collection(db, 'tournaments'));

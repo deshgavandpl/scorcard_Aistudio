@@ -9,12 +9,13 @@ import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import { useAdmin } from '../context/AdminContext';
 import TournamentWidget from '../components/TournamentWidget';
 
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const { isAdminMode } = useAdmin();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,22 +23,12 @@ export default function LiveScore() {
       setUser(currentUser);
     });
     
-    // Listen for storage changes to sync admin mode
-    const handleStorageChange = () => {
-      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
-    };
-    window.addEventListener('storage', handleStorageChange);
-    // Also poll briefly because 'storage' event only fires on other tabs
-    const interval = setInterval(handleStorageChange, 1000);
-
     return () => {
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
-  const canManage = user || isAdminMode;
+  const canManage = isAdminMode;
 
   useEffect(() => {
     const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));

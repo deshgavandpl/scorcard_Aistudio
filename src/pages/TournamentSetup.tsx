@@ -9,6 +9,7 @@ import { collection, doc, setDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import { useAdmin } from '../context/AdminContext';
 
 export default function TournamentSetup() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function TournamentSetup() {
   const [teamIds, setTeamIds] = useState(['', '', '', '']);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
+  const { isAdminMode } = useAdmin();
   const [step, setStep] = useState<'setup' | 'preview'>('setup');
   const [generatedMatches, setGeneratedMatches] = useState<Match[]>([]);
   const [openingMatchId, setOpeningMatchId] = useState<string>('');
@@ -41,20 +42,12 @@ export default function TournamentSetup() {
       setUser(currentUser);
     });
     
-    const handleStorageChange = () => {
-      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
-    };
-    window.addEventListener('storage', handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
-
     return () => {
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
-  const canManage = user || isAdminMode;
+  const canManage = isAdminMode;
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();

@@ -10,6 +10,7 @@ import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, getDoc } 
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { useAdmin } from '../context/AdminContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
@@ -18,11 +19,11 @@ export default function TournamentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openPlayerProfile } = usePlayerProfile();
+  const { isAdminMode } = useAdmin();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams'>('fixtures');
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [isAdminMode, setIsAdminMode] = useState(localStorage.getItem('isAdminMode') === 'true');
   const [showAddMatch, setShowAddMatch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditTournament, setShowEditTournament] = useState(false);
@@ -71,20 +72,12 @@ export default function TournamentDetail() {
       setUser(currentUser);
     });
     
-    const handleStorageChange = () => {
-      setIsAdminMode(localStorage.getItem('isAdminMode') === 'true');
-    };
-    window.addEventListener('storage', handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
-
     return () => {
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
-  const canManage = user || isAdminMode;
+  const canManage = isAdminMode;
 
   useEffect(() => {
     if (!id) return;
