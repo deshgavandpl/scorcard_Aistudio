@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { toast } from 'sonner';
-import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft, Megaphone, Trash2, Send, Plus, Twitter, Github, MessageCircle, Shield } from 'lucide-react';
+import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft, Megaphone, Trash2, Send, Plus, Twitter, Github, MessageCircle, Shield, Upload, Image as ImageIcon, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
@@ -48,6 +48,7 @@ export default function Settings() {
   const [broadcasting, setBroadcasting] = useState(false);
   const [announcementMessage, setAnnouncementMessage] = useState('');
   const [announcementImage, setAnnouncementImage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
 
   useEffect(() => {
@@ -120,6 +121,30 @@ export default function Settings() {
 
   const deleteSocialLink = (id: string) => {
     setSocialLinks(socialLinks.filter(l => l.id !== id));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (limit to 800KB for Firestore)
+    if (file.size > 800 * 1024) {
+      toast.error('Image is too large. Please select an image under 800KB.');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAnnouncementImage(reader.result as string);
+      setIsUploading(false);
+      toast.success('Image uploaded successfully');
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+      setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleBroadcast = async () => {
@@ -206,23 +231,62 @@ export default function Settings() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Image URL (Optional)</label>
-            <input
-              type="url"
-              value={announcementImage}
-              onChange={(e) => setAnnouncementImage(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all text-sm font-medium"
-            />
+            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Announcement Image</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Upload from device</p>
+                <label className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl appearance-none cursor-pointer hover:border-brand-red focus:outline-none group">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-brand-red transition-colors mb-2" />
+                    <p className="text-xs text-slate-500 font-medium">
+                      {isUploading ? 'Reading file...' : 'Click to upload image'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">Max size: 800KB</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
+                  />
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Or use Image URL</p>
+                <input
+                  type="url"
+                  value={announcementImage.startsWith('data:') ? '' : announcementImage}
+                  onChange={(e) => setAnnouncementImage(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all text-sm font-medium h-[128px]"
+                />
+              </div>
+            </div>
+
             {announcementImage && (
-              <div className="mt-2 relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100">
+              <div className="mt-4 relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 group">
                 <img 
                   src={announcementImage} 
                   alt="Preview" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
-                  onError={() => toast.error('Invalid image URL')}
+                  onError={() => {
+                    if (!announcementImage.startsWith('data:')) {
+                      toast.error('Invalid image URL');
+                    }
+                  }}
                 />
+                <button
+                  onClick={() => setAnnouncementImage('')}
+                  className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 text-white text-[10px] font-bold rounded uppercase tracking-widest">
+                  {announcementImage.startsWith('data:') ? 'Uploaded File' : 'External URL'}
+                </div>
               </div>
             )}
           </div>
