@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User, Mail, Shield, Phone, MessageSquare, Send, BookOpen } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { auth, db } from '../firebase';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, signOut, User as FirebaseUser, getRedirectResult } from 'firebase/auth';
+import { handleGoogleLogin } from '../lib/authUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
@@ -34,15 +35,22 @@ export default function Layout({ children }: LayoutProps) {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
+
+    // Handle redirect result for mobile logins
+    getRedirectResult(auth).catch((error) => {
+      if (error.code !== 'auth/popup-closed-by-user') {
+        console.error("Redirect login failed:", error);
+      }
+    });
+
     return () => unsubscribe();
   }, []);
 
   const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await handleGoogleLogin();
     } catch (error) {
-      console.error("Login failed:", error);
+      toast.error('Login failed. Please try again.');
     }
   };
 

@@ -8,8 +8,10 @@ import { cn } from '../lib/utils';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { handleGoogleLogin } from '../lib/authUtils';
 import { useAdmin } from '../context/AdminContext';
+import { toast } from 'sonner';
 import TournamentWidget from '../components/TournamentWidget';
 
 export default function LiveScore() {
@@ -112,11 +114,10 @@ export default function LiveScore() {
   });
 
   const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await handleGoogleLogin();
     } catch (error) {
-      console.error("Login failed:", error);
+      toast.error('Login failed. Please try again.');
     }
   };
 

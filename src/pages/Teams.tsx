@@ -7,7 +7,8 @@ import { cn } from '../lib/utils';
 import { collection, onSnapshot, query, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { handleGoogleLogin } from '../lib/authUtils';
 import { useAdmin } from '../context/AdminContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -52,11 +53,10 @@ export default function Teams() {
   }, []);
 
   const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await handleGoogleLogin();
     } catch (error) {
-      console.error("Login failed:", error);
+      toast.error('Login failed. Please try again.');
     }
   };
 

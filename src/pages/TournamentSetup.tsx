@@ -8,7 +8,8 @@ import { cn } from '../lib/utils';
 import { collection, doc, setDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { handleGoogleLogin } from '../lib/authUtils';
 import { useAdmin } from '../context/AdminContext';
 import { toast } from 'sonner';
 
@@ -128,11 +129,10 @@ export default function TournamentSetup() {
   const canManage = isAdminMode;
 
   const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await handleGoogleLogin();
     } catch (error) {
-      console.error("Login failed:", error);
+      toast.error('Login failed. Please try again.');
     }
   };
 
