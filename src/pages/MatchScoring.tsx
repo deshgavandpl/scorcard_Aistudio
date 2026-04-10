@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Share2,
   Flame,
-  Volume2
+  Volume2,
+  Shield
 } from 'lucide-react';
 import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats, BallEvent } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
@@ -98,7 +99,84 @@ export default function MatchScoring() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openPlayerProfile } = usePlayerProfile();
-  const { isAdminMode } = useAdmin();
+  const { isAdminMode, login } = useAdmin();
+  const [adminId, setAdminId] = useState('');
+  const [adminPass, setAdminPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (login(adminId, adminPass)) {
+      toast.success('Admin Mode Unlocked');
+    } else {
+      setLoginError('Invalid ID or PIN');
+      toast.error('Invalid credentials');
+    }
+  };
+
+  if (!isAdminMode) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh] p-4">
+        <div className="w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 space-y-8">
+          <div className="text-center space-y-2">
+            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mb-6 mx-auto rotate-3">
+              <Shield className="w-10 h-10 text-brand-red" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Scoring Access</h1>
+            <p className="text-slate-500 font-medium">Enter admin credentials to start scoring.</p>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Admin ID</label>
+              <input 
+                type="text" 
+                value={adminId}
+                onChange={(e) => setAdminId(e.target.value)}
+                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                placeholder="Enter ID"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">PIN / Password</label>
+              <input 
+                type="password" 
+                value={adminPass}
+                onChange={(e) => setAdminPass(e.target.value)}
+                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                placeholder="Enter PIN"
+                required
+              />
+            </div>
+            
+            {loginError && (
+              <p className="text-brand-red text-[10px] font-black uppercase tracking-widest text-center animate-bounce">
+                {loginError}
+              </p>
+            )}
+
+            <button 
+              type="submit"
+              className="w-full py-5 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-brand-red/20 active:scale-95"
+            >
+              Unlock Scoring
+            </button>
+          </form>
+
+          <div className="pt-4 text-center">
+            <button 
+              onClick={() => navigate('/live')}
+              className="text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors"
+            >
+              ← Back to Live Scores
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const [isSettingUp, setIsSettingUp] = useState(id === 'new');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [setupStep, setSetupStep] = useState(1);
