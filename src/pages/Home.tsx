@@ -215,7 +215,7 @@ export default function Home() {
         </section>
 
         {/* Quick Actions */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <ActionCard 
             title="Live Scoring" 
             desc="Ball-by-ball updates for Rural Cricket matches and local tournaments." 
@@ -229,6 +229,13 @@ export default function Home() {
             icon={Trophy} 
             link="/tournaments"
             color="bg-amber-500"
+          />
+          <ActionCard 
+            title="Teams" 
+            desc="View and manage local cricket teams and their player rosters." 
+            icon={Users} 
+            link="/teams"
+            color="bg-blue-500"
           />
           <ActionCard 
             title="Player Stats" 
