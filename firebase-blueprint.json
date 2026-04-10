@@ -75,6 +75,19 @@
         "website": { "type": "string" },
         "linkedin": { "type": "string" }
       }
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Global announcement data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "message": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "active": { "type": "boolean" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "message", "active"]
     }
   },
   "firestore": {

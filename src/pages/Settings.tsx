@@ -23,6 +23,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
   const [announcementMessage, setAnnouncementMessage] = useState('');
+  const [announcementImage, setAnnouncementImage] = useState('');
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
 
   useEffect(() => {
@@ -50,7 +51,9 @@ export default function Settings() {
         const announceRef = doc(db, 'settings', 'announcement');
         const announceSnap = await getDoc(announceRef);
         if (announceSnap.exists()) {
-          setAnnouncementMessage(announceSnap.data().message || '');
+          const data = announceSnap.data();
+          setAnnouncementMessage(data.message || '');
+          setAnnouncementImage(data.imageUrl || '');
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -104,6 +107,7 @@ export default function Settings() {
       await setDoc(doc(db, 'settings', 'announcement'), {
         id: Math.random().toString(36).substr(2, 9),
         message: announcementMessage,
+        imageUrl: announcementImage,
         active: true,
         timestamp: Date.now()
       });
@@ -174,6 +178,28 @@ export default function Settings() {
               rows={3}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all text-sm font-medium resize-none"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Image URL (Optional)</label>
+            <input
+              type="url"
+              value={announcementImage}
+              onChange={(e) => setAnnouncementImage(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all text-sm font-medium"
+            />
+            {announcementImage && (
+              <div className="mt-2 relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100">
+                <img 
+                  src={announcementImage} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={() => toast.error('Invalid image URL')}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">
