@@ -226,6 +226,8 @@ export default function MatchScoring() {
   const [showWicketModal, setShowWicketModal] = useState(false);
   const [wicketType, setWicketType] = useState('Bowled');
   const [fielderName, setFielderName] = useState('');
+  const [wicketExtraType, setWicketExtraType] = useState<'Wd' | 'Nb' | null>(null);
+  const [outPlayerId, setOutPlayerId] = useState<string | null>(null);
   const [extraRuns, setExtraRuns] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -701,17 +703,13 @@ export default function MatchScoring() {
     await finishMatch(winnerId, resultMessage, manOfTheMatch);
     toast.success('Match result updated.');
   };
-  const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string, fName?: string) => {
+  const handleBall = (runs: number, isExtra = false, extraType?: any, isWicket = false, wType?: string, fName?: string, outId?: string) => {
     if (!match || !canManage) return;
     const currentInn = match.isSuperOver
       ? (match.currentInnings === 1 ? match.superOverInnings1 : match.superOverInnings2)
       : (match.currentInnings === 1 ? match.innings1 : match.innings2);
       
     if (!currentInn) return;
-    
-    const isOver = match.isSuperOver 
-      ? (currentInn.overs === 1 || currentInn.wickets === 2)
-      : (currentInn.overs === match.oversLimit || currentInn.wickets === 10);
     
     const striker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => b.isStriker);
     const bowler = currentInn.currentBowlerId ? currentInn.bowlingStats[currentInn.currentBowlerId] : null;
@@ -729,8 +727,13 @@ export default function MatchScoring() {
       wicketType: wType,
       fielderName: fName,
       strikerId: striker.playerId,
-      bowlerId: bowler.playerId
+      bowlerId: bowler.playerId,
+      outPlayerId: outId
     });
+
+    if (isWicket) {
+      setIsSelectingPlayers(true);
+    }
 
     // Hype Feedback
     const ballEvent: BallEvent = {
@@ -1580,7 +1583,14 @@ export default function MatchScoring() {
           <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Wicket!</h2>
-              <button onClick={() => setShowWicketModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button 
+                onClick={() => {
+                  setShowWicketModal(false);
+                  setWicketExtraType(null);
+                  setOutPlayerId(null);
+                }} 
+                className="text-slate-400 hover:text-slate-600"
+              >
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -1601,6 +1611,65 @@ export default function MatchScoring() {
                 ))}
               </div>
 
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Who is out?</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setOutPlayerId(striker?.playerId || null)}
+                      className={cn(
+                        "py-3 rounded-xl font-bold text-[10px] transition-all border-2",
+                        (!outPlayerId || outPlayerId === striker?.playerId) ? "bg-red-50 border-red-500 text-red-700" : "bg-white border-slate-100 text-slate-400"
+                      )}
+                    >
+                      Striker ({striker?.playerName})
+                    </button>
+                    <button
+                      onClick={() => setOutPlayerId(nonStriker?.playerId || null)}
+                      className={cn(
+                        "py-3 rounded-xl font-bold text-[10px] transition-all border-2",
+                        outPlayerId === nonStriker?.playerId ? "bg-red-50 border-red-500 text-red-700" : "bg-white border-slate-100 text-slate-400"
+                      )}
+                    >
+                      Non-Striker ({nonStriker?.playerName})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Extra Ball?</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => setWicketExtraType(null)}
+                      className={cn(
+                        "py-2 rounded-lg font-bold text-[8px] transition-all border",
+                        wicketExtraType === null ? "bg-slate-900 text-white" : "bg-white text-slate-400 border-slate-100"
+                      )}
+                    >
+                      None
+                    </button>
+                    <button
+                      onClick={() => setWicketExtraType('Nb')}
+                      className={cn(
+                        "py-2 rounded-lg font-bold text-[8px] transition-all border",
+                        wicketExtraType === 'Nb' ? "bg-brand-red text-white" : "bg-white text-slate-400 border-slate-100"
+                      )}
+                    >
+                      No Ball
+                    </button>
+                    <button
+                      onClick={() => setWicketExtraType('Wd')}
+                      className={cn(
+                        "py-2 rounded-lg font-bold text-[8px] transition-all border",
+                        wicketExtraType === 'Wd' ? "bg-brand-red text-white" : "bg-white text-slate-400 border-slate-100"
+                      )}
+                    >
+                      Wide
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {(wicketType === 'Caught' || wicketType === 'Run Out' || wicketType === 'Stumped') && (
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
@@ -1618,9 +1687,11 @@ export default function MatchScoring() {
 
               <button
                 onClick={() => {
-                  handleBall(0, false, undefined, true, wicketType, fielderName);
+                  handleBall(0, !!wicketExtraType, wicketExtraType, true, wicketType, fielderName, outPlayerId || striker?.playerId);
                   setShowWicketModal(false);
                   setFielderName('');
+                  setWicketExtraType(null);
+                  setOutPlayerId(null);
                 }}
                 className="w-full py-4 rounded-xl bg-red-600 text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
               >

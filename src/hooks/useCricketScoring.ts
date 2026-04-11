@@ -68,6 +68,7 @@ export function useCricketScoring(matchId: string | undefined) {
     if (event.isExtra && event.extraType) ballEvent.extraType = event.extraType;
     if (event.isWicket && event.wicketType) ballEvent.wicketType = event.wicketType;
     if (event.fielderName) ballEvent.fielderName = event.fielderName;
+    if (event.outPlayerId) ballEvent.outPlayerId = event.outPlayerId;
 
     // Update runs and extras
     let runsToAdd = event.runs;
@@ -98,7 +99,10 @@ export function useCricketScoring(matchId: string | undefined) {
       }
       if (event.runs === 4 && !event.isExtra) updatedStriker.fours += 1;
       if (event.runs === 6 && !event.isExtra) updatedStriker.sixes += 1;
-      if (event.isWicket) {
+      
+      // Handle wicket for striker
+      const isStrikerOut = event.isWicket && (!event.outPlayerId || event.outPlayerId === event.strikerId);
+      if (isStrikerOut) {
         updatedStriker.isOut = true;
         updatedStriker.isStriker = false;
         updatedStriker.howOut = event.wicketType || 'Out';
@@ -107,6 +111,21 @@ export function useCricketScoring(matchId: string | undefined) {
         }
       }
       newInnings.battingStats[event.strikerId] = updatedStriker;
+    }
+
+    // Handle wicket for non-striker (Run Out)
+    if (event.isWicket && event.outPlayerId && event.outPlayerId !== event.strikerId) {
+      const outPlayer = newInnings.battingStats[event.outPlayerId];
+      if (outPlayer) {
+        const updatedOutPlayer = { ...outPlayer };
+        updatedOutPlayer.isOut = true;
+        updatedOutPlayer.isStriker = false;
+        updatedOutPlayer.howOut = event.wicketType || 'Out';
+        if (event.fielderName) {
+          updatedOutPlayer.howOut += ` (${event.fielderName})`;
+        }
+        newInnings.battingStats[event.outPlayerId] = updatedOutPlayer;
+      }
     }
 
     // Update bowler stats

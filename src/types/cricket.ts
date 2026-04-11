@@ -67,6 +67,7 @@ export interface BallEvent {
   fielderName?: string;
   strikerId: string;
   bowlerId: string;
+  outPlayerId?: string;
 }
 
 export interface Match {
