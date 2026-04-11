@@ -16,7 +16,8 @@ import {
   Share2,
   Flame,
   Volume2,
-  Shield
+  Shield,
+  ArrowRight
 } from 'lucide-react';
 import { Match, MatchInnings, Player, PlayerRole, BatterStats, BowlerStats, BallEvent } from '../types/cricket';
 import { useCricketScoring } from '../hooks/useCricketScoring';
@@ -34,7 +35,7 @@ import { usePlayerProfile } from '../context/PlayerProfileContext';
 import { Tournament, Team } from '../types/cricket';
 import TournamentSidebar from '../components/TournamentSidebar';
 import LiveChat from '../components/LiveChat';
-import { getHypeCommentary, speakHype } from '../lib/audioUtils';
+import { getHypeCommentary, speakHype, testSound } from '../lib/audioUtils';
 
 const calculateManOfTheMatch = (match: Match, winningTeamId: string) => {
   if (winningTeamId === 'Draw') return 'N/A';
@@ -246,6 +247,16 @@ export default function MatchScoring() {
   const [teamARoster, setTeamARoster] = useState<Player[]>([]);
   const [teamBRoster, setTeamBRoster] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
+
+  // Force voices to load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
 
   // Sync youtubeLiveUrl when match loads
   useEffect(() => {
@@ -1089,26 +1100,43 @@ export default function MatchScoring() {
                       autoFocus
                       value={needsStriker ? strikerName : nonStrikerName}
                       onChange={(e) => needsStriker ? setStrikerName(e.target.value) : setNonStrikerName(e.target.value)}
-                      placeholder="ENTER BATTER NAME"
-                      className="w-full px-4 py-4 rounded-2xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl shadow-sm"
+                      placeholder="TYPE NAME MANUALLY"
+                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-sm shadow-sm"
                     />
                     {(needsStriker ? strikerName : nonStrikerName) && (
                       <button 
                         onClick={() => needsStriker ? setStrikerName('') : setNonStrikerName('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
                       >
-                        <X className="w-4 h-4 text-slate-400" />
+                        <X className="w-3 h-3 text-slate-400" />
                       </button>
                     )}
                   </div>
                   
                   {battingRoster.length > 0 ? (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between px-1">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select from {isTeamABatting ? match.teamAName : match.teamBName} Roster</p>
-                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{battingRoster.length} Players</p>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select from Roster</label>
+                        <select
+                          value={(needsStriker ? strikerName : nonStrikerName)}
+                          onChange={(e) => needsStriker ? setStrikerName(e.target.value) : setNonStrikerName(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold uppercase tracking-tight text-xs outline-none focus:border-brand-red transition-all bg-slate-50"
+                        >
+                          <option value="">-- Choose Player --</option>
+                          {battingRoster
+                            .filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name))
+                            .map(p => (
+                              <option key={p.id} value={p.name}>{p.name}</option>
+                            ))
+                          }
+                        </select>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1 custom-scrollbar">
+
+                      <div className="flex items-center justify-between px-1 pt-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available Players</p>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{battingRoster.filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name)).length} Left</p>
+                      </div>
+                      <div className="flex flex-col gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
                         {battingRoster
                           .filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name))
                           .map((p) => (
@@ -1116,17 +1144,20 @@ export default function MatchScoring() {
                             key={p.id}
                             onClick={() => needsStriker ? setStrikerName(p.name) : setNonStrikerName(p.name)}
                             className={cn(
-                              "px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all text-left flex items-center gap-2",
+                              "px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all text-left flex items-center justify-between",
                               (needsStriker ? strikerName : nonStrikerName) === p.name 
-                                ? "bg-brand-red border-brand-red text-white shadow-lg translate-x-1" 
+                                ? "bg-brand-red border-brand-red text-white shadow-lg" 
                                 : "bg-white border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50/30"
                             )}
                           >
-                            <div className={cn(
-                              "w-2 h-2 rounded-full",
-                              (needsStriker ? strikerName : nonStrikerName) === p.name ? "bg-white" : "bg-slate-200"
-                            )} />
-                            <span className="truncate">{p.name}</span>
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                (needsStriker ? strikerName : nonStrikerName) === p.name ? "bg-white" : "bg-slate-200"
+                              )} />
+                              <span className="truncate">{p.name}</span>
+                            </div>
+                            <ArrowRight className={cn("w-3 h-3", (needsStriker ? strikerName : nonStrikerName) === p.name ? "text-white" : "text-slate-300")} />
                           </button>
                         ))}
                       </div>
@@ -1149,15 +1180,15 @@ export default function MatchScoring() {
                       autoFocus
                       value={bowlerName}
                       onChange={(e) => setBowlerName(e.target.value)}
-                      placeholder="ENTER BOWLER NAME"
-                      className="w-full px-4 py-4 rounded-2xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-xl shadow-sm"
+                      placeholder="TYPE NAME MANUALLY"
+                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-black uppercase tracking-widest focus:border-brand-red outline-none transition-all text-center text-sm shadow-sm"
                     />
                     {bowlerName && (
                       <button 
                         onClick={() => setBowlerName('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
                       >
-                        <X className="w-4 h-4 text-slate-400" />
+                        <X className="w-3 h-3 text-slate-400" />
                       </button>
                     )}
                   </div>
@@ -1165,11 +1196,25 @@ export default function MatchScoring() {
                   <div className="space-y-4">
                     {bowlingRoster.length > 0 ? (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between px-1">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select from {isTeamABatting ? match.teamBName : match.teamAName} Roster</p>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select from Roster</label>
+                          <select
+                            value={bowlerName}
+                            onChange={(e) => setBowlerName(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 font-bold uppercase tracking-tight text-xs outline-none focus:border-brand-red transition-all bg-slate-50"
+                          >
+                            <option value="">-- Choose Bowler --</option>
+                            {bowlingRoster.map(p => (
+                              <option key={p.id} value={p.name} disabled={p.name === lastOverBowler}>{p.name} {p.name === lastOverBowler ? '(Last Over)' : ''}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex items-center justify-between px-1 pt-2">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available Bowlers</p>
                           <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{bowlingRoster.length} Players</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1 custom-scrollbar">
+                        <div className="flex flex-col gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
                           {bowlingRoster.map((p) => {
                             const isLastBowler = p.name === lastOverBowler;
                             return (
@@ -1178,18 +1223,24 @@ export default function MatchScoring() {
                                 disabled={isLastBowler}
                                 onClick={() => setBowlerName(p.name)}
                                 className={cn(
-                                  "px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all text-left flex items-center gap-2",
-                                  bowlerName === p.name ? "bg-brand-red border-brand-red text-white shadow-lg translate-x-1" : 
+                                  "px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition-all text-left flex items-center justify-between",
+                                  bowlerName === p.name ? "bg-brand-red border-brand-red text-white shadow-lg" : 
                                   isLastBowler ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50" :
                                   "bg-white border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50/30"
                                 )}
                               >
-                                <div className={cn(
-                                  "w-2 h-2 rounded-full",
-                                  bowlerName === p.name ? "bg-white" : isLastBowler ? "bg-slate-300" : "bg-slate-200"
-                                )} />
-                                <span className="truncate">{p.name}</span>
-                                {isLastBowler && <span className="ml-auto text-[6px] opacity-60">LAST</span>}
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "w-2 h-2 rounded-full",
+                                    bowlerName === p.name ? "bg-white" : isLastBowler ? "bg-slate-300" : "bg-slate-200"
+                                  )} />
+                                  <span className="truncate">{p.name}</span>
+                                </div>
+                                {isLastBowler ? (
+                                  <span className="text-[6px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 uppercase">Last Over</span>
+                                ) : (
+                                  <ArrowRight className={cn("w-3 h-3", bowlerName === p.name ? "text-white" : "text-slate-300")} />
+                                )}
                               </button>
                             );
                           })}
@@ -1554,6 +1605,21 @@ export default function MatchScoring() {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold outline-none focus:border-brand-red transition-all"
                 />
                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Enter the full YouTube URL to show live video to users.</p>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Audio Commentary</span>
+                  <button 
+                    onClick={testSound}
+                    className="px-3 py-1.5 rounded-lg bg-brand-red text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-sm"
+                  >
+                    Test Sound
+                  </button>
+                </div>
+                <p className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed">
+                  If you don't hear sound, ensure your device volume is up and "Hindi" voice is installed in your system settings.
+                </p>
               </div>
 
               <button

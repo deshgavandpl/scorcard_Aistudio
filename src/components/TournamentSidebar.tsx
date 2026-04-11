@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trophy, Calendar, BarChart2, ChevronRight, Zap } from 'lucide-react';
+import { X, Trophy, Calendar, BarChart2, ChevronRight, Zap, Users } from 'lucide-react';
 import { Tournament, Match, Team, BatterStats, BowlerStats } from '../types/cricket';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -18,7 +18,7 @@ interface TournamentSidebarProps {
 export default function TournamentSidebar({ isOpen, onClose, tournamentId, currentMatchId }: TournamentSidebarProps) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [activeTab, setActiveTab] = useState<'fixtures' | 'points'>('fixtures');
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams'>('fixtures');
 
   useEffect(() => {
     if (!tournamentId || !isOpen) return;
@@ -161,7 +161,16 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                   activeTab === 'points' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:bg-white/50"
                 )}
               >
-                <BarChart2 className="w-3.5 h-3.5" /> Points Table
+                <BarChart2 className="w-3.5 h-3.5" /> Points
+              </button>
+              <button
+                onClick={() => setActiveTab('teams')}
+                className={cn(
+                  "flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                  activeTab === 'teams' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:bg-white/50"
+                )}
+              >
+                <Users className="w-3.5 h-3.5" /> Teams
               </button>
             </div>
 
@@ -220,7 +229,7 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                     </Link>
                   ))}
                 </div>
-              ) : (
+              ) : activeTab === 'points' ? (
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-[10px]">
                     <thead>
@@ -249,6 +258,31 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                       ))}
                     </tbody>
                   </table>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tournament?.teams.map((team) => (
+                    <div key={team.id} className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center border border-red-100">
+                          <Zap className="w-4 h-4 text-brand-red" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{team.name}</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {team.players.slice(0, 4).map((p, idx) => (
+                          <div key={idx} className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                            <div className="w-1 h-1 bg-slate-300 rounded-full" /> {p.name}
+                          </div>
+                        ))}
+                        {team.players.length > 4 && (
+                          <div className="text-[9px] font-black text-brand-red uppercase tracking-widest">
+                            +{team.players.length - 4} MORE
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

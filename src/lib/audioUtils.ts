@@ -16,10 +16,25 @@ export const speakHype = (text: string) => {
   window.speechSynthesis.cancel();
   
   const utterance = new SpeechSynthesisUtterance(text);
+  
+  // Try to find a Hindi voice
+  const voices = window.speechSynthesis.getVoices();
+  const hindiVoice = voices.find(v => v.lang.includes('hi-IN'));
+  
+  if (hindiVoice) {
+    utterance.voice = hindiVoice;
+  }
+  
   utterance.lang = 'hi-IN';
-  utterance.rate = 1.1;
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
   
   // Some browsers require a user gesture to start speech synthesis
   // We'll try to speak, but it might be blocked initially
   window.speechSynthesis.speak(utterance);
+};
+
+export const testSound = () => {
+  speakHype("Namaste! Apna Cricket System me aapka swagat hai.");
 };

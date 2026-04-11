@@ -73,6 +73,16 @@ export default function UserGuide() {
         "Use the floating chat bubble to send messages or emojis.",
         "Scores update in real-time without needing to refresh the page."
       ]
+    },
+    {
+      title: "Troubleshooting",
+      icon: Zap,
+      color: "bg-purple-50 text-purple-600",
+      steps: [
+        "Google Login: If it fails on mobile, ensure you are not in a private/incognito tab and pop-ups are allowed.",
+        "Sound: If commentary is silent, check device volume and ensure 'Hindi' voice is installed in system settings.",
+        "Missing Data: If a team or match isn't showing, try refreshing the page or checking your internet connection."
+      ]
     }
   ];
 
