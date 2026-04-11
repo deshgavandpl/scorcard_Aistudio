@@ -2097,16 +2097,14 @@ export default function MatchScoring() {
               </button>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {currentInnings?.ballHistory
-                .filter(ball => ball.over === currentInnings.overs)
-                .slice()
-                .reverse()
-                .map((ball, idx) => (
+              {(() => {
+                const thisOverBalls = currentInnings?.ballHistory.filter(ball => ball.over === currentInnings.overs) || [];
+                return thisOverBalls.map((ball, idx) => (
                   <div 
                     key={idx}
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border transition-all",
-                      idx === 0 && "ring-2 ring-brand-red ring-offset-1 scale-110",
+                      idx === thisOverBalls.length - 1 && "ring-2 ring-brand-red ring-offset-1 scale-110",
                       ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
                       ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
                       ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
@@ -2114,9 +2112,10 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
+                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
                   </div>
-                ))}
+                ));
+              })()}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
                 <p className="text-slate-300 italic text-[8px] py-1">No balls in this over yet.</p>
               )}
@@ -2323,16 +2322,14 @@ export default function MatchScoring() {
             )}
 
             <div className="flex flex-wrap gap-2 overflow-y-auto max-h-[400px]">
-              {currentInnings?.ballHistory
-                .filter(ball => ball.over === currentInnings.overs)
-                .slice()
-                .reverse()
-                .map((ball, idx) => (
+              {(() => {
+                const thisOverBalls = currentInnings?.ballHistory.filter(ball => ball.over === currentInnings.overs) || [];
+                return thisOverBalls.map((ball, idx) => (
                   <div 
                     key={idx}
                     className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 transition-all",
-                      idx === 0 && "ring-4 ring-brand-red ring-offset-2 scale-110",
+                      idx === thisOverBalls.length - 1 && "ring-4 ring-brand-red ring-offset-2 scale-110",
                       ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
                       ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
                       ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
@@ -2340,9 +2337,10 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {idx === 0 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
+                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
                   </div>
-                ))}
+                ));
+              })()}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
                 <p className="text-slate-300 italic text-sm py-4">No balls in this over yet.</p>
               )}
