@@ -40,6 +40,16 @@ export default function TournamentDetail() {
   const [editMatchOrder, setEditMatchOrder] = useState(0);
   const [editMatchOvers, setEditMatchOvers] = useState(6);
   const [editMatchUmpire, setEditMatchUmpire] = useState('');
+  const [editMatchStatus, setEditMatchStatus] = useState<'Upcoming' | 'Live' | 'Finished'>('Upcoming');
+  const [editInn1Runs, setEditInn1Runs] = useState(0);
+  const [editInn1Wickets, setEditInn1Wickets] = useState(0);
+  const [editInn1Overs, setEditInn1Overs] = useState(0);
+  const [editInn1Balls, setEditInn1Balls] = useState(0);
+  const [editInn2Runs, setEditInn2Runs] = useState(0);
+  const [editInn2Wickets, setEditInn2Wickets] = useState(0);
+  const [editInn2Overs, setEditInn2Overs] = useState(0);
+  const [editInn2Balls, setEditInn2Balls] = useState(0);
+  const [editMatchWinnerId, setEditMatchWinnerId] = useState('');
   
   // Player Management State
   const [teamPlayerInputs, setTeamPlayerInputs] = useState<Record<string, { name: string, role: 'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper' }>>({});
@@ -66,6 +76,9 @@ export default function TournamentDetail() {
   // Edit Match State
   const [editMatchDate, setEditMatchDate] = useState('');
   const [editMatchTime, setEditMatchTime] = useState('');
+  const [showEditTeamStandings, setShowEditTeamStandings] = useState<Team | null>(null);
+  const [manualPoints, setManualPoints] = useState(0);
+  const [manualNRR, setManualNRR] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -301,6 +314,16 @@ export default function TournamentDetail() {
     setEditMatchUmpire(match.umpireName || '');
     setEditMatchDate(match.matchDate || '');
     setEditMatchTime(match.matchTime || '');
+    setEditMatchStatus(match.status);
+    setEditInn1Runs(match.innings1?.runs || 0);
+    setEditInn1Wickets(match.innings1?.wickets || 0);
+    setEditInn1Overs(match.innings1?.overs || 0);
+    setEditInn1Balls(match.innings1?.balls || 0);
+    setEditInn2Runs(match.innings2?.runs || 0);
+    setEditInn2Wickets(match.innings2?.wickets || 0);
+    setEditInn2Overs(match.innings2?.overs || 0);
+    setEditInn2Balls(match.innings2?.balls || 0);
+    setEditMatchWinnerId(match.winnerId || '');
   };
 
   const updateMatch = async () => {
@@ -322,17 +345,97 @@ export default function TournamentDetail() {
       oversLimit: editMatchOvers,
       umpireName: editMatchUmpire,
       matchDate: editMatchDate,
-      matchTime: editMatchTime
+      matchTime: editMatchTime,
+      status: editMatchStatus,
+      winnerId: editMatchWinnerId || undefined,
+      innings1: {
+        ...(showEditMatch.innings1 || {
+          extras: { wide: 0, noBall: 0, bye: 0, legBye: 0 },
+          battingStats: {},
+          bowlingStats: {},
+          fallOfWickets: [],
+          ballHistory: []
+        }),
+        battingTeamId: editMatchTeamA,
+        bowlingTeamId: editMatchTeamB,
+        runs: editInn1Runs,
+        wickets: editInn1Wickets,
+        overs: editInn1Overs,
+        balls: editInn1Balls
+      },
+      innings2: {
+        ...(showEditMatch.innings2 || {
+          extras: { wide: 0, noBall: 0, bye: 0, legBye: 0 },
+          battingStats: {},
+          bowlingStats: {},
+          fallOfWickets: [],
+          ballHistory: []
+        }),
+        battingTeamId: editMatchTeamB,
+        bowlingTeamId: editMatchTeamA,
+        runs: editInn2Runs,
+        wickets: editInn2Wickets,
+        overs: editInn2Overs,
+        balls: editInn2Balls
+      }
     };
 
     try {
       await setDoc(doc(db, 'matches', showEditMatch.id), updatedMatch);
+      
+      // Also update the match in the tournament's matches array
+      if (id && tournament) {
+        const stripInnings = (inn?: any) => {
+          if (!inn) return undefined;
+          return { ...inn, ballHistory: [] };
+        };
+        const strippedMatch = {
+          ...updatedMatch,
+          innings1: stripInnings(updatedMatch.innings1),
+          innings2: stripInnings(updatedMatch.innings2)
+        };
+        const updatedMatches = (tournament.matches || []).map(m => 
+          m.id === showEditMatch.id ? strippedMatch : m
+        );
+        await updateDoc(doc(db, 'tournaments', id), { matches: updatedMatches });
+      }
+
       setShowEditMatch(null);
       toast.success('Match updated successfully.');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `matches/${showEditMatch.id}`);
     }
   };
+
+  const handleEditTeamStandings = (team: Team) => {
+    setShowEditTeamStandings(team);
+    setManualPoints(team.manualPoints || 0);
+    setManualNRR(team.manualNRR || 0);
+  };
+
+  const updateTeamStandings = async () => {
+    if (!canManage || !id || !tournament || !showEditTeamStandings) return;
+
+    const updatedTeams = tournament.teams.map(t => {
+      if (t.id === showEditTeamStandings.id) {
+        return {
+          ...t,
+          manualPoints,
+          manualNRR
+        };
+      }
+      return t;
+    });
+
+    try {
+      await updateDoc(doc(db, 'tournaments', id), { teams: updatedTeams });
+      setShowEditTeamStandings(null);
+      toast.success('Team standings updated.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
+    }
+  };
+
   const getPlayerTournamentStats = (playerName: string) => {
     const stats = {
       batting: {
@@ -402,32 +505,54 @@ export default function TournamentDetail() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshData = async () => {
-    if (!id) return;
+    if (!id || !tournament) return;
     setIsRefreshing(true);
     try {
-      // Force a re-fetch of tournament and matches to ensure everything is synced
+      // 1. Fetch latest tournament data
       const tournamentDoc = await getDoc(doc(db, 'tournaments', id));
-      if (tournamentDoc.exists()) {
-        const data = tournamentDoc.data() as Tournament;
-        setTournament({ id: tournamentDoc.id, ...data } as Tournament);
-        setEditName(data.name);
-        setEditStatus(data.status);
-        setEditWinnerId(data.winnerId || '');
-        setEditResultMessage(data.resultMessage || '');
-      }
-      
+      if (!tournamentDoc.exists()) return;
+      const tournamentData = tournamentDoc.data() as Tournament;
+
+      // 2. Fetch all matches for this tournament to get latest scores
       const q = query(collection(db, 'matches'), where('tournamentId', '==', id));
       const snapshot = await getDocs(q);
-      const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
-      const sortedMatches = matchesData.sort((a, b) => {
+      const latestMatches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
+
+      // 3. Strip heavy data for tournament doc
+      const stripInnings = (inn?: any) => {
+        if (!inn) return undefined;
+        return { ...inn, ballHistory: [] };
+      };
+
+      const updatedMatches = latestMatches.map(m => ({
+        ...m,
+        innings1: stripInnings(m.innings1),
+        innings2: stripInnings(m.innings2),
+        superOverInnings1: stripInnings(m.superOverInnings1),
+        superOverInnings2: stripInnings(m.superOverInnings2)
+      })).sort((a, b) => {
         const orderA = a.order ?? 999;
         const orderB = b.order ?? 999;
         if (orderA !== orderB) return orderA - orderB;
-        return a.createdAt - b.createdAt;
+        return (a.createdAt || 0) - (b.createdAt || 0);
       });
-      setMatches(sortedMatches);
+
+      // 4. Update tournament document with latest match data
+      await updateDoc(doc(db, 'tournaments', id), { matches: updatedMatches });
       
-      toast.success('Tournament data refreshed successfully');
+      setTournament({ ...tournamentData, id: tournamentDoc.id, matches: updatedMatches });
+      setMatches(latestMatches.sort((a, b) => {
+        const orderA = a.order ?? 999;
+        const orderB = b.order ?? 999;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.createdAt || 0) - (b.createdAt || 0);
+      }));
+      setEditName(tournamentData.name);
+      setEditStatus(tournamentData.status);
+      setEditWinnerId(tournamentData.winnerId || '');
+      setEditResultMessage(tournamentData.resultMessage || '');
+      
+      toast.success('Tournament data synced with latest match scores.');
     } catch (error) {
       console.error("Error refreshing data:", error);
       handleFirestoreError(error, OperationType.GET, 'tournament/matches');
@@ -494,8 +619,8 @@ export default function TournamentDetail() {
       ? (runsScored / oversFaced) - (runsConceded / oversBowled)
       : 0;
 
-    const finalPoints = (wins * 2) + draws;
-    const finalNRR = nrr.toFixed(3);
+    const finalPoints = (wins * 2) + draws + (team.manualPoints || 0);
+    const finalNRR = (parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0)).toFixed(3);
 
     return {
       id: team.id,
@@ -808,6 +933,60 @@ export default function TournamentDetail() {
           </motion.div>
         )}
 
+        {showEditTeamStandings && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Edit Standings</h2>
+                <button onClick={() => setShowEditTeamStandings(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-sm font-bold text-slate-600 uppercase tracking-tight">Team: {showEditTeamStandings.name}</p>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Points Adjustment</label>
+                  <input 
+                    type="number" 
+                    value={manualPoints}
+                    onChange={(e) => setManualPoints(parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    placeholder="e.g. 2 or -2"
+                  />
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Added to auto-calculated points</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual NRR Adjustment</label>
+                  <input 
+                    type="number" 
+                    step="0.001"
+                    value={manualNRR}
+                    onChange={(e) => setManualNRR(parseFloat(e.target.value) || 0)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    placeholder="e.g. 0.500 or -0.500"
+                  />
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Added to auto-calculated NRR</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={updateTeamStandings}
+                className="w-full py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
+              >
+                Update Standings
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {showEditMatch && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
@@ -907,6 +1086,59 @@ export default function TournamentDetail() {
                     onChange={(e) => setEditMatchUmpire(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
                   />
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Status</label>
+                    <select 
+                      value={editMatchStatus}
+                      onChange={(e) => setEditMatchStatus(e.target.value as any)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                    >
+                      <option value="Upcoming">Upcoming</option>
+                      <option value="Live">Live</option>
+                      <option value="Finished">Finished</option>
+                    </select>
+                  </div>
+
+                  {editMatchStatus !== 'Upcoming' && (
+                    <>
+                      <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Innings 1 Score ({tournament.teams.find(t => t.id === editMatchTeamA)?.name})</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input type="number" value={editInn1Runs} onChange={e => setEditInn1Runs(parseInt(e.target.value) || 0)} placeholder="Runs" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                          <input type="number" value={editInn1Wickets} onChange={e => setEditInn1Wickets(parseInt(e.target.value) || 0)} placeholder="Wickets" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                          <input type="number" value={editInn1Overs} onChange={e => setEditInn1Overs(parseInt(e.target.value) || 0)} placeholder="Overs" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                          <input type="number" value={editInn1Balls} onChange={e => setEditInn1Balls(parseInt(e.target.value) || 0)} placeholder="Balls" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Innings 2 Score ({tournament.teams.find(t => t.id === editMatchTeamB)?.name})</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input type="number" value={editInn2Runs} onChange={e => setEditInn2Runs(parseInt(e.target.value) || 0)} placeholder="Runs" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                          <input type="number" value={editInn2Wickets} onChange={e => setEditInn2Wickets(parseInt(e.target.value) || 0)} placeholder="Wickets" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                          <input type="number" value={editInn2Overs} onChange={e => setEditInn2Overs(parseInt(e.target.value) || 0)} placeholder="Overs" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                          <input type="number" value={editInn2Balls} onChange={e => setEditInn2Balls(parseInt(e.target.value) || 0)} placeholder="Balls" className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Winner</label>
+                        <select 
+                          value={editMatchWinnerId}
+                          onChange={(e) => setEditMatchWinnerId(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                        >
+                          <option value="">No Winner / Draw</option>
+                          <option value={editMatchTeamA}>{tournament.teams.find(t => t.id === editMatchTeamA)?.name}</option>
+                          <option value={editMatchTeamB}>{tournament.teams.find(t => t.id === editMatchTeamB)?.name}</option>
+                          <option value="Draw">Draw</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1115,6 +1347,15 @@ export default function TournamentDetail() {
                               <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-600 text-[8px] font-black uppercase tracking-widest">
                                 Qualified
                               </span>
+                            )}
+                            {canManage && (
+                              <button 
+                                onClick={() => handleEditTeamStandings(tournament.teams.find(t => t.id === team.id)!)}
+                                className="p-1 rounded bg-slate-100 text-slate-400 hover:text-brand-red opacity-0 group-hover:opacity-100 transition-all"
+                                title="Edit Manual Standings"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
                             )}
                           </div>
                         </div>
