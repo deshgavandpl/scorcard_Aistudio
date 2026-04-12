@@ -586,6 +586,7 @@ export default function MatchScoring() {
         setError(`${strikerName} is already out`);
         return;
       } else {
+        const nextOrder = Object.keys(currentInn.battingStats || {}).length + 1;
         currentInn.battingStats[strikerName] = {
           playerId: strikerName,
           playerName: strikerName,
@@ -594,7 +595,8 @@ export default function MatchScoring() {
           fours: 0,
           sixes: 0,
           isOut: false,
-          isStriker: true
+          isStriker: true,
+          order: nextOrder
         };
       }
     }
@@ -611,6 +613,7 @@ export default function MatchScoring() {
         setError(`${nonStrikerName} is already out`);
         return;
       } else {
+        const nextOrder = Object.keys(currentInn.battingStats || {}).length + 1;
         currentInn.battingStats[nonStrikerName] = {
           playerId: nonStrikerName,
           playerName: nonStrikerName,
@@ -619,7 +622,8 @@ export default function MatchScoring() {
           fours: 0,
           sixes: 0,
           isOut: false,
-          isStriker: false
+          isStriker: false,
+          order: nextOrder
         };
       }
     }

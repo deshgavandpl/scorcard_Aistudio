@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download, Settings, AlertCircle } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download, Settings, AlertCircle, RotateCcw } from 'lucide-react';
 import { Tournament, Match, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -1189,90 +1189,6 @@ export default function TournamentDetail() {
         confirmText="Delete Now"
         isDestructive={true}
       />
-
-      {/* Manual Points Modal */}
-      <AnimatePresence>
-        {showEditPoints && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-3xl p-8 w-full max-w-2xl shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Manual Points Override</h2>
-                <button onClick={() => setShowEditPoints(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                  <X className="w-6 h-6 text-slate-400" />
-                </button>
-              </div>
-
-              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-6">
-                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> Admin Override
-                </p>
-                <p className="text-[9px] font-bold text-amber-700 mt-1">
-                  Leave fields empty to use automatic calculation based on match results.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {tournament.teams.map(team => (
-                  <div key={team.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 items-center">
-                    <p className="font-black text-slate-900 uppercase tracking-tight text-sm">{team.name}</p>
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Manual Points</label>
-                      <input 
-                        type="number" 
-                        placeholder="Auto"
-                        value={manualTeamData[team.id]?.points || ''}
-                        onChange={(e) => setManualTeamData(prev => ({
-                          ...prev,
-                          [team.id]: { ...prev[team.id], points: e.target.value }
-                        }))}
-                        className="w-full px-4 py-2 rounded-xl border border-slate-200 font-bold text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Manual NRR</label>
-                      <input 
-                        type="number" 
-                        step="0.001"
-                        placeholder="Auto"
-                        value={manualTeamData[team.id]?.nrr || ''}
-                        onChange={(e) => setManualTeamData(prev => ({
-                          ...prev,
-                          [team.id]: { ...prev[team.id], nrr: e.target.value }
-                        }))}
-                        className="w-full px-4 py-2 rounded-xl border border-slate-200 font-bold text-sm"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button 
-                  onClick={() => setShowEditPoints(false)}
-                  className="flex-1 py-4 rounded-2xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={saveManualPoints}
-                  className="flex-1 py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest text-xs hover:bg-red-700 transition-all shadow-lg"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

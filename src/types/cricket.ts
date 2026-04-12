@@ -46,6 +46,7 @@ export interface BatterStats {
   isOut: boolean;
   howOut?: string;
   isStriker: boolean;
+  order?: number;
 }
 
 export interface BowlerStats {

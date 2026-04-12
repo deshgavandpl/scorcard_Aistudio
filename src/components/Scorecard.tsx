@@ -17,7 +17,7 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
   const battingTeamName = innings.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
   const bowlingTeamName = innings.bowlingTeamId === match.teamAId ? match.teamAName : match.teamBName;
 
-  const batsmen = Object.values(innings.battingStats || {});
+  const batsmen = Object.values(innings.battingStats || {}).sort((a, b) => (a.order || 0) - (b.order || 0));
   const bowlers = Object.values(innings.bowlingStats || {});
 
   return (
