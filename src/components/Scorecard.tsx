@@ -79,6 +79,7 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
                           className="flex flex-col text-left group/player"
                         >
                           <span className={cn("font-bold text-sm flex items-center gap-1 group-hover/player:text-brand-red transition-colors", b.isStriker ? "text-brand-red" : isNonStriker ? "text-slate-900" : "text-slate-600")}>
+                            <span className="text-[10px] text-slate-300 w-4">{b.order || '-'}</span>
                             {b.playerName}{b.isStriker ? '*' : ''}
                             {b.isStriker && <Zap className="w-3 h-3 fill-brand-red" />}
                           </span>

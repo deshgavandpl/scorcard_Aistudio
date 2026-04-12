@@ -12,6 +12,7 @@ import {
   AlertCircle,
   X,
   Trash2,
+  Edit2,
   CheckCircle2,
   Share2,
   Flame,
@@ -439,6 +440,35 @@ export default function MatchScoring() {
     }
   }, [match, showFinishConfirm]);
 
+  const handleReplacePlayer = async (type: 'striker' | 'nonStriker' | 'bowler') => {
+    if (!canManage || !match) return;
+    const updatedMatch = { ...match };
+    const currentInn = updatedMatch.isSuperOver
+      ? (updatedMatch.currentInnings === 1 ? updatedMatch.superOverInnings1 : updatedMatch.superOverInnings2)
+      : (updatedMatch.currentInnings === 1 ? updatedMatch.innings1 : updatedMatch.innings2);
+    
+    if (!currentInn) return;
+
+    if (type === 'striker') {
+      const striker = (Object.values(currentInn.battingStats) as BatterStats[]).find(b => b.isStriker);
+      if (striker) striker.isStriker = false;
+      setStrikerName('');
+    } else if (type === 'nonStriker') {
+      // Clear non-striker name to force re-selection
+      setNonStrikerName('');
+    } else if (type === 'bowler') {
+      currentInn.currentBowlerId = '';
+      setBowlerName('');
+    }
+
+    try {
+      await updateDoc(doc(db, 'matches', updatedMatch.id), updatedMatch);
+      setIsSelectingPlayers(true);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `matches/${updatedMatch.id}`);
+    }
+  };
+
   const handleFinishMatch = async () => {
     if (!match || !winnerId) return;
     await finishMatch(winnerId, resultMessage, manOfTheMatch);
@@ -660,21 +690,49 @@ export default function MatchScoring() {
 
     // 4. Handle Manual Update (if all set)
     else if (allPlayersSet) {
+      // Striker Replace/Rename
       if (strikerName && strikerName !== striker.playerName) {
-        const stats = currentInn.battingStats[striker.playerName];
-        delete currentInn.battingStats[striker.playerName];
-        currentInn.battingStats[strikerName] = { ...stats, playerName: strikerName, playerId: strikerName };
+        if (currentInn.battingStats[strikerName]) {
+          // Player already exists in stats, just switch striker flag
+          (Object.values(currentInn.battingStats) as BatterStats[]).forEach(b => {
+            if (b.playerName === striker.playerName) b.isStriker = false;
+            if (b.playerName === strikerName) b.isStriker = true;
+          });
+        } else {
+          // New player name, rename existing stats
+          const stats = currentInn.battingStats[striker.playerName];
+          delete currentInn.battingStats[striker.playerName];
+          currentInn.battingStats[strikerName] = { ...stats, playerName: strikerName, playerId: strikerName };
+        }
       }
+
+      // Non-Striker Replace/Rename
       if (nonStrikerName && nonStrikerName !== nonStriker.playerName) {
-        const stats = currentInn.battingStats[nonStriker.playerName];
-        delete currentInn.battingStats[nonStriker.playerName];
-        currentInn.battingStats[nonStrikerName] = { ...stats, playerName: nonStrikerName, playerId: nonStrikerName };
+        if (currentInn.battingStats[nonStrikerName]) {
+          // Player already exists in stats, just ensure they are not striker
+          (Object.values(currentInn.battingStats) as BatterStats[]).forEach(b => {
+            if (b.playerName === nonStrikerName) b.isStriker = false;
+          });
+        } else {
+          // New player name, rename existing stats
+          const stats = currentInn.battingStats[nonStriker.playerName];
+          delete currentInn.battingStats[nonStriker.playerName];
+          currentInn.battingStats[nonStrikerName] = { ...stats, playerName: nonStrikerName, playerId: nonStrikerName };
+        }
       }
+
+      // Bowler Replace/Rename
       if (bowlerName && bowlerName !== bowlerId) {
-        const stats = currentInn.bowlingStats[bowlerId!];
-        delete currentInn.bowlingStats[bowlerId!];
-        currentInn.bowlingStats[bowlerName] = { ...stats, playerName: bowlerName, playerId: bowlerName };
-        currentInn.currentBowlerId = bowlerName;
+        if (currentInn.bowlingStats[bowlerName]) {
+          // Bowler already exists, just switch currentBowlerId
+          currentInn.currentBowlerId = bowlerName;
+        } else {
+          // New bowler name, rename existing stats
+          const stats = currentInn.bowlingStats[bowlerId!];
+          delete currentInn.bowlingStats[bowlerId!];
+          currentInn.bowlingStats[bowlerName] = { ...stats, playerName: bowlerName, playerId: bowlerName };
+          currentInn.currentBowlerId = bowlerName;
+        }
       }
     }
 
@@ -2228,12 +2286,28 @@ export default function MatchScoring() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Striker</span>
-                          <button 
-                            onClick={() => openPlayerProfile(striker?.playerId || '', striker?.playerName || '')}
-                            className="text-sm font-black text-white hover:text-red-200 transition-colors text-left"
-                          >
-                            {striker?.playerName} <span className="text-xs text-red-300">({striker?.runs})</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => openPlayerProfile(striker?.playerId || '', striker?.playerName || '')}
+                              className="text-sm font-black text-white hover:text-red-200 transition-colors text-left"
+                            >
+                              {striker?.playerName} <span className="text-xs text-red-300">({striker?.runs})</span>
+                            </button>
+                            <button 
+                              onClick={() => setIsSelectingPlayers(true)}
+                              className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
+                              title="Change Striker"
+                            >
+                              <Edit2 className="w-3 h-3 text-white/70" />
+                            </button>
+                            <button 
+                              onClick={() => handleReplacePlayer('striker')}
+                              className="p-1 rounded bg-white/10 hover:bg-red-500/40 transition-colors"
+                              title="Replace Striker"
+                            >
+                              <Trash2 className="w-3 h-3 text-white/70" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 opacity-70">
@@ -2242,12 +2316,28 @@ export default function MatchScoring() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Non-Striker</span>
-                          <button 
-                            onClick={() => openPlayerProfile(nonStriker?.playerId || '', nonStriker?.playerName || '')}
-                            className="text-sm font-bold text-red-100 hover:text-white transition-colors text-left"
-                          >
-                            {nonStriker?.playerName} <span className="text-xs opacity-70">({nonStriker?.runs})</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => openPlayerProfile(nonStriker?.playerId || '', nonStriker?.playerName || '')}
+                              className="text-sm font-bold text-red-100 hover:text-white transition-colors text-left"
+                            >
+                              {nonStriker?.playerName} <span className="text-xs opacity-70">({nonStriker?.runs})</span>
+                            </button>
+                            <button 
+                              onClick={() => setIsSelectingPlayers(true)}
+                              className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
+                              title="Change Non-Striker"
+                            >
+                              <Edit2 className="w-3 h-3 text-white/50" />
+                            </button>
+                            <button 
+                              onClick={() => handleReplacePlayer('nonStriker')}
+                              className="p-1 rounded bg-white/10 hover:bg-red-500/40 transition-colors"
+                              title="Replace Non-Striker"
+                            >
+                              <Trash2 className="w-3 h-3 text-white/50" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2259,12 +2349,28 @@ export default function MatchScoring() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Bowler</span>
-                          <button 
-                            onClick={() => openPlayerProfile(bowler?.playerId || '', bowler?.playerName || '')}
-                            className="text-sm font-black text-white hover:text-red-200 transition-colors text-left"
-                          >
-                            {bowler?.playerName}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => openPlayerProfile(bowler?.playerId || '', bowler?.playerName || '')}
+                              className="text-sm font-black text-white hover:text-red-200 transition-colors text-left"
+                            >
+                              {bowler?.playerName}
+                            </button>
+                            <button 
+                              onClick={() => setIsSelectingPlayers(true)}
+                              className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
+                              title="Change Bowler"
+                            >
+                              <Edit2 className="w-3 h-3 text-white/70" />
+                            </button>
+                            <button 
+                              onClick={() => handleReplacePlayer('bowler')}
+                              className="p-1 rounded bg-white/10 hover:bg-red-500/40 transition-colors"
+                              title="Replace Bowler"
+                            >
+                              <Trash2 className="w-3 h-3 text-white/70" />
+                            </button>
+                          </div>
                           <p className="text-xs font-bold text-red-300">{bowler?.wickets}-{bowler?.runs} <span className="opacity-50">({bowler?.overs}.{bowler?.balls})</span></p>
                         </div>
                       </div>
