@@ -220,7 +220,7 @@ export default function LiveScore() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {groupedMatches[date].map((match) => (
+                    {groupedMatches[date].map((match, idx) => (
                       <motion.div 
                         key={match.id}
                         initial={{ opacity: 0, y: 10 }}
@@ -252,11 +252,9 @@ export default function LiveScore() {
                             )}>
                               {match.status}
                             </span>
-                            {match.order && (
-                              <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">
-                                Match {match.order}
-                              </span>
-                            )}
+                            <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">
+                              Match {match.order || idx + 1}
+                            </span>
                           </div>
                           {canManage && (
                             <button 
@@ -273,16 +271,16 @@ export default function LiveScore() {
                           <div className="w-full text-center">
                             <p className="text-sm font-black text-slate-900 uppercase truncate">{match.teamAName}</p>
                             <p className="text-xl font-black text-brand-red">
-                              {match.innings1?.battingTeamId === match.teamAId ? match.innings1.runs : match.innings2?.runs || 0}
-                              <span className="text-xs text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                              {match.innings2?.battingTeamId === match.teamAId ? match.innings2.runs : (match.innings1?.battingTeamId === match.teamAId ? match.innings1.runs : 0)}
+                              <span className="text-xs text-slate-400 font-bold">/{match.innings2?.battingTeamId === match.teamAId ? match.innings2.wickets : (match.innings1?.battingTeamId === match.teamAId ? match.innings1.wickets : 0)}</span>
                             </p>
                           </div>
                           <div className="text-slate-300 font-black italic text-sm">VS</div>
                           <div className="w-full text-center">
                             <p className="text-sm font-black text-slate-900 uppercase truncate">{match.teamBName}</p>
                             <p className="text-xl font-black text-brand-red">
-                              {match.innings1?.battingTeamId === match.teamBId ? match.innings1.runs : match.innings2?.runs || 0}
-                              <span className="text-xs text-slate-400 font-bold">/{match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : match.innings2?.wickets || 0}</span>
+                              {match.innings2?.battingTeamId === match.teamBId ? match.innings2.runs : (match.innings1?.battingTeamId === match.teamBId ? match.innings1.runs : 0)}
+                              <span className="text-xs text-slate-400 font-bold">/{match.innings2?.battingTeamId === match.teamBId ? match.innings2.wickets : (match.innings1?.battingTeamId === match.teamBId ? match.innings1.wickets : 0)}</span>
                             </p>
                           </div>
                         </div>

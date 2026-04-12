@@ -206,10 +206,9 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1 text-center">
                           <p className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamAName}</p>
-                          {match.status !== 'Upcoming' && match.innings1 && (
+                          {match.status !== 'Upcoming' && (match.innings1 || match.innings2) && (
                             <p className="text-sm font-black text-brand-red">
-                              {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
-                               match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                              {match.innings2?.battingTeamId === match.teamAId ? `${match.innings2.runs}/${match.innings2.wickets}` : (match.innings1?.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : '0/0')}
                             </p>
                           )}
                         </div>
@@ -218,10 +217,9 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                         
                         <div className="flex-1 text-center">
                           <p className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamBName}</p>
-                          {match.status !== 'Upcoming' && match.innings1 && (
+                          {match.status !== 'Upcoming' && (match.innings1 || match.innings2) && (
                             <p className="text-sm font-black text-brand-red">
-                              {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
-                               match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                              {match.innings2?.battingTeamId === match.teamBId ? `${match.innings2.runs}/${match.innings2.wickets}` : (match.innings1?.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : '0/0')}
                             </p>
                           )}
                         </div>
@@ -231,33 +229,38 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                 </div>
               ) : activeTab === 'points' ? (
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                  <table className="w-full text-left text-[10px]">
-                    <thead>
-                      <tr className="bg-slate-50/50 border-b border-slate-100">
-                        <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Team</th>
-                        <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">P</th>
-                        <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">W</th>
-                        <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
-                        <th className="px-3 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {pointsTable.map((team, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-4 py-5 font-black text-slate-900 uppercase tracking-tight text-xs truncate max-w-[100px]">{team.name}</td>
-                          <td className="px-2 py-5 text-center font-bold text-slate-600 text-xs">{team.played}</td>
-                          <td className="px-2 py-5 text-center font-bold text-emerald-600 text-xs">{team.wins}</td>
-                          <td className="px-2 py-5 text-center font-black text-brand-red text-xs">{team.points}</td>
-                          <td className={cn(
-                            "px-3 py-5 text-center font-bold text-xs",
-                            parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
-                          )}>
-                            {team.nrr}
-                          </td>
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left text-[10px] min-w-[300px]">
+                      <thead>
+                        <tr className="bg-slate-50/50 border-b border-slate-100">
+                          <th className="sticky left-0 bg-slate-50/50 px-3 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 z-10">Team</th>
+                          <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">P</th>
+                          <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">W</th>
+                          <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
+                          <th className="px-3 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {pointsTable.map((team, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="sticky left-0 bg-white group-hover:bg-slate-50 transition-colors px-3 py-5 font-black text-slate-900 uppercase tracking-tight text-xs truncate max-w-[80px] z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">{team.name}</td>
+                            <td className="px-2 py-5 text-center font-bold text-slate-600 text-xs">{team.played}</td>
+                            <td className="px-2 py-5 text-center font-bold text-emerald-600 text-xs">{team.wins}</td>
+                            <td className="px-2 py-5 text-center font-black text-brand-red text-xs">{team.points}</td>
+                            <td className={cn(
+                              "px-3 py-5 text-center font-bold text-xs",
+                              parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
+                            )}>
+                              {team.nrr}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-2">
+                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em]">Scroll right for NRR</p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">

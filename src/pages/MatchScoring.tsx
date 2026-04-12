@@ -243,6 +243,7 @@ export default function MatchScoring() {
   const [lastInnings, setLastInnings] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
   const [isHypeMuted, setIsHypeMuted] = useState(false);
+  const [isExtraWicket, setIsExtraWicket] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [teamARoster, setTeamARoster] = useState<Player[]>([]);
   const [teamBRoster, setTeamBRoster] = useState<Player[]>([]);
@@ -571,6 +572,7 @@ export default function MatchScoring() {
     const needsStriker = !striker;
     const needsNonStriker = striker && !nonStriker;
     const needsBowler = striker && nonStriker && !bowlerId;
+    const allPlayersSet = striker && nonStriker && bowlerId;
 
     // 1. Handle Striker
     if (needsStriker) {
@@ -646,6 +648,26 @@ export default function MatchScoring() {
             maiden: 0
           };
         }
+      }
+    }
+
+    // 4. Handle Manual Update (if all set)
+    else if (allPlayersSet) {
+      if (strikerName && strikerName !== striker.playerName) {
+        const stats = currentInn.battingStats[striker.playerName];
+        delete currentInn.battingStats[striker.playerName];
+        currentInn.battingStats[strikerName] = { ...stats, playerName: strikerName, playerId: strikerName };
+      }
+      if (nonStrikerName && nonStrikerName !== nonStriker.playerName) {
+        const stats = currentInn.battingStats[nonStriker.playerName];
+        delete currentInn.battingStats[nonStriker.playerName];
+        currentInn.battingStats[nonStrikerName] = { ...stats, playerName: nonStrikerName, playerId: nonStrikerName };
+      }
+      if (bowlerName && bowlerName !== bowlerId) {
+        const stats = currentInn.bowlingStats[bowlerId!];
+        delete currentInn.bowlingStats[bowlerId!];
+        currentInn.bowlingStats[bowlerName] = { ...stats, playerName: bowlerName, playerId: bowlerName };
+        currentInn.currentBowlerId = bowlerName;
       }
     }
 
@@ -1032,12 +1054,14 @@ export default function MatchScoring() {
     const needsStriker = !striker;
     const needsNonStriker = striker && !nonStriker;
     const needsBowler = striker && nonStriker && !bowlerId;
+    const allPlayersSet = striker && nonStriker && bowlerId;
 
     const isTeamABatting = currentInn?.battingTeamId === match.teamAId || currentInn?.battingTeamId === match.teamAName;
     const battingRoster = isTeamABatting ? teamARoster : teamBRoster;
     const bowlingRoster = isTeamABatting ? teamBRoster : teamARoster;
 
     const getTitle = () => {
+      if (allPlayersSet) return "Match Personnel";
       if (needsStriker) return currentInn?.wickets === 0 ? "First Opener" : "New Batsman";
       if (needsNonStriker) return currentInn?.wickets === 0 ? "Second Opener" : "Next Batsman";
       if (needsBowler) return currentInn?.balls === 0 && currentInn?.overs > 0 ? "Next Over" : "New Bowler";
@@ -1045,6 +1069,7 @@ export default function MatchScoring() {
     };
 
     const getInstruction = () => {
+      if (allPlayersSet) return "Review or change current players on field.";
       if (needsStriker) return "Who is taking the strike now?";
       if (needsNonStriker) return "Who is at the other end?";
       if (needsBowler) return "Who will bowl this over?";
@@ -1080,6 +1105,94 @@ export default function MatchScoring() {
           </div>
           
           <div className="space-y-4">
+            {allPlayersSet && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Striker</p>
+                      <input 
+                        type="text"
+                        value={strikerName}
+                        onChange={(e) => setStrikerName(e.target.value)}
+                        className="w-full bg-transparent text-sm font-black text-slate-900 uppercase outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <select
+                        onChange={(e) => setStrikerName(e.target.value)}
+                        className="text-[8px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded px-1 py-0.5"
+                      >
+                        <option value="">Roster</option>
+                        {battingRoster.filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name)).map(p => (
+                          <option key={p.id} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</p>
+                      <input 
+                        type="text"
+                        value={nonStrikerName}
+                        onChange={(e) => setNonStrikerName(e.target.value)}
+                        className="w-full bg-transparent text-sm font-black text-slate-900 uppercase outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <select
+                        onChange={(e) => setNonStrikerName(e.target.value)}
+                        className="text-[8px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded px-1 py-0.5"
+                      >
+                        <option value="">Roster</option>
+                        {battingRoster.filter(p => !isPlayerOut(p.name) && !isPlayerOnField(p.name)).map(p => (
+                          <option key={p.id} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bowler</p>
+                      <input 
+                        type="text"
+                        value={bowlerName}
+                        onChange={(e) => setBowlerName(e.target.value)}
+                        className="w-full bg-transparent text-sm font-black text-slate-900 uppercase outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <select
+                        onChange={(e) => setBowlerName(e.target.value)}
+                        className="text-[8px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded px-1 py-0.5"
+                      >
+                        <option value="">Roster</option>
+                        {bowlingRoster.map(p => (
+                          <option key={p.id} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setIsSelectingPlayers(false)}
+                    className="flex-1 py-4 rounded-2xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={confirmPlayers}
+                    className="flex-1 py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest text-xs shadow-lg hover:bg-red-700 transition-all"
+                  >
+                    Update Players
+                  </button>
+                </div>
+              </div>
+            )}
+
             {error && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
@@ -1753,11 +1866,13 @@ export default function MatchScoring() {
 
               <button
                 onClick={() => {
-                  handleBall(0, !!wicketExtraType, wicketExtraType, true, wicketType, fielderName, outPlayerId || striker?.playerId);
+                  handleBall(extraRuns, !!wicketExtraType, wicketExtraType, true, wicketType, fielderName, outPlayerId || striker?.playerId);
                   setShowWicketModal(false);
                   setFielderName('');
                   setWicketExtraType(null);
                   setOutPlayerId(null);
+                  setExtraRuns(0);
+                  setIsExtraWicket(false);
                 }}
                 className="w-full py-4 rounded-xl bg-red-600 text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
               >
@@ -2187,7 +2302,18 @@ export default function MatchScoring() {
               {/* Extras Section - Compact */}
               <div className="bg-slate-50 rounded-2xl p-2 border border-slate-100 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Extras</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Extras</h3>
+                    <button
+                      onClick={() => setIsExtraWicket(!isExtraWicket)}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest transition-all border",
+                        isExtraWicket ? "bg-red-600 text-white border-red-700 shadow-sm" : "bg-white text-slate-400 border-slate-200"
+                      )}
+                    >
+                      + Wicket
+                    </button>
+                  </div>
                   <div className="flex gap-1">
                     {[0, 1, 2, 3, 4].map((num) => (
                       <motion.button
@@ -2205,18 +2331,28 @@ export default function MatchScoring() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {[
                     { label: 'WD', type: 'Wd', color: 'bg-red-50 text-brand-red border-red-100' },
                     { label: 'NB', type: 'Nb', color: 'bg-red-50 text-brand-red border-red-100' },
                     { label: 'BYE', type: 'By', color: 'bg-slate-200 text-slate-700 border-slate-300' },
-                    { label: 'LB', type: 'Lb', color: 'bg-slate-200 text-slate-700 border-slate-300' }
+                    { label: 'LB', type: 'Lb', color: 'bg-slate-200 text-slate-700 border-slate-300' },
+                    { label: 'WKT', type: 'Wkt', color: 'bg-red-600 text-white border-red-700' }
                   ].map((extra) => (
                     <motion.button
                       key={extra.type}
                       whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => handleBall(extraRuns, true, extra.type as any)}
+                      onClick={() => {
+                        if (extra.type === 'Wkt' || isExtraWicket) {
+                          if (extra.type !== 'Wkt') {
+                            setWicketExtraType(extra.type as any);
+                          }
+                          setShowWicketModal(true);
+                        } else {
+                          handleBall(extraRuns, true, extra.type as any);
+                        }
+                      }}
                       className={cn(
                         "py-1.5 rounded-lg font-black text-[8px] transition-all uppercase tracking-widest border",
                         extra.color,

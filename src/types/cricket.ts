@@ -12,6 +12,8 @@ export interface Team {
   name: string;
   players: Player[];
   points?: number;
+  manualPoints?: number;
+  manualNRR?: number;
 }
 
 export interface MatchInnings {

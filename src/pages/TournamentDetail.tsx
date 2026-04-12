@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download, Settings, AlertCircle } from 'lucide-react';
 import { Tournament, Match, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { generateFixturesPDF } from '../lib/pdfGenerator';
 
-import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -399,6 +399,33 @@ export default function TournamentDetail() {
     return stats;
   };
 
+  const [showEditPoints, setShowEditPoints] = useState(false);
+  const [manualTeamData, setManualTeamData] = useState<Record<string, { points: string, nrr: string }>>({});
+
+  const saveManualPoints = async () => {
+    if (!id || !tournament || !canManage) return;
+    
+    const updatedTeams = tournament.teams.map(team => {
+      const manual = manualTeamData[team.id];
+      if (manual) {
+        return {
+          ...team,
+          manualPoints: manual.points === '' ? undefined : parseInt(manual.points),
+          manualNRR: manual.nrr === '' ? undefined : parseFloat(manual.nrr)
+        };
+      }
+      return team;
+    });
+
+    try {
+      await updateDoc(doc(db, 'tournaments', id), { teams: updatedTeams });
+      setShowEditPoints(false);
+      toast.success('Points table updated manually');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
+    }
+  };
+
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
 
   const pointsTable = tournament.teams.map(team => {
@@ -448,14 +475,17 @@ export default function TournamentDetail() {
       ? (runsScored / oversFaced) - (runsConceded / oversBowled)
       : 0;
 
+    const finalPoints = team.manualPoints !== undefined ? team.manualPoints : (wins * 2) + draws;
+    const finalNRR = team.manualNRR !== undefined ? team.manualNRR.toFixed(3) : nrr.toFixed(3);
+
     return {
       name: team.name,
       played: teamMatches.length,
       wins,
       losses,
       draws,
-      points: (wins * 2) + draws,
-      nrr: nrr.toFixed(3)
+      points: finalPoints,
+      nrr: finalNRR
     };
   }).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
@@ -912,7 +942,7 @@ export default function TournamentDetail() {
             <div key={stage} className="space-y-4">
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 border-l-4 border-brand-red pl-3">{stage}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(stageMatches as Match[]).map((match) => (
+                {(stageMatches as Match[]).map((match, idx) => (
                   <div key={match.id} className="relative group">
                     <Link 
                       to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
@@ -925,9 +955,14 @@ export default function TournamentDetail() {
                     >
                       <div className="flex justify-between items-center mb-4">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                            {match.name || 'MATCH'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest">
+                              Match {match.order || idx + 1}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                              {match.name || 'MATCH'}
+                            </span>
+                          </div>
                           {(match.matchDate || match.matchTime) && (
                             <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                               {match.matchDate} {match.matchTime && `• ${match.matchTime}`}
@@ -948,10 +983,9 @@ export default function TournamentDetail() {
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1 text-center">
                           <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamAName}</p>
-                          {match.status !== 'Upcoming' && match.innings1 && (
+                          {match.status !== 'Upcoming' && (match.innings1 || match.innings2) && (
                             <p className="text-sm md:text-base font-black text-brand-red">
-                              {match.innings1.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
-                               match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                              {match.innings2?.battingTeamId === match.teamAId ? `${match.innings2.runs}/${match.innings2.wickets}` : (match.innings1?.battingTeamId === match.teamAId ? `${match.innings1.runs}/${match.innings1.wickets}` : '0/0')}
                             </p>
                           )}
                         </div>
@@ -960,10 +994,9 @@ export default function TournamentDetail() {
                         
                         <div className="flex-1 text-center">
                           <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-1">{match.teamBName}</p>
-                          {match.status !== 'Upcoming' && match.innings1 && (
+                          {match.status !== 'Upcoming' && (match.innings1 || match.innings2) && (
                             <p className="text-sm md:text-base font-black text-brand-red">
-                              {match.innings1.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : 
-                               match.innings2 ? `${match.innings2.runs}/${match.innings2.wickets}` : ''}
+                              {match.innings2?.battingTeamId === match.teamBId ? `${match.innings2.runs}/${match.innings2.wickets}` : (match.innings1?.battingTeamId === match.teamBId ? `${match.innings1.runs}/${match.innings1.wickets}` : '0/0')}
                             </p>
                           )}
                         </div>
@@ -1008,36 +1041,57 @@ export default function TournamentDetail() {
           ))}
         </div>
       ) : activeTab === 'points' ? (
-        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-left min-w-[600px] md:min-w-0">
+        <div className="space-y-6">
+          {canManage && (
+            <div className="flex justify-end">
+              <button 
+                onClick={() => {
+                  const initialData: Record<string, { points: string, nrr: string }> = {};
+                  tournament.teams.forEach(t => {
+                    initialData[t.id] = { 
+                      points: t.manualPoints?.toString() || '', 
+                      nrr: t.manualNRR?.toString() || '' 
+                    };
+                  });
+                  setManualTeamData(initialData);
+                  setShowEditPoints(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2"
+              >
+                <Settings className="w-3 h-3" /> Edit Points Table
+              </button>
+            </div>
+          )}
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[500px] md:min-w-0">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Team</th>
-                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">P</th>
-                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">W</th>
-                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">L</th>
-                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">D</th>
-                  <th className="px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
+                  <th className="sticky left-0 bg-slate-50/50 px-4 md:px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 z-10">Team</th>
+                  <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">P</th>
+                  <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">W</th>
+                  <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">L</th>
+                  <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">D</th>
+                  <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
+                  <th className="px-4 md:px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {pointsTable.map((team, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-6">
-                      <div className="flex items-center gap-3">
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="sticky left-0 bg-white group-hover:bg-slate-50 transition-colors px-4 md:px-6 py-6 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] md:shadow-none">
+                      <div className="flex items-center gap-2 md:gap-3">
                         <span className="text-[10px] font-black text-slate-300 w-4">{idx + 1}</span>
-                        <span className="font-black text-slate-900 uppercase tracking-tight text-sm">{team.name}</span>
+                        <span className="font-black text-slate-900 uppercase tracking-tight text-xs md:text-sm truncate max-w-[100px] md:max-w-none">{team.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-6 text-center font-bold text-slate-600 text-sm">{team.played}</td>
-                    <td className="px-4 py-6 text-center font-bold text-emerald-600 text-sm">{team.wins}</td>
-                    <td className="px-4 py-6 text-center font-bold text-red-500 text-sm">{team.losses}</td>
-                    <td className="px-4 py-6 text-center font-bold text-slate-400 text-sm">{team.draws}</td>
-                    <td className="px-4 py-6 text-center font-black text-brand-red text-sm">{team.points}</td>
+                    <td className="px-2 md:px-4 py-6 text-center font-bold text-slate-600 text-xs md:text-sm">{team.played}</td>
+                    <td className="px-2 md:px-4 py-6 text-center font-bold text-emerald-600 text-xs md:text-sm">{team.wins}</td>
+                    <td className="px-2 md:px-4 py-6 text-center font-bold text-red-500 text-xs md:text-sm">{team.losses}</td>
+                    <td className="px-2 md:px-4 py-6 text-center font-bold text-slate-400 text-xs md:text-sm">{team.draws}</td>
+                    <td className="px-2 md:px-4 py-6 text-center font-black text-brand-red text-xs md:text-sm">{team.points}</td>
                     <td className={cn(
-                      "px-6 py-6 text-center font-bold text-sm",
+                      "px-4 md:px-6 py-6 text-center font-bold text-xs md:text-sm",
                       parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
                     )}>
                       {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
@@ -1047,8 +1101,13 @@ export default function TournamentDetail() {
               </tbody>
             </table>
           </div>
+          <div className="md:hidden px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-2">
+            <div className="w-1 h-1 rounded-full bg-slate-300 animate-pulse" />
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Scroll right for full stats & NRR</p>
+          </div>
         </div>
-      ) : (
+      </div>
+    ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {tournament.teams.map(team => (
             <div key={team.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
@@ -1144,6 +1203,90 @@ export default function TournamentDetail() {
         confirmText="Delete Now"
         isDestructive={true}
       />
+
+      {/* Manual Points Modal */}
+      <AnimatePresence>
+        {showEditPoints && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-3xl p-8 w-full max-w-2xl shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Manual Points Override</h2>
+                <button onClick={() => setShowEditPoints(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-6">
+                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> Admin Override
+                </p>
+                <p className="text-[9px] font-bold text-amber-700 mt-1">
+                  Leave fields empty to use automatic calculation based on match results.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {tournament.teams.map(team => (
+                  <div key={team.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 items-center">
+                    <p className="font-black text-slate-900 uppercase tracking-tight text-sm">{team.name}</p>
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Manual Points</label>
+                      <input 
+                        type="number" 
+                        placeholder="Auto"
+                        value={manualTeamData[team.id]?.points || ''}
+                        onChange={(e) => setManualTeamData(prev => ({
+                          ...prev,
+                          [team.id]: { ...prev[team.id], points: e.target.value }
+                        }))}
+                        className="w-full px-4 py-2 rounded-xl border border-slate-200 font-bold text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Manual NRR</label>
+                      <input 
+                        type="number" 
+                        step="0.001"
+                        placeholder="Auto"
+                        value={manualTeamData[team.id]?.nrr || ''}
+                        onChange={(e) => setManualTeamData(prev => ({
+                          ...prev,
+                          [team.id]: { ...prev[team.id], nrr: e.target.value }
+                        }))}
+                        className="w-full px-4 py-2 rounded-xl border border-slate-200 font-bold text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={() => setShowEditPoints(false)}
+                  className="flex-1 py-4 rounded-2xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={saveManualPoints}
+                  className="flex-1 py-4 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest text-xs hover:bg-red-700 transition-all shadow-lg"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
