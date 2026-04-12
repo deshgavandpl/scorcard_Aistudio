@@ -522,8 +522,6 @@ export default function MatchScoring() {
       
       if (needsSomething && !isSelectingPlayers && !showOverSummary) {
         setIsSelectingPlayers(true);
-      } else if (!needsSomething) {
-        setIsSelectingPlayers(false);
       }
     }
   }, [match, isSettingUp, isSelectingPlayers]);
@@ -751,8 +749,7 @@ export default function MatchScoring() {
       setNonStrikerName('');
       setBowlerName('');
       setError(null);
-      
-      // The useEffect will handle closing the modal via setIsSelectingPlayers(false)
+      setIsSelectingPlayers(false);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `matches/${match.id}`);
     }
