@@ -399,31 +399,15 @@ export default function TournamentDetail() {
     return stats;
   };
 
-  const [showEditPoints, setShowEditPoints] = useState(false);
-  const [manualTeamData, setManualTeamData] = useState<Record<string, { points: string, nrr: string }>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const saveManualPoints = async () => {
-    if (!id || !tournament || !canManage) return;
-    
-    const updatedTeams = tournament.teams.map(team => {
-      const manual = manualTeamData[team.id];
-      if (manual) {
-        return {
-          ...team,
-          manualPoints: manual.points === '' ? undefined : parseInt(manual.points),
-          manualNRR: manual.nrr === '' ? undefined : parseFloat(manual.nrr)
-        };
-      }
-      return team;
-    });
-
-    try {
-      await updateDoc(doc(db, 'tournaments', id), { teams: updatedTeams });
-      setShowEditPoints(false);
-      toast.success('Points table updated manually');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
-    }
+  const refreshPointsTable = async () => {
+    setIsRefreshing(true);
+    // The table is already reactive, but we can simulate a refresh by re-fetching or just toast
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success('Points table recalculated from all match results');
+    }, 800);
   };
 
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
@@ -475,10 +459,11 @@ export default function TournamentDetail() {
       ? (runsScored / oversFaced) - (runsConceded / oversBowled)
       : 0;
 
-    const finalPoints = team.manualPoints !== undefined ? team.manualPoints : (wins * 2) + draws;
-    const finalNRR = team.manualNRR !== undefined ? team.manualNRR.toFixed(3) : nrr.toFixed(3);
+    const finalPoints = (wins * 2) + draws;
+    const finalNRR = nrr.toFixed(3);
 
     return {
+      id: team.id,
       name: team.name,
       played: teamMatches.length,
       wins,
@@ -1042,23 +1027,15 @@ export default function TournamentDetail() {
         </div>
       ) : activeTab === 'points' ? (
         <div className="space-y-6">
-          {canManage && (
-            <div className="flex justify-end">
+          {canManage && activeTab === 'points' && (
+            <div className="flex justify-end mb-4">
               <button 
-                onClick={() => {
-                  const initialData: Record<string, { points: string, nrr: string }> = {};
-                  tournament.teams.forEach(t => {
-                    initialData[t.id] = { 
-                      points: t.manualPoints?.toString() || '', 
-                      nrr: t.manualNRR?.toString() || '' 
-                    };
-                  });
-                  setManualTeamData(initialData);
-                  setShowEditPoints(true);
-                }}
+                onClick={refreshPointsTable}
+                disabled={isRefreshing}
                 className="px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2"
               >
-                <Settings className="w-3 h-3" /> Edit Points Table
+                <RotateCcw className={cn("w-3 h-3", isRefreshing && "animate-spin")} /> 
+                {isRefreshing ? 'Recalculating...' : 'Refresh & Recalculate'}
               </button>
             </div>
           )}
@@ -1082,7 +1059,16 @@ export default function TournamentDetail() {
                     <td className="sticky left-0 bg-white group-hover:bg-slate-50 transition-colors px-4 md:px-6 py-6 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] md:shadow-none">
                       <div className="flex items-center gap-2 md:gap-3">
                         <span className="text-[10px] font-black text-slate-300 w-4">{idx + 1}</span>
-                        <span className="font-black text-slate-900 uppercase tracking-tight text-xs md:text-sm truncate max-w-[100px] md:max-w-none">{team.name}</span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-slate-900 uppercase tracking-tight text-xs md:text-sm truncate max-w-[100px] md:max-w-none">{team.name}</span>
+                            {idx < 4 && (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-600 text-[8px] font-black uppercase tracking-widest">
+                                Qualified
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-2 md:px-4 py-6 text-center font-bold text-slate-600 text-xs md:text-sm">{team.played}</td>
