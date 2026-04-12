@@ -438,6 +438,15 @@ export default function TournamentDetail() {
 
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
 
+  const leagueMatches = matches.filter(m => {
+    const isKnockout = m.isKnockout || 
+                      m.name?.toLowerCase().includes('semi') || 
+                      m.name?.toLowerCase().includes('final');
+    return !isKnockout;
+  });
+
+  const allLeagueMatchesFinished = leagueMatches.length > 0 && leagueMatches.every(m => m.status === 'Finished');
+
   const pointsTable = tournament.teams.map(team => {
     const teamMatches = matches.filter(m => {
       const isKnockout = m.isKnockout || 
@@ -1102,7 +1111,7 @@ export default function TournamentDetail() {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
                             <span className="font-black text-slate-900 uppercase tracking-tight text-xs md:text-sm truncate max-w-[100px] md:max-w-none">{team.name}</span>
-                            {idx < 4 && (
+                            {idx < 4 && allLeagueMatchesFinished && (
                               <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-600 text-[8px] font-black uppercase tracking-widest">
                                 Qualified
                               </span>
