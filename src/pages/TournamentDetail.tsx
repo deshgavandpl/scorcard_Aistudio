@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { generateFixturesPDF } from '../lib/pdfGenerator';
 
-import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, getDoc, updateDoc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -401,13 +401,39 @@ export default function TournamentDetail() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const refreshPointsTable = async () => {
+  const refreshData = async () => {
+    if (!id) return;
     setIsRefreshing(true);
-    // The table is already reactive, but we can simulate a refresh by re-fetching or just toast
-    setTimeout(() => {
+    try {
+      // Force a re-fetch of tournament and matches to ensure everything is synced
+      const tournamentDoc = await getDoc(doc(db, 'tournaments', id));
+      if (tournamentDoc.exists()) {
+        const data = tournamentDoc.data() as Tournament;
+        setTournament({ id: tournamentDoc.id, ...data } as Tournament);
+        setEditName(data.name);
+        setEditStatus(data.status);
+        setEditWinnerId(data.winnerId || '');
+        setEditResultMessage(data.resultMessage || '');
+      }
+      
+      const q = query(collection(db, 'matches'), where('tournamentId', '==', id));
+      const snapshot = await getDocs(q);
+      const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
+      const sortedMatches = matchesData.sort((a, b) => {
+        const orderA = a.order ?? 999;
+        const orderB = b.order ?? 999;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.createdAt - b.createdAt;
+      });
+      setMatches(sortedMatches);
+      
+      toast.success('Tournament data refreshed successfully');
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      handleFirestoreError(error, OperationType.GET, 'tournament/matches');
+    } finally {
       setIsRefreshing(false);
-      toast.success('Points table recalculated from all match results');
-    }, 800);
+    }
   };
 
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
@@ -470,7 +496,11 @@ export default function TournamentDetail() {
       losses,
       draws,
       points: finalPoints,
-      nrr: finalNRR
+      nrr: finalNRR,
+      runsScored,
+      oversFaced,
+      runsConceded,
+      oversBowled
     };
   }).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
@@ -494,6 +524,16 @@ export default function TournamentDetail() {
               {tournament.status}
             </span>
             <div className="flex gap-2">
+              {canManage && (
+                <button 
+                  onClick={refreshData}
+                  disabled={isRefreshing}
+                  className="p-3 rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all shadow-lg"
+                  title="Refresh Tournament Data"
+                >
+                  <RotateCcw className={cn("w-6 h-6", isRefreshing && "animate-spin")} />
+                </button>
+              )}
               {canManage && (
                 <button 
                   onClick={() => setShowEditTournament(true)}
@@ -1030,12 +1070,12 @@ export default function TournamentDetail() {
           {canManage && activeTab === 'points' && (
             <div className="flex justify-end mb-4">
               <button 
-                onClick={refreshPointsTable}
+                onClick={refreshData}
                 disabled={isRefreshing}
                 className="px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2"
               >
                 <RotateCcw className={cn("w-3 h-3", isRefreshing && "animate-spin")} /> 
-                {isRefreshing ? 'Recalculating...' : 'Refresh & Recalculate'}
+                {isRefreshing ? 'Refreshing...' : 'Refresh & Recalculate'}
               </button>
             </div>
           )}
@@ -1080,7 +1120,13 @@ export default function TournamentDetail() {
                       "px-4 md:px-6 py-6 text-center font-bold text-xs md:text-sm",
                       parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
                     )}>
-                      {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
+                      <div className="flex flex-col items-center">
+                        <span>{parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}</span>
+                        <div className="hidden md:flex flex-col text-[8px] text-slate-400 font-medium mt-1 leading-tight">
+                          <span>S: {team.runsScored}/{team.oversFaced.toFixed(1)}</span>
+                          <span>C: {team.runsConceded}/{team.oversBowled.toFixed(1)}</span>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))}
