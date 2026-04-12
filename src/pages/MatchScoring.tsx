@@ -232,6 +232,9 @@ export default function MatchScoring() {
   const [extraRuns, setExtraRuns] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  const [showOverSummary, setShowOverSummary] = useState(false);
+  const [lastOverSummary, setLastOverSummary] = useState<{ over: number, bowlerName: string, balls: any[] } | null>(null);
+
   // Result State
   const [resultMessage, setResultMessage] = useState('');
   const [manOfTheMatch, setManOfTheMatch] = useState('');
@@ -487,7 +490,7 @@ export default function MatchScoring() {
 
       const needsSomething = !striker || !nonStriker || !bowlerId;
       
-      if (needsSomething && !isSelectingPlayers) {
+      if (needsSomething && !isSelectingPlayers && !showOverSummary) {
         setIsSelectingPlayers(true);
       } else if (!needsSomething) {
         setIsSelectingPlayers(false);
@@ -764,7 +767,7 @@ export default function MatchScoring() {
       outPlayerId: outId
     });
 
-    if (isWicket) {
+    if (isWicket && !showOverSummary) {
       setIsSelectingPlayers(true);
     }
 
@@ -781,6 +784,28 @@ export default function MatchScoring() {
       strikerId: striker.playerId,
       bowlerId: bowler.playerId
     };
+
+    const isLegalBall = !isExtra || (extraType !== 'Wd' && extraType !== 'Nb');
+    const maxWickets = match.isSuperOver ? 2 : 10;
+    const maxOvers = match.isSuperOver ? 1 : match.oversLimit;
+    const inn1 = match.isSuperOver ? match.superOverInnings1 : match.innings1;
+    const runsToWin = match.currentInnings === 2 && inn1 ? inn1.runs + 1 : Infinity;
+    const currentRuns = currentInn.runs + runs + (isExtra && (extraType === 'Wd' || extraType === 'Nb') ? 1 : 0);
+    
+    const willInningsEnd = (isWicket && currentInn.wickets + 1 === maxWickets) || 
+                           (isLegalBall && currentInn.overs === maxOvers - 1 && currentInn.balls + 1 === 6) ||
+                           (currentRuns >= runsToWin);
+
+    if (isLegalBall && currentInn.balls + 1 === 6 && !willInningsEnd) {
+      // Over will be complete after this ball
+      setLastOverSummary({
+        over: currentInn.overs,
+        bowlerName: bowler.playerName,
+        balls: [...currentInn.ballHistory.filter(b => b.over === currentInn.overs), ballEvent]
+      });
+      setShowOverSummary(true);
+    }
+
     const commentary = getHypeCommentary(ballEvent);
     if (!isHypeMuted) {
       speakHype(commentary);
@@ -1571,6 +1596,77 @@ export default function MatchScoring() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Over Summary Modal */}
+      <AnimatePresence>
+        {showOverSummary && lastOverSummary && (
+          <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-slate-900"
+            >
+              <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">Over Completed</h2>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Over {lastOverSummary.over + 1} by {lastOverSummary.bowlerName}</p>
+              
+              <div className="bg-slate-50 p-4 rounded-2xl mb-8 border border-slate-100">
+                <div className="flex flex-wrap justify-center gap-2">
+                  {lastOverSummary.balls.map((ball, idx) => (
+                    <div 
+                      key={idx}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border shadow-sm",
+                        ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
+                        ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
+                        ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
+                        ball.isExtra ? "bg-amber-100 border-amber-500 text-amber-600" :
+                        "bg-white border-slate-200 text-slate-600"
+                      )}
+                    >
+                      {ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Runs</span>
+                  <span className="text-xl font-black text-slate-900">
+                    {lastOverSummary.balls.reduce((sum, b) => {
+                      let r = b.runs;
+                      if (b.isExtra && (b.extraType === 'Wd' || b.extraType === 'Nb')) r += 1;
+                      return sum + r;
+                    }, 0)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button 
+                  onClick={() => {
+                    setShowOverSummary(false);
+                    setIsSelectingPlayers(true);
+                  }}
+                  className="w-full py-4 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg"
+                >
+                  Confirm & Next Bowler
+                </button>
+                <button 
+                  onClick={() => {
+                    undoLastBall();
+                    setShowOverSummary(false);
+                  }}
+                  className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="w-3 h-3" /> Undo Last Ball
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
