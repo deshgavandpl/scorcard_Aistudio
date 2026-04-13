@@ -17,6 +17,7 @@ import TournamentWidget from '../components/TournamentWidget';
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [error, setError] = useState<string | null>(null);
   const { isAdminMode } = useAdmin();
   const navigate = useNavigate();
 
@@ -33,15 +34,31 @@ export default function LiveScore() {
   const canManage = isAdminMode;
 
   useEffect(() => {
+    let isMounted = true;
+    setError(null);
+
     const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
+      if (!isMounted) return;
       const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
       setMatches(matchesData);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'matches');
+      setError(null);
+    }, (err) => {
+      if (!isMounted) return;
+      console.error("LiveScore Fetch Error:", err);
+      setError(err.message || String(err));
+      handleFirestoreError(err, OperationType.LIST, 'matches');
     });
-    return () => unsub();
+
+    return () => {
+      isMounted = false;
+      unsub();
+    };
   }, []);
+
+  const retryFetch = () => {
+    window.location.reload();
+  };
 
   const [activeSegment, setActiveSegment] = useState<'Live' | 'Upcoming' | 'Finished'>('Live');
   const [relevantTournamentId, setRelevantTournamentId] = useState<string | null>(null);
@@ -185,7 +202,26 @@ export default function LiveScore() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Active Matches */}
         <div className="lg:col-span-2 space-y-6">
-          {filteredMatches.length === 0 ? (
+          {error ? (
+            <div className="bg-red-50 rounded-3xl border border-red-100 p-12 text-center space-y-6">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle className="w-10 h-10 text-red-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Connection Error</h3>
+                <p className="text-slate-500 max-w-xs mx-auto text-sm font-medium">
+                  We're having trouble connecting to the live score database. This could be due to a network issue or a temporary service interruption.
+                </p>
+                <p className="text-red-400 text-[10px] font-mono mt-2">{error}</p>
+              </div>
+              <button 
+                onClick={retryFetch}
+                className="px-8 py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red transition-all shadow-lg flex items-center gap-2 mx-auto"
+              >
+                <RotateCcw className="w-4 h-4" /> Retry Connection
+              </button>
+            </div>
+          ) : filteredMatches.length === 0 ? (
             <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-20 text-center space-y-6">
               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
                 <AlertCircle className="w-10 h-10 text-slate-200" />

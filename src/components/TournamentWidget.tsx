@@ -16,24 +16,30 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'fixtures' | 'points'>('fixtures');
+  const [error, setError] = useState<boolean>(false);
 
   useEffect(() => {
     if (!tournamentId) return;
+    setError(false);
 
     const unsubTournament = onSnapshot(doc(db, 'tournaments', tournamentId), (docSnap) => {
       if (docSnap.exists()) {
         setTournament({ id: docSnap.id, ...docSnap.data() } as Tournament);
+        setError(false);
       }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `tournaments/${tournamentId}`);
+    }, (err) => {
+      console.error("TournamentWidget Fetch Error:", err);
+      setError(true);
+      handleFirestoreError(err, OperationType.GET, `tournaments/${tournamentId}`);
     });
 
     const q = query(collection(db, 'matches'), where('tournamentId', '==', tournamentId));
     const unsubMatches = onSnapshot(q, (snapshot) => {
       const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
       setMatches(matchesData);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'matches');
+    }, (err) => {
+      console.error("TournamentWidget Matches Fetch Error:", err);
+      handleFirestoreError(err, OperationType.LIST, 'matches');
     });
 
     return () => {
@@ -94,6 +100,20 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
     if (b.wins !== a.wins) return b.wins - a.wins;
     return parseFloat(b.nrr) - parseFloat(a.nrr);
   }) : [];
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden sticky top-24 p-8 text-center space-y-4">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+          <AlertCircle className="w-8 h-8 text-red-500" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Tournament Error</p>
+          <p className="text-[10px] text-slate-400 font-medium">Failed to load standings</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!tournament) return null;
 

@@ -24,6 +24,7 @@ export default function TournamentDetail() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams'>('fixtures');
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [error, setError] = useState<string | null>(null);
   const [showAddMatch, setShowAddMatch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditTournament, setShowEditTournament] = useState(false);
@@ -102,6 +103,7 @@ export default function TournamentDetail() {
 
   useEffect(() => {
     if (!id) return;
+    setError(null);
     const unsub = onSnapshot(doc(db, 'tournaments', id), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as Tournament;
@@ -110,9 +112,12 @@ export default function TournamentDetail() {
         setEditStatus(data.status);
         setEditWinnerId(data.winnerId || '');
         setEditResultMessage(data.resultMessage || '');
+        setError(null);
       }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `tournaments/${id}`);
+    }, (err) => {
+      console.error("TournamentDetail Fetch Error:", err);
+      setError(err.message || String(err));
+      handleFirestoreError(err, OperationType.GET, `tournaments/${id}`);
     });
     return () => unsub();
   }, [id]);
@@ -130,8 +135,9 @@ export default function TournamentDetail() {
         return a.createdAt - b.createdAt;
       });
       setMatches(sortedMatches);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'matches');
+    }, (err) => {
+      console.error("TournamentDetail Matches Fetch Error:", err);
+      handleFirestoreError(err, OperationType.LIST, 'matches');
     });
     return () => unsub();
   }, [id]);
@@ -631,6 +637,37 @@ export default function TournamentDetail() {
       setIsRefreshing(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-[2.5rem] border border-slate-200 p-12 text-center space-y-6 max-w-md w-full shadow-xl">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle className="w-10 h-10 text-red-500" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic transform -skew-x-6">Tournament Error</h3>
+            <p className="text-slate-500 text-sm font-medium">
+              We encountered an issue while loading the tournament details. This might be a temporary connection problem.
+            </p>
+            <p className="text-red-400 text-[10px] font-mono mt-4 bg-red-50 p-3 rounded-xl border border-red-100">{error}</p>
+          </div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-xs hover:bg-brand-red transition-all shadow-lg flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" /> Retry Loading
+          </button>
+          <Link 
+            to="/tournaments"
+            className="block text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            Back to Tournaments
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
 

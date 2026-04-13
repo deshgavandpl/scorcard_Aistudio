@@ -1,26 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all read/write for now to fix the database access error
-    match /{document=**} {
-      allow read, write: if true;
-    }
-    
-    // Explicitly handle subcollections if needed
-    match /matches/{matchId}/chat/{messageId} {
-      allow read, write: if true;
+    // Public read access for scores and standings
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
     match /tournaments/{tournamentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
     match /teams/{teamId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
-    
+
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Default rule for any other collection
+    match /{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }

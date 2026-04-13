@@ -53,18 +53,25 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
   // Display user-friendly toast
   let displayMessage = "An error occurred while accessing the database.";
+  let isSpecificError = false;
   
   if (errorMessage.includes("permission-denied") || errorMessage.includes("insufficient permissions")) {
     displayMessage = "Access Denied: You don't have permission to perform this action.";
+    isSpecificError = true;
   } else if (errorMessage.includes("unavailable")) {
     displayMessage = "The database is currently unavailable. Please check your internet connection.";
+    isSpecificError = true;
   } else if (errorMessage.includes("quota-exceeded")) {
     displayMessage = "Database quota exceeded. Please try again later.";
+    isSpecificError = true;
+  } else if (errorMessage.includes("index")) {
+    displayMessage = "A database index is required for this query. Please contact the administrator.";
+    isSpecificError = true;
   }
 
   toast.error(displayMessage, {
-    description: `Operation: ${operationType} on ${path || 'unknown path'}`,
-    duration: 5000,
+    description: isSpecificError ? `Operation: ${operationType} on ${path || 'unknown path'}` : errorMessage,
+    duration: 10000,
   });
 
   console.error('Firestore Error: ', JSON.stringify(errInfo));
