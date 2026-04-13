@@ -628,9 +628,12 @@ export default function TournamentDetail() {
       const teamInnings = m.innings1?.battingTeamId === team.id ? m.innings1 : (m.innings2?.battingTeamId === team.id ? m.innings2 : null);
       const oppInnings = m.innings1?.bowlingTeamId === team.id ? m.innings1 : (m.innings2?.bowlingTeamId === team.id ? m.innings2 : null);
 
+      // Standard cricket NRR rule: If a team is all out, they are deemed to have faced their full quota of overs
+      const maxWickets = m.isSuperOver ? 2 : 10;
+
       if (teamInnings) {
         autoRunsScored += teamInnings.runs;
-        if (teamInnings.wickets >= 10) {
+        if (teamInnings.wickets >= maxWickets) {
           autoOversFaced += m.oversLimit;
         } else {
           autoOversFaced += teamInnings.overs + (teamInnings.balls / 6);
@@ -639,7 +642,7 @@ export default function TournamentDetail() {
 
       if (oppInnings) {
         autoRunsConceded += oppInnings.runs;
-        if (oppInnings.wickets >= 10) {
+        if (oppInnings.wickets >= maxWickets) {
           autoOversBowled += m.oversLimit;
         } else {
           autoOversBowled += oppInnings.overs + (oppInnings.balls / 6);
@@ -661,6 +664,7 @@ export default function TournamentDetail() {
     const finalLosses = autoLosses + (team.manualLost || 0);
     const finalDraws = autoDraws + (team.manualTied || 0);
     const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
+    
     const calculatedNRR = parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0);
     const cappedNRR = Math.max(-5, Math.min(5, calculatedNRR));
     const finalNRR = cappedNRR.toFixed(3);
@@ -1405,7 +1409,7 @@ export default function TournamentDetail() {
           )}
           <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-left min-w-[500px] md:min-w-0">
+            <table className="w-full text-left min-w-[800px]">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
                   <th className="sticky left-0 bg-slate-50/50 px-4 md:px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 z-10">Team</th>
@@ -1450,16 +1454,10 @@ export default function TournamentDetail() {
                     <td className="px-2 md:px-4 py-6 text-center font-bold text-slate-400 text-xs md:text-sm">{team.draws}</td>
                     <td className="px-2 md:px-4 py-6 text-center font-black text-brand-red text-xs md:text-sm">{team.points}</td>
                     <td className={cn(
-                      "px-4 md:px-6 py-6 text-center font-bold text-xs md:text-sm",
+                      "px-4 md:px-6 py-6 text-center font-black text-xs md:text-sm",
                       parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
                     )}>
-                      <div className="flex flex-col items-center">
-                        <span>{parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}</span>
-                        <div className="hidden md:flex flex-col text-[8px] text-slate-400 font-medium mt-1 leading-tight">
-                          <span>S: {team.runsScored}/{decimalToCricket(team.oversFaced).toFixed(1)}</span>
-                          <span>C: {team.runsConceded}/{decimalToCricket(team.oversBowled).toFixed(1)}</span>
-                        </div>
-                      </div>
+                      {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
                     </td>
                   </tr>
                 ))}

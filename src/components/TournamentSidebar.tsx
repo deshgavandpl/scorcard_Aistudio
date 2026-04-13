@@ -45,14 +45,20 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
     };
   }, [tournamentId, isOpen]);
 
+  const cricketToDecimal = (overs: number) => {
+    const wholeOvers = Math.floor(overs);
+    const balls = Math.round((overs - wholeOvers) * 10);
+    return wholeOvers + (balls / 6);
+  };
+
+  const decimalToCricket = (decimal: number) => {
+    const wholeOvers = Math.floor(decimal);
+    const balls = Math.round((decimal - wholeOvers) * 6);
+    return parseFloat(`${wholeOvers}.${balls}`);
+  };
+
   const pointsTable = React.useMemo(() => {
     if (!tournament) return [];
-
-    const cricketToDecimal = (overs: number) => {
-      const wholeOvers = Math.floor(overs);
-      const balls = Math.round((overs - wholeOvers) * 10);
-      return wholeOvers + (balls / 6);
-    };
 
     return tournament.teams.map(team => {
       const teamMatches = matches.filter(m => {
@@ -74,9 +80,11 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
         const teamInnings = m.innings1?.battingTeamId === team.id ? m.innings1 : (m.innings2?.battingTeamId === team.id ? m.innings2 : null);
         const oppInnings = m.innings1?.bowlingTeamId === team.id ? m.innings1 : (m.innings2?.bowlingTeamId === team.id ? m.innings2 : null);
 
+        const maxWickets = m.isSuperOver ? 2 : 10;
+
         if (teamInnings) {
           autoRunsScored += teamInnings.runs;
-          if (teamInnings.wickets >= 10) {
+          if (teamInnings.wickets >= maxWickets) {
             autoOversFaced += m.oversLimit;
           } else {
             autoOversFaced += teamInnings.overs + (teamInnings.balls / 6);
@@ -85,7 +93,7 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
 
         if (oppInnings) {
           autoRunsConceded += oppInnings.runs;
-          if (oppInnings.wickets >= 10) {
+          if (oppInnings.wickets >= maxWickets) {
             autoOversBowled += m.oversLimit;
           } else {
             autoOversBowled += oppInnings.overs + (oppInnings.balls / 6);
@@ -107,6 +115,7 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
       const finalLosses = autoLosses + (team.manualLost || 0);
       const finalDraws = autoDraws + (team.manualTied || 0);
       const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
+      
       const calculatedNRR = parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0);
       const cappedNRR = Math.max(-5, Math.min(5, calculatedNRR));
       const finalNRR = cappedNRR.toFixed(3);
@@ -118,7 +127,11 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
         losses: finalLosses,
         draws: finalDraws,
         points: finalPoints,
-        nrr: finalNRR
+        nrr: finalNRR,
+        runsScored: totalRunsScored,
+        oversFaced: totalOversFaced,
+        runsConceded: totalRunsConceded,
+        oversBowled: totalOversBowled
       };
     }).sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
@@ -253,7 +266,7 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
               ) : activeTab === 'points' ? (
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                   <div className="overflow-x-auto no-scrollbar">
-                    <table className="w-full text-left text-[10px] min-w-[300px]">
+                    <table className="w-full text-left text-[10px] min-w-[450px]">
                       <thead>
                         <tr className="bg-slate-50/50 border-b border-slate-100">
                           <th className="sticky left-0 bg-slate-50/50 px-3 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 z-10">Team</th>
@@ -271,10 +284,10 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                             <td className="px-2 py-5 text-center font-bold text-emerald-600 text-xs">{team.wins}</td>
                             <td className="px-2 py-5 text-center font-black text-brand-red text-xs">{team.points}</td>
                             <td className={cn(
-                              "px-3 py-5 text-center font-bold text-xs",
+                              "px-3 py-5 text-center font-black text-xs",
                               parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
                             )}>
-                              {team.nrr}
+                              {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
                             </td>
                           </tr>
                         ))}
