@@ -249,6 +249,10 @@ export default function MatchScoring() {
   const [isHypeMuted, setIsHypeMuted] = useState(false);
   const [isExtraWicket, setIsExtraWicket] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showCustomRunsInput, setShowCustomRunsInput] = useState(false);
+  const [showCustomExtraRunsInput, setShowCustomExtraRunsInput] = useState(false);
+  const [customRunsValue, setCustomRunsValue] = useState('');
+  const [customExtraRunsValue, setCustomExtraRunsValue] = useState('');
   const [teamARoster, setTeamARoster] = useState<Player[]>([]);
   const [teamBRoster, setTeamBRoster] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
@@ -2451,7 +2455,7 @@ export default function MatchScoring() {
               </div>
 
               <div className="grid grid-cols-5 gap-2">
-                {[0, 1, 2, 3, 4].map((run) => (
+                {[0, 1, 2, 3, 4, 6].map((run) => (
                   <motion.button
                     key={run}
                     whileHover={{ scale: 1.05 }}
@@ -2461,6 +2465,7 @@ export default function MatchScoring() {
                       "aspect-square rounded-xl border-2 font-black text-xl transition-all shadow-sm flex items-center justify-center",
                       run === 0 ? "bg-slate-50 border-slate-200 text-slate-400" :
                       run === 4 ? "bg-emerald-50 border-emerald-500 text-emerald-700 hover:bg-emerald-600 hover:text-white" :
+                      run === 6 ? "bg-purple-50 border-purple-500 text-purple-700 hover:bg-purple-600 hover:text-white" :
                       "bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white"
                     )}
                   >
@@ -2470,10 +2475,21 @@ export default function MatchScoring() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handleBall(6)}
-                  className="aspect-square rounded-xl bg-purple-50 border-2 border-purple-500 text-purple-700 font-black text-xl hover:bg-purple-600 hover:text-white transition-all shadow-lg flex items-center justify-center"
+                  onClick={() => handleBall(5)}
+                  className="aspect-square rounded-xl bg-blue-50 border-2 border-blue-200 text-blue-600 font-black text-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center justify-center"
                 >
-                  6
+                  5
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowCustomRunsInput(!showCustomRunsInput)}
+                  className={cn(
+                    "aspect-square rounded-xl border-2 font-black text-xs transition-all shadow-sm flex items-center justify-center uppercase tracking-tighter",
+                    showCustomRunsInput ? "bg-slate-900 text-white border-slate-900" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  More
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -2500,6 +2516,35 @@ export default function MatchScoring() {
                   <RotateCcw className="w-5 h-5 rotate-180" />
                 </motion.button>
               </div>
+
+              {showCustomRunsInput && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-2 p-2 bg-slate-900 rounded-xl"
+                >
+                  <input 
+                    type="number"
+                    value={customRunsValue}
+                    onChange={(e) => setCustomRunsValue(e.target.value)}
+                    placeholder="Enter runs"
+                    className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white font-bold outline-none focus:border-brand-red"
+                  />
+                  <button 
+                    onClick={() => {
+                      const r = parseInt(customRunsValue);
+                      if (!isNaN(r)) {
+                        handleBall(r);
+                        setCustomRunsValue('');
+                        setShowCustomRunsInput(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-brand-red text-white font-black rounded-lg uppercase text-[10px] tracking-widest"
+                  >
+                    Add
+                  </button>
+                </motion.div>
+              )}
             </div>
 
               {/* Extras Section - Compact */}
@@ -2531,8 +2576,47 @@ export default function MatchScoring() {
                         {num}
                       </motion.button>
                     ))}
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setShowCustomExtraRunsInput(!showCustomExtraRunsInput)}
+                      className={cn(
+                        "w-6 h-6 rounded-md font-black text-[8px] transition-all",
+                        showCustomExtraRunsInput || ![0, 1, 2, 3, 4].includes(extraRuns) ? "bg-brand-red text-white" : "bg-white text-slate-400 border border-slate-200"
+                      )}
+                    >
+                      ...
+                    </motion.button>
                   </div>
                 </div>
+
+                {showCustomExtraRunsInput && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex gap-2 p-1 bg-slate-900 rounded-lg"
+                  >
+                    <input 
+                      type="number"
+                      value={customExtraRunsValue}
+                      onChange={(e) => setCustomExtraRunsValue(e.target.value)}
+                      placeholder="Extra runs"
+                      className="flex-1 bg-white/10 border border-white/20 rounded-md px-2 py-1 text-white text-[10px] font-bold outline-none focus:border-brand-red"
+                    />
+                    <button 
+                      onClick={() => {
+                        const r = parseInt(customExtraRunsValue);
+                        if (!isNaN(r)) {
+                          setExtraRuns(r);
+                          setCustomExtraRunsValue('');
+                          setShowCustomExtraRunsInput(false);
+                        }
+                      }}
+                      className="px-3 py-1 bg-brand-red text-white font-black rounded-md uppercase text-[8px] tracking-widest"
+                    >
+                      Set
+                    </button>
+                  </motion.div>
+                )}
 
                 <div className="grid grid-cols-5 gap-2">
                   {[

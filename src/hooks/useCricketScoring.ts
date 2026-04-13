@@ -72,20 +72,28 @@ export function useCricketScoring(matchId: string | undefined) {
 
     // Update runs and extras
     let runsToAdd = event.runs;
+    let batterRuns = 0;
+
     if (event.isExtra) {
       if (event.extraType === 'Wd') {
-        newInnings.extras.wide += 1;
-        runsToAdd += 1;
+        newInnings.extras.wide += (1 + event.runs);
+        runsToAdd = 1 + event.runs;
+        batterRuns = 0; // Wides never go to batter
       } else if (event.extraType === 'Nb') {
         newInnings.extras.noBall += 1;
-        runsToAdd += 1;
+        runsToAdd = 1 + event.runs;
+        batterRuns = event.runs; // Assume batter hit it if runs > 0 on No Ball
       } else if (event.extraType === 'By') {
         newInnings.extras.bye += event.runs;
-        runsToAdd = 0; // Batter doesn't get runs
+        runsToAdd = event.runs;
+        batterRuns = 0;
       } else if (event.extraType === 'Lb') {
         newInnings.extras.legBye += event.runs;
-        runsToAdd = 0; // Batter doesn't get runs
+        runsToAdd = event.runs;
+        batterRuns = 0;
       }
+    } else {
+      batterRuns = event.runs;
     }
     newInnings.runs += runsToAdd;
 
@@ -93,12 +101,12 @@ export function useCricketScoring(matchId: string | undefined) {
     const striker = newInnings.battingStats[event.strikerId];
     if (striker) {
       const updatedStriker = { ...striker };
-      updatedStriker.runs += (event.isExtra && (event.extraType === 'By' || event.extraType === 'Lb')) ? 0 : event.runs;
+      updatedStriker.runs += batterRuns;
       if (!event.isExtra || event.extraType !== 'Wd') {
         updatedStriker.balls += 1;
       }
-      if (event.runs === 4 && !event.isExtra) updatedStriker.fours += 1;
-      if (event.runs === 6 && !event.isExtra) updatedStriker.sixes += 1;
+      if (batterRuns === 4 && !event.isExtra) updatedStriker.fours += 1;
+      if (batterRuns === 6 && !event.isExtra) updatedStriker.sixes += 1;
       
       // Handle wicket for striker
       const isStrikerOut = event.isWicket && (!event.outPlayerId || event.outPlayerId === event.strikerId);
@@ -368,32 +376,40 @@ export function useCricketScoring(matchId: string | undefined) {
 
     // Reverse runs and extras
     let runsToRemove = lastBall.runs;
+    let batterRunsToRemove = 0;
+
     if (lastBall.isExtra) {
       if (lastBall.extraType === 'Wd') {
-        newInnings.extras.wide -= 1;
-        runsToRemove += 1;
+        newInnings.extras.wide -= (1 + lastBall.runs);
+        runsToRemove = 1 + lastBall.runs;
+        batterRunsToRemove = 0;
       } else if (lastBall.extraType === 'Nb') {
         newInnings.extras.noBall -= 1;
-        runsToRemove += 1;
+        runsToRemove = 1 + lastBall.runs;
+        batterRunsToRemove = lastBall.runs;
       } else if (lastBall.extraType === 'By') {
         newInnings.extras.bye -= lastBall.runs;
-        runsToRemove = 0;
+        runsToRemove = lastBall.runs;
+        batterRunsToRemove = 0;
       } else if (lastBall.extraType === 'Lb') {
         newInnings.extras.legBye -= lastBall.runs;
-        runsToRemove = 0;
+        runsToRemove = lastBall.runs;
+        batterRunsToRemove = 0;
       }
+    } else {
+      batterRunsToRemove = lastBall.runs;
     }
     newInnings.runs -= runsToRemove;
 
     // Reverse batter stats
     const striker = { ...newInnings.battingStats[lastBall.strikerId] };
     if (striker) {
-      striker.runs -= (lastBall.isExtra && (lastBall.extraType === 'By' || lastBall.extraType === 'Lb')) ? 0 : lastBall.runs;
+      striker.runs -= batterRunsToRemove;
       if (!lastBall.isExtra || lastBall.extraType !== 'Wd') {
         striker.balls -= 1;
       }
-      if (lastBall.runs === 4 && !lastBall.isExtra) striker.fours -= 1;
-      if (lastBall.runs === 6 && !lastBall.isExtra) striker.sixes -= 1;
+      if (batterRunsToRemove === 4 && !lastBall.isExtra) striker.fours -= 1;
+      if (batterRunsToRemove === 6 && !lastBall.isExtra) striker.sixes -= 1;
       if (lastBall.isWicket) {
         striker.isOut = false;
         striker.isStriker = true;

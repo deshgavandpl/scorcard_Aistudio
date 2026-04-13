@@ -596,6 +596,18 @@ export default function TournamentDetail() {
 
   const allLeagueMatchesFinished = leagueMatches.length > 0 && leagueMatches.every(m => m.status === 'Finished');
 
+  const cricketToDecimal = (overs: number) => {
+    const wholeOvers = Math.floor(overs);
+    const balls = Math.round((overs - wholeOvers) * 10);
+    return wholeOvers + (balls / 6);
+  };
+
+  const decimalToCricket = (decimal: number) => {
+    const wholeOvers = Math.floor(decimal);
+    const balls = Math.round((decimal - wholeOvers) * 6);
+    return parseFloat(`${wholeOvers}.${balls}`);
+  };
+
   const pointsTable = tournament.teams.map(team => {
     const teamMatches = matches.filter(m => {
       const isKnockout = m.isKnockout || 
@@ -604,7 +616,7 @@ export default function TournamentDetail() {
       return m.status === 'Finished' && !isKnockout && (m.teamAId === team.id || m.teamBId === team.id);
     });
     const autoWins = teamMatches.filter(m => m.winnerId === team.id).length;
-    const autoLosses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
+    const autoLosses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw' && m.winnerId !== undefined).length;
     const autoDraws = teamMatches.filter(m => m.winnerId === 'Draw').length;
     
     let autoRunsScored = 0;
@@ -636,9 +648,9 @@ export default function TournamentDetail() {
     });
 
     const totalRunsScored = autoRunsScored + (team.manualRunsScored || 0);
-    const totalOversFaced = autoOversFaced + (team.manualOversFaced || 0);
+    const totalOversFaced = autoOversFaced + cricketToDecimal(team.manualOversFaced || 0);
     const totalRunsConceded = autoRunsConceded + (team.manualRunsConceded || 0);
-    const totalOversBowled = autoOversBowled + (team.manualOversBowled || 0);
+    const totalOversBowled = autoOversBowled + cricketToDecimal(team.manualOversBowled || 0);
 
     const nrr = (totalOversFaced > 0 && totalOversBowled > 0) 
       ? (totalRunsScored / totalOversFaced) - (totalRunsConceded / totalOversBowled)
@@ -649,7 +661,9 @@ export default function TournamentDetail() {
     const finalLosses = autoLosses + (team.manualLost || 0);
     const finalDraws = autoDraws + (team.manualTied || 0);
     const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
-    const finalNRR = (parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0)).toFixed(3);
+    const calculatedNRR = parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0);
+    const cappedNRR = Math.max(-5, Math.min(5, calculatedNRR));
+    const finalNRR = cappedNRR.toFixed(3);
 
     return {
       id: team.id,
@@ -1442,8 +1456,8 @@ export default function TournamentDetail() {
                       <div className="flex flex-col items-center">
                         <span>{parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}</span>
                         <div className="hidden md:flex flex-col text-[8px] text-slate-400 font-medium mt-1 leading-tight">
-                          <span>S: {team.runsScored}/{team.oversFaced.toFixed(1)}</span>
-                          <span>C: {team.runsConceded}/{team.oversBowled.toFixed(1)}</span>
+                          <span>S: {team.runsScored}/{decimalToCricket(team.oversFaced).toFixed(1)}</span>
+                          <span>C: {team.runsConceded}/{decimalToCricket(team.oversBowled).toFixed(1)}</span>
                         </div>
                       </div>
                     </td>

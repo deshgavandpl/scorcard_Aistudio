@@ -47,10 +47,22 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
 
   const pointsTable = React.useMemo(() => {
     if (!tournament) return [];
+
+    const cricketToDecimal = (overs: number) => {
+      const wholeOvers = Math.floor(overs);
+      const balls = Math.round((overs - wholeOvers) * 10);
+      return wholeOvers + (balls / 6);
+    };
+
     return tournament.teams.map(team => {
-      const teamMatches = matches.filter(m => m.status === 'Finished' && (m.teamAId === team.id || m.teamBId === team.id));
+      const teamMatches = matches.filter(m => {
+        const isKnockout = m.isKnockout || 
+                          m.name?.toLowerCase().includes('semi') || 
+                          m.name?.toLowerCase().includes('final');
+        return m.status === 'Finished' && !isKnockout && (m.teamAId === team.id || m.teamBId === team.id);
+      });
       const autoWins = teamMatches.filter(m => m.winnerId === team.id).length;
-      const autoLosses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
+      const autoLosses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw' && m.winnerId !== undefined).length;
       const autoDraws = teamMatches.filter(m => m.winnerId === 'Draw').length;
       
       let autoRunsScored = 0;
@@ -82,9 +94,9 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
       });
 
       const totalRunsScored = autoRunsScored + (team.manualRunsScored || 0);
-      const totalOversFaced = autoOversFaced + (team.manualOversFaced || 0);
+      const totalOversFaced = autoOversFaced + cricketToDecimal(team.manualOversFaced || 0);
       const totalRunsConceded = autoRunsConceded + (team.manualRunsConceded || 0);
-      const totalOversBowled = autoOversBowled + (team.manualOversBowled || 0);
+      const totalOversBowled = autoOversBowled + cricketToDecimal(team.manualOversBowled || 0);
 
       const nrr = (totalOversFaced > 0 && totalOversBowled > 0) 
         ? (totalRunsScored / totalOversFaced) - (totalRunsConceded / totalOversBowled)
@@ -95,7 +107,9 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
       const finalLosses = autoLosses + (team.manualLost || 0);
       const finalDraws = autoDraws + (team.manualTied || 0);
       const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
-      const finalNRR = (parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0)).toFixed(3);
+      const calculatedNRR = parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0);
+      const cappedNRR = Math.max(-5, Math.min(5, calculatedNRR));
+      const finalNRR = cappedNRR.toFixed(3);
 
       return {
         name: team.name,
