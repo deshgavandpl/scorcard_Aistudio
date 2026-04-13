@@ -17,6 +17,7 @@ import {
   Download,
   Volume2,
   VolumeX,
+  Sparkles,
   X
 } from 'lucide-react';
 import { Match, BatterStats, BowlerStats, BallEvent } from '../types/cricket';
@@ -27,6 +28,7 @@ import { db } from '../firebase';
 import { generateTeamPDF } from '../lib/pdfGenerator';
 import { Team } from '../types/cricket';
 import Scorecard from '../components/Scorecard';
+import MatchAISummary from '../components/MatchAISummary';
 import Certificate from '../components/Certificate';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
@@ -270,6 +272,42 @@ export default function LiveMatchView() {
             )}
           </div>
         </motion.div>
+
+        {/* Match Score Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">1st Innings</p>
+            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+              {match.innings1?.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}
+            </h3>
+            <div className="space-y-1">
+              <p className="text-5xl font-black text-brand-red tracking-tighter">
+                {match.innings1?.runs || 0}<span className="text-2xl text-slate-300">/{match.innings1?.wickets || 0}</span>
+              </p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                {match.innings1?.overs || 0}.{match.innings1?.balls || 0} Overs
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">2nd Innings</p>
+            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+              {match.innings2?.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}
+            </h3>
+            <div className="space-y-1">
+              <p className="text-5xl font-black text-brand-red tracking-tighter">
+                {match.innings2?.runs || 0}<span className="text-2xl text-slate-300">/{match.innings2?.wickets || 0}</span>
+              </p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                {match.innings2?.overs || 0}.{match.innings2?.balls || 0} Overs
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Match Summary */}
+        <MatchAISummary match={match} />
 
         {/* Final Scorecard Window */}
         <div className="space-y-12">

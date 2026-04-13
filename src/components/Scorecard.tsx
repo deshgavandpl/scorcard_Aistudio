@@ -50,9 +50,19 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
           "bg-slate-50 rounded-2xl p-4 border border-slate-200 h-full",
           activeTab !== 'batting' && "hidden lg:block"
         )}>
-          <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4">
-            Innings {inningsNumber}: {battingTeamName}
-          </h3>
+          <div className="flex justify-between items-end mb-4">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">
+              Innings {inningsNumber}: {battingTeamName}
+            </h3>
+            <div className="text-right">
+              <p className="text-2xl font-black text-brand-red tracking-tight">
+                {innings.runs}/{innings.wickets}
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {innings.overs}.{innings.balls} Overs
+              </p>
+            </div>
+          </div>
           
           {/* Batsmen Table */}
           <div className="overflow-x-auto">
