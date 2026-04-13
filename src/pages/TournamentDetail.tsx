@@ -79,6 +79,14 @@ export default function TournamentDetail() {
   const [showEditTeamStandings, setShowEditTeamStandings] = useState<Team | null>(null);
   const [manualPoints, setManualPoints] = useState(0);
   const [manualNRR, setManualNRR] = useState(0);
+  const [manualPlayed, setManualPlayed] = useState(0);
+  const [manualWon, setManualWon] = useState(0);
+  const [manualLost, setManualLost] = useState(0);
+  const [manualTied, setManualTied] = useState(0);
+  const [manualRunsScored, setManualRunsScored] = useState(0);
+  const [manualOversFaced, setManualOversFaced] = useState(0);
+  const [manualRunsConceded, setManualRunsConceded] = useState(0);
+  const [manualOversBowled, setManualOversBowled] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -411,6 +419,14 @@ export default function TournamentDetail() {
     setShowEditTeamStandings(team);
     setManualPoints(team.manualPoints || 0);
     setManualNRR(team.manualNRR || 0);
+    setManualPlayed(team.manualPlayed || 0);
+    setManualWon(team.manualWon || 0);
+    setManualLost(team.manualLost || 0);
+    setManualTied(team.manualTied || 0);
+    setManualRunsScored(team.manualRunsScored || 0);
+    setManualOversFaced(team.manualOversFaced || 0);
+    setManualRunsConceded(team.manualRunsConceded || 0);
+    setManualOversBowled(team.manualOversBowled || 0);
   };
 
   const updateTeamStandings = async () => {
@@ -421,7 +437,15 @@ export default function TournamentDetail() {
         return {
           ...t,
           manualPoints,
-          manualNRR
+          manualNRR,
+          manualPlayed,
+          manualWon,
+          manualLost,
+          manualTied,
+          manualRunsScored,
+          manualOversFaced,
+          manualRunsConceded,
+          manualOversBowled
         };
       }
       return t;
@@ -579,62 +603,67 @@ export default function TournamentDetail() {
                         m.name?.toLowerCase().includes('final');
       return m.status === 'Finished' && !isKnockout && (m.teamAId === team.id || m.teamBId === team.id);
     });
-    const wins = teamMatches.filter(m => m.winnerId === team.id).length;
-    const losses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
-    const draws = teamMatches.filter(m => m.winnerId === 'Draw').length;
+    const autoWins = teamMatches.filter(m => m.winnerId === team.id).length;
+    const autoLosses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
+    const autoDraws = teamMatches.filter(m => m.winnerId === 'Draw').length;
     
-    let runsScored = 0;
-    let oversFaced = 0;
-    let runsConceded = 0;
-    let oversBowled = 0;
+    let autoRunsScored = 0;
+    let autoOversFaced = 0;
+    let autoRunsConceded = 0;
+    let autoOversBowled = 0;
 
     teamMatches.forEach(m => {
-      // Correctly identify which innings the team batted and bowled in
       const teamInnings = m.innings1?.battingTeamId === team.id ? m.innings1 : (m.innings2?.battingTeamId === team.id ? m.innings2 : null);
       const oppInnings = m.innings1?.bowlingTeamId === team.id ? m.innings1 : (m.innings2?.bowlingTeamId === team.id ? m.innings2 : null);
 
       if (teamInnings) {
-        runsScored += teamInnings.runs;
-        // If all out, count full overs for NRR calculation
-        // Standard rule: if a team is all out, the full quota of overs is used
+        autoRunsScored += teamInnings.runs;
         if (teamInnings.wickets >= 10) {
-          oversFaced += m.oversLimit;
+          autoOversFaced += m.oversLimit;
         } else {
-          oversFaced += teamInnings.overs + (teamInnings.balls / 6);
+          autoOversFaced += teamInnings.overs + (teamInnings.balls / 6);
         }
       }
 
       if (oppInnings) {
-        runsConceded += oppInnings.runs;
-        // If opponent all out, count full overs for NRR calculation
+        autoRunsConceded += oppInnings.runs;
         if (oppInnings.wickets >= 10) {
-          oversBowled += m.oversLimit;
+          autoOversBowled += m.oversLimit;
         } else {
-          oversBowled += oppInnings.overs + (oppInnings.balls / 6);
+          autoOversBowled += oppInnings.overs + (oppInnings.balls / 6);
         }
       }
     });
 
-    const nrr = (oversFaced > 0 && oversBowled > 0) 
-      ? (runsScored / oversFaced) - (runsConceded / oversBowled)
+    const totalRunsScored = autoRunsScored + (team.manualRunsScored || 0);
+    const totalOversFaced = autoOversFaced + (team.manualOversFaced || 0);
+    const totalRunsConceded = autoRunsConceded + (team.manualRunsConceded || 0);
+    const totalOversBowled = autoOversBowled + (team.manualOversBowled || 0);
+
+    const nrr = (totalOversFaced > 0 && totalOversBowled > 0) 
+      ? (totalRunsScored / totalOversFaced) - (totalRunsConceded / totalOversBowled)
       : 0;
 
-    const finalPoints = (wins * 2) + draws + (team.manualPoints || 0);
+    const finalPlayed = teamMatches.length + (team.manualPlayed || 0);
+    const finalWins = autoWins + (team.manualWon || 0);
+    const finalLosses = autoLosses + (team.manualLost || 0);
+    const finalDraws = autoDraws + (team.manualTied || 0);
+    const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
     const finalNRR = (parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0)).toFixed(3);
 
     return {
       id: team.id,
       name: team.name,
-      played: teamMatches.length,
-      wins,
-      losses,
-      draws,
+      played: finalPlayed,
+      wins: finalWins,
+      losses: finalLosses,
+      draws: finalDraws,
       points: finalPoints,
       nrr: finalNRR,
-      runsScored,
-      oversFaced,
-      runsConceded,
-      oversBowled
+      runsScored: totalRunsScored,
+      oversFaced: totalOversFaced,
+      runsConceded: totalRunsConceded,
+      oversBowled: totalOversBowled
     };
   }).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
@@ -940,7 +969,7 @@ export default function TournamentDetail() {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           >
-            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl space-y-6">
+            <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Edit Standings</h2>
                 <button onClick={() => setShowEditTeamStandings(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -948,11 +977,30 @@ export default function TournamentDetail() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <p className="text-sm font-bold text-slate-600 uppercase tracking-tight">Team: {showEditTeamStandings.name}</p>
+              <div className="space-y-6">
+                <p className="text-sm font-black text-brand-red uppercase tracking-widest italic transform -skew-x-6">Team: {showEditTeamStandings.name}</p>
                 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Played</label>
+                    <input type="number" value={manualPlayed} onChange={(e) => setManualPlayed(parseInt(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Wins</label>
+                    <input type="number" value={manualWon} onChange={(e) => setManualWon(parseInt(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Losses</label>
+                    <input type="number" value={manualLost} onChange={(e) => setManualLost(parseInt(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Draws/Tied</label>
+                    <input type="number" value={manualTied} onChange={(e) => setManualTied(parseInt(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Points Adjustment</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extra Points Adjustment</label>
                   <input 
                     type="number" 
                     value={manualPoints}
@@ -960,20 +1008,41 @@ export default function TournamentDetail() {
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
                     placeholder="e.g. 2 or -2"
                   />
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Added to auto-calculated points</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Added to (Wins*2 + Draws)</p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual NRR Adjustment</label>
-                  <input 
-                    type="number" 
-                    step="0.001"
-                    value={manualNRR}
-                    onChange={(e) => setManualNRR(parseFloat(e.target.value) || 0)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
-                    placeholder="e.g. 0.500 or -0.500"
-                  />
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Added to auto-calculated NRR</p>
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">NRR Data (Manual Overrides)</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Runs Scored</label>
+                      <input type="number" value={manualRunsScored} onChange={(e) => setManualRunsScored(parseInt(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overs Faced</label>
+                      <input type="number" step="0.1" value={manualOversFaced} onChange={(e) => setManualOversFaced(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Runs Conceded</label>
+                      <input type="number" value={manualRunsConceded} onChange={(e) => setManualRunsConceded(parseInt(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overs Bowled</label>
+                      <input type="number" step="0.1" value={manualOversBowled} onChange={(e) => setManualOversBowled(parseFloat(e.target.value) || 0)} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Direct NRR Adjustment</label>
+                    <input 
+                      type="number" 
+                      step="0.001"
+                      value={manualNRR}
+                      onChange={(e) => setManualNRR(parseFloat(e.target.value) || 0)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                      placeholder="e.g. 0.500 or -0.500"
+                    />
+                  </div>
                 </div>
               </div>
 

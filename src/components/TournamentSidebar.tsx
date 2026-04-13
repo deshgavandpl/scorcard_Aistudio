@@ -49,57 +49,66 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
     if (!tournament) return [];
     return tournament.teams.map(team => {
       const teamMatches = matches.filter(m => m.status === 'Finished' && (m.teamAId === team.id || m.teamBId === team.id));
-      const wins = teamMatches.filter(m => m.winnerId === team.id).length;
-      const losses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
-      const draws = teamMatches.filter(m => m.winnerId === 'Draw').length;
+      const autoWins = teamMatches.filter(m => m.winnerId === team.id).length;
+      const autoLosses = teamMatches.filter(m => m.winnerId !== team.id && m.winnerId !== 'Draw').length;
+      const autoDraws = teamMatches.filter(m => m.winnerId === 'Draw').length;
       
-      let runsScored = 0;
-      let oversFaced = 0;
-      let runsConceded = 0;
-      let oversBowled = 0;
+      let autoRunsScored = 0;
+      let autoOversFaced = 0;
+      let autoRunsConceded = 0;
+      let autoOversBowled = 0;
 
       teamMatches.forEach(m => {
-        // Correctly identify which innings the team batted and bowled in
         const teamInnings = m.innings1?.battingTeamId === team.id ? m.innings1 : (m.innings2?.battingTeamId === team.id ? m.innings2 : null);
         const oppInnings = m.innings1?.bowlingTeamId === team.id ? m.innings1 : (m.innings2?.bowlingTeamId === team.id ? m.innings2 : null);
 
         if (teamInnings) {
-          runsScored += teamInnings.runs;
-          // If all out, count full overs for NRR calculation
-          // Standard rule: if a team is all out, the full quota of overs is used
+          autoRunsScored += teamInnings.runs;
           if (teamInnings.wickets >= 10) {
-            oversFaced += m.oversLimit;
+            autoOversFaced += m.oversLimit;
           } else {
-            oversFaced += teamInnings.overs + (teamInnings.balls / 6);
+            autoOversFaced += teamInnings.overs + (teamInnings.balls / 6);
           }
         }
 
         if (oppInnings) {
-          runsConceded += oppInnings.runs;
-          // If opponent all out, count full overs for NRR calculation
+          autoRunsConceded += oppInnings.runs;
           if (oppInnings.wickets >= 10) {
-            oversBowled += m.oversLimit;
+            autoOversBowled += m.oversLimit;
           } else {
-            oversBowled += oppInnings.overs + (oppInnings.balls / 6);
+            autoOversBowled += oppInnings.overs + (oppInnings.balls / 6);
           }
         }
       });
 
-      const nrr = (oversFaced > 0 && oversBowled > 0) 
-        ? (runsScored / oversFaced) - (runsConceded / oversBowled)
+      const totalRunsScored = autoRunsScored + (team.manualRunsScored || 0);
+      const totalOversFaced = autoOversFaced + (team.manualOversFaced || 0);
+      const totalRunsConceded = autoRunsConceded + (team.manualRunsConceded || 0);
+      const totalOversBowled = autoOversBowled + (team.manualOversBowled || 0);
+
+      const nrr = (totalOversFaced > 0 && totalOversBowled > 0) 
+        ? (totalRunsScored / totalOversFaced) - (totalRunsConceded / totalOversBowled)
         : 0;
+
+      const finalPlayed = teamMatches.length + (team.manualPlayed || 0);
+      const finalWins = autoWins + (team.manualWon || 0);
+      const finalLosses = autoLosses + (team.manualLost || 0);
+      const finalDraws = autoDraws + (team.manualTied || 0);
+      const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
+      const finalNRR = (parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0)).toFixed(3);
 
       return {
         name: team.name,
-        played: teamMatches.length,
-        wins,
-        losses,
-        draws,
-        points: (wins * 2) + draws,
-        nrr: nrr.toFixed(5)
+        played: finalPlayed,
+        wins: finalWins,
+        losses: finalLosses,
+        draws: finalDraws,
+        points: finalPoints,
+        nrr: finalNRR
       };
     }).sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
+      if (b.wins !== a.wins) return b.wins - a.wins;
       return parseFloat(b.nrr) - parseFloat(a.nrr);
     });
   }, [tournament, matches]);

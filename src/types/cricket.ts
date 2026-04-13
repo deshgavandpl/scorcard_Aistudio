@@ -14,6 +14,14 @@ export interface Team {
   points?: number;
   manualPoints?: number;
   manualNRR?: number;
+  manualPlayed?: number;
+  manualWon?: number;
+  manualLost?: number;
+  manualTied?: number;
+  manualRunsScored?: number;
+  manualOversFaced?: number;
+  manualRunsConceded?: number;
+  manualOversBowled?: number;
 }
 
 export interface MatchInnings {
