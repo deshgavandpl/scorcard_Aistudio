@@ -281,6 +281,14 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                           )}
                         </div>
                       </div>
+
+                      {match.status === 'Finished' && match.resultMessage && (
+                        <div className="mt-4 px-4 py-2 rounded-2xl bg-emerald-50/50 border border-emerald-100/50">
+                          <p className="text-[10px] font-black text-emerald-600 text-center uppercase tracking-wider">
+                            {match.resultMessage}
+                          </p>
+                        </div>
+                      )}
                     </Link>
                   ))}
                 </div>

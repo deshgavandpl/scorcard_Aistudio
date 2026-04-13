@@ -206,7 +206,8 @@ export function useCricketScoring(matchId: string | undefined) {
 
         if (inn2Runs > inn1Runs) {
           updatedMatch.winnerId = inn2.battingTeamId;
-          updatedMatch.resultMessage = `${battingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${maxWickets - inn2Wickets} wickets`;
+          const oversStr = `${newInnings.overs}.${newInnings.balls}`;
+          updatedMatch.resultMessage = `${battingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${maxWickets - inn2Wickets} wickets in ${oversStr} overs`;
         } else if (inn2Wickets === maxWickets || newInnings.overs === maxOvers) {
           if (inn1Runs > inn2Runs) {
             updatedMatch.winnerId = inn1.battingTeamId;

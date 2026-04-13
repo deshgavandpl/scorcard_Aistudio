@@ -285,6 +285,14 @@ export default function LiveScore() {
                           </div>
                         </div>
 
+                        {match.status === 'Finished' && match.resultMessage && (
+                          <div className="mb-6 px-4 py-2 rounded-xl bg-emerald-50/50 border border-emerald-100/50">
+                            <p className="text-[10px] font-black text-emerald-600 text-center uppercase tracking-wider">
+                              {match.resultMessage}
+                            </p>
+                          </div>
+                        )}
+
                         <div className="flex justify-center">
                           <Link 
                             to={canManage && match.status !== 'Finished' ? `/admin/match/${match.id}` : `/match/${match.id}`}

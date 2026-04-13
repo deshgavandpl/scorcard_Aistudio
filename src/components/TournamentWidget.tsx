@@ -202,6 +202,14 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
                     )}
                   </div>
                 </div>
+
+                {match.status === 'Finished' && match.resultMessage && (
+                  <div className="mt-3 px-3 py-1.5 rounded-xl bg-emerald-50/50 border border-emerald-100/50">
+                    <p className="text-[8px] font-black text-emerald-600 text-center uppercase tracking-wider">
+                      {match.resultMessage}
+                    </p>
+                  </div>
+                )}
               </Link>
             ))}
           </div>

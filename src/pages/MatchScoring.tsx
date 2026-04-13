@@ -780,7 +780,8 @@ export default function MatchScoring() {
 
         if (inn2Runs > inn1Runs) {
           finalWinnerId = inn2.battingTeamId;
-          finalResultMessage = `${battingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${maxWickets - inn2Wickets} wickets`;
+          const oversStr = `${inn2.overs}.${inn2.balls}`;
+          finalResultMessage = `${battingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${maxWickets - inn2Wickets} wickets in ${oversStr} overs`;
         } else if (inn1Runs > inn2Runs) {
           finalWinnerId = inn1.battingTeamId;
           finalResultMessage = `${bowlingTeamName} won ${match.isSuperOver ? 'in Super Over ' : ''}by ${inn1Runs - inn2Runs} runs`;

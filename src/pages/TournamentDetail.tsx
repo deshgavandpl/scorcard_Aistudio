@@ -1413,6 +1413,14 @@ export default function TournamentDetail() {
                         </div>
                       </div>
 
+                      {match.status === 'Finished' && match.resultMessage && (
+                        <div className="mt-4 px-4 py-2 rounded-2xl bg-emerald-50/50 border border-emerald-100/50">
+                          <p className="text-[10px] md:text-xs font-black text-emerald-600 text-center uppercase tracking-wider">
+                            {match.resultMessage}
+                          </p>
+                        </div>
+                      )}
+                      
                       <div className="mt-6 pt-4 border-t border-slate-100/50 flex justify-center">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-red transition-colors flex items-center gap-2">
                           {match.status === 'Live' ? 'View Live Score' : match.status === 'Finished' ? 'View Results' : 'View Match Details'}
