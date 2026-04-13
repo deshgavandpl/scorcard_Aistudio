@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Trophy, Calendar, BarChart2, ChevronRight, Zap, Users } from 'lucide-react';
 import { Tournament, Match, Team, BatterStats, BowlerStats } from '../types/cricket';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { cn } from '../lib/utils';
 import { Link } from 'react-router-dom';
+import { useAdmin } from '../context/AdminContext';
+import { toast } from 'sonner';
 
 interface TournamentSidebarProps {
   isOpen: boolean;
@@ -16,6 +18,7 @@ interface TournamentSidebarProps {
 }
 
 export default function TournamentSidebar({ isOpen, onClose, tournamentId, currentMatchId }: TournamentSidebarProps) {
+  const { isAdminMode } = useAdmin();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams'>('fixtures');
@@ -44,6 +47,24 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
       unsubMatches();
     };
   }, [tournamentId, isOpen]);
+
+  const updateTeamNRR = async (teamId: string, newNRR: number) => {
+    if (!isAdminMode || !tournamentId || !tournament) return;
+
+    const updatedTeams = tournament.teams.map(t => {
+      if (t.id === teamId) {
+        return { ...t, manualNRR: newNRR };
+      }
+      return t;
+    });
+
+    try {
+      await updateDoc(doc(db, 'tournaments', tournamentId), { teams: updatedTeams });
+      toast.success('NRR updated.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${tournamentId}`);
+    }
+  };
 
   const cricketToDecimal = (overs: number) => {
     const wholeOvers = Math.floor(overs);
@@ -273,7 +294,7 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                           <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">P</th>
                           <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">W</th>
                           <th className="px-2 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
-                          <th className="px-3 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
+                          {isAdminMode && <th className="px-3 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
@@ -283,20 +304,34 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                             <td className="px-2 py-5 text-center font-bold text-slate-600 text-xs">{team.played}</td>
                             <td className="px-2 py-5 text-center font-bold text-emerald-600 text-xs">{team.wins}</td>
                             <td className="px-2 py-5 text-center font-black text-brand-red text-xs">{team.points}</td>
-                            <td className={cn(
-                              "px-3 py-5 text-center font-black text-xs",
-                              parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
-                            )}>
-                              {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
-                            </td>
+                            {isAdminMode && (
+                              <td className="px-3 py-5 text-center">
+                                <input 
+                                  key={`${team.id}-${team.nrr}`}
+                                  type="number"
+                                  step="0.001"
+                                  defaultValue={parseFloat(team.nrr)}
+                                  onBlur={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    if (!isNaN(val)) updateTeamNRR(team.id, val);
+                                  }}
+                                  className={cn(
+                                    "w-16 px-1 py-0.5 rounded bg-slate-50 border border-slate-100 text-center font-mono font-black text-[10px] focus:ring-1 focus:ring-brand-red outline-none transition-all",
+                                    parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
+                                  )}
+                                />
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-2">
-                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em]">Scroll right for NRR</p>
-                  </div>
+                  {isAdminMode && (
+                    <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-2">
+                      <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em]">Scroll right for NRR</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">

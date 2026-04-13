@@ -460,6 +460,24 @@ export default function TournamentDetail() {
     }
   };
 
+  const updateTeamNRR = async (teamId: string, newNRR: number) => {
+    if (!canManage || !id || !tournament) return;
+
+    const updatedTeams = tournament.teams.map(t => {
+      if (t.id === teamId) {
+        return { ...t, manualNRR: newNRR };
+      }
+      return t;
+    });
+
+    try {
+      await updateDoc(doc(db, 'tournaments', id), { teams: updatedTeams });
+      toast.success('NRR updated.');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
+    }
+  };
+
   const getPlayerTournamentStats = (playerName: string) => {
     const stats = {
       batting: {
@@ -1458,7 +1476,7 @@ export default function TournamentDetail() {
                   <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">L</th>
                   <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">D</th>
                   <th className="px-2 md:px-4 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Pts</th>
-                  <th className="px-4 md:px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>
+                  {canManage && <th className="px-4 md:px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">NRR</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -1493,12 +1511,24 @@ export default function TournamentDetail() {
                     <td className="px-2 md:px-4 py-6 text-center font-bold text-red-500 text-xs md:text-sm">{team.losses}</td>
                     <td className="px-2 md:px-4 py-6 text-center font-bold text-slate-400 text-xs md:text-sm">{team.draws}</td>
                     <td className="px-2 md:px-4 py-6 text-center font-black text-brand-red text-xs md:text-sm">{team.points}</td>
-                    <td className={cn(
-                      "px-4 md:px-6 py-6 text-center font-black text-xs md:text-sm",
-                      parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
-                    )}>
-                      {parseFloat(team.nrr) > 0 ? '+' : ''}{team.nrr}
-                    </td>
+                    {canManage && (
+                      <td className="px-4 md:px-6 py-6 text-center">
+                        <input 
+                          key={`${team.id}-${team.nrr}`}
+                          type="number"
+                          step="0.001"
+                          defaultValue={parseFloat(team.nrr)}
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) updateTeamNRR(team.id, val);
+                          }}
+                          className={cn(
+                            "w-20 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-center font-mono font-black text-xs md:text-sm focus:ring-2 focus:ring-brand-red outline-none transition-all",
+                            parseFloat(team.nrr) >= 0 ? "text-emerald-600" : "text-red-500"
+                          )}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
