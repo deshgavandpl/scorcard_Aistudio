@@ -710,7 +710,7 @@ export default function TournamentDetail() {
     const finalWins = autoWins + (team.manualWon || 0);
     const finalLosses = autoLosses + (team.manualLost || 0);
     const finalDraws = autoDraws + (team.manualTied || 0);
-    const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
+    const finalPoints = (finalWins * 2) + finalDraws;
     
     const finalNRR = (team.manualNRR !== undefined && team.manualNRR !== 0)
       ? team.manualNRR.toFixed(3)
@@ -1467,7 +1467,7 @@ export default function TournamentDetail() {
           )}
           <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-left min-w-[800px]">
+            <table className="w-full text-left min-w-[600px]">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
                   <th className="sticky left-0 bg-slate-50/50 px-4 md:px-6 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 z-10">Team</th>
