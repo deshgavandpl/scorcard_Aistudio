@@ -116,9 +116,9 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
       const finalDraws = autoDraws + (team.manualTied || 0);
       const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
       
-      const calculatedNRR = parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0);
-      const cappedNRR = Math.max(-5, Math.min(5, calculatedNRR));
-      const finalNRR = cappedNRR.toFixed(3);
+      const finalNRR = (team.manualNRR !== undefined && team.manualNRR !== 0)
+        ? team.manualNRR.toFixed(3)
+        : Math.max(-5, Math.min(5, nrr)).toFixed(3);
 
       return {
         name: team.name,

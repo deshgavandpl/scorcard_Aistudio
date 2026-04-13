@@ -585,6 +585,35 @@ export default function TournamentDetail() {
     }
   };
 
+  const applyDPLQuickFix = async () => {
+    if (!canManage || !id || !tournament) return;
+    
+    const dplValues: Record<string, number> = {
+      'Ankushraj 11': 3.500,
+      'AP 11': 3.250,
+      'Cotton 11': 0.417,
+      'Ajinkya Classes 11': -3.500,
+      'Balkrushna 11': -3.667
+    };
+
+    const updatedTeams = tournament.teams.map(t => {
+      if (dplValues[t.name]) {
+        return { ...t, manualNRR: dplValues[t.name] };
+      }
+      return t;
+    });
+
+    try {
+      setIsRefreshing(true);
+      await updateDoc(doc(db, 'tournaments', id), { teams: updatedTeams });
+      toast.success('DPL NRR values applied successfully!');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `tournaments/${id}`);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (!tournament) return <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading Tournament...</div>;
 
   const leagueMatches = matches.filter(m => {
@@ -665,9 +694,9 @@ export default function TournamentDetail() {
     const finalDraws = autoDraws + (team.manualTied || 0);
     const finalPoints = (finalWins * 2) + finalDraws + (team.manualPoints || 0);
     
-    const calculatedNRR = parseFloat(nrr.toFixed(3)) + (team.manualNRR || 0);
-    const cappedNRR = Math.max(-5, Math.min(5, calculatedNRR));
-    const finalNRR = cappedNRR.toFixed(3);
+    const finalNRR = (team.manualNRR !== undefined && team.manualNRR !== 0)
+      ? team.manualNRR.toFixed(3)
+      : Math.max(-5, Math.min(5, nrr)).toFixed(3);
 
     return {
       id: team.id,
@@ -705,6 +734,16 @@ export default function TournamentDetail() {
               {tournament.status}
             </span>
             <div className="flex gap-2">
+              {canManage && tournament.name.toUpperCase().includes('DPL') && (
+                <button 
+                  onClick={applyDPLQuickFix}
+                  disabled={isRefreshing}
+                  className="px-4 py-3 rounded-2xl bg-brand-red text-white hover:bg-red-600 transition-all shadow-lg font-black uppercase tracking-widest text-[10px] flex items-center gap-2"
+                  title="Apply Final NRR Table from Image"
+                >
+                  <Trophy className="w-4 h-4" /> Quick Fix NRR
+                </button>
+              )}
               {canManage && (
                 <button 
                   onClick={refreshData}
@@ -1051,15 +1090,16 @@ export default function TournamentDetail() {
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Direct NRR Adjustment</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual NRR Override</label>
                     <input 
                       type="number" 
                       step="0.001"
                       value={manualNRR}
                       onChange={(e) => setManualNRR(parseFloat(e.target.value) || 0)}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
-                      placeholder="e.g. 0.500 or -0.500"
+                      placeholder="e.g. 3.500 or -3.500"
                     />
+                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest italic">If set (non-zero), this replaces the calculated NRR.</p>
                   </div>
                 </div>
               </div>
