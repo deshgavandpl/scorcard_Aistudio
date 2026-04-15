@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Calendar, BarChart2, ChevronRight, Zap } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronRight, Zap, AlertCircle } from 'lucide-react';
 import { Tournament, Match, Team } from '../types/cricket';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -102,14 +102,19 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
   }) : [];
 
   if (error) {
+    const isQuotaError = error.toString().includes('quota-exceeded') || error.toString().includes('resource-exhausted');
     return (
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden sticky top-24 p-8 text-center space-y-4">
         <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
           <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Tournament Error</p>
-          <p className="text-[10px] text-slate-400 font-medium">Failed to load standings</p>
+          <p className="text-xs font-black text-slate-900 uppercase tracking-widest">
+            {isQuotaError ? 'Daily Limit Reached' : 'Tournament Error'}
+          </p>
+          <p className="text-[10px] text-slate-400 font-medium">
+            {isQuotaError ? 'The free daily database quota has been reached. Please check back tomorrow!' : 'Failed to load standings'}
+          </p>
         </div>
       </div>
     );

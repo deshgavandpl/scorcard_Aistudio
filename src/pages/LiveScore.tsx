@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Play, Trophy, History, Trash2, AlertCircle, LogIn } from 'lucide-react';
+import { Plus, Play, Trophy, History, Trash2, AlertCircle, LogIn, RotateCcw } from 'lucide-react';
 import { Match } from '../types/cricket';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 
-import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -37,12 +37,29 @@ export default function LiveScore() {
     let isMounted = true;
     setError(null);
 
-    const q = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
+    // Try to load from cache first
+    const cachedMatches = localStorage.getItem('cricket_matches_cache');
+    if (cachedMatches) {
+      try {
+        setMatches(JSON.parse(cachedMatches));
+      } catch (e) {
+        console.error("Failed to parse cached matches", e);
+      }
+    }
+
+    // Limit to 50 matches to save on Firestore read quota
+    const q = query(
+      collection(db, 'matches'), 
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
     const unsub = onSnapshot(q, (snapshot) => {
       if (!isMounted) return;
       const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
       setMatches(matchesData);
       setError(null);
+      // Update cache
+      localStorage.setItem('cricket_matches_cache', JSON.stringify(matchesData));
     }, (err) => {
       if (!isMounted) return;
       console.error("LiveScore Fetch Error:", err);
@@ -202,15 +219,19 @@ export default function LiveScore() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Active Matches */}
         <div className="lg:col-span-2 space-y-6">
-          {error ? (
+          {error && matches.length === 0 ? (
             <div className="bg-red-50 rounded-3xl border border-red-100 p-12 text-center space-y-6">
               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
                 <AlertCircle className="w-10 h-10 text-red-600" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Connection Error</h3>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                  {error.includes('quota-exceeded') || error.includes('resource-exhausted') ? 'Daily Limit Reached' : 'Connection Error'}
+                </h3>
                 <p className="text-slate-500 max-w-xs mx-auto text-sm font-medium">
-                  We're having trouble connecting to the live score database. This could be due to a network issue or a temporary service interruption.
+                  {error.includes('quota-exceeded') || error.includes('resource-exhausted') 
+                    ? "The free daily database quota for this project has been reached. The scores will automatically resume once the quota resets in 24 hours."
+                    : "We're having trouble connecting to the live score database. This could be due to a network issue or a temporary service interruption."}
                 </p>
                 <p className="text-red-400 text-[10px] font-mono mt-2">{error}</p>
               </div>
@@ -221,7 +242,29 @@ export default function LiveScore() {
                 <RotateCcw className="w-4 h-4" /> Retry Connection
               </button>
             </div>
-          ) : filteredMatches.length === 0 ? (
+          ) : (
+            <>
+              {error && matches.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                      <History className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Viewing Cached Data</p>
+                      <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest">Database limit reached. Showing last known scores.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={retryFetch}
+                    className="px-4 py-2 rounded-lg bg-amber-600 text-white text-[8px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              
+              {filteredMatches.length === 0 ? (
             <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-20 text-center space-y-6">
               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
                 <AlertCircle className="w-10 h-10 text-slate-200" />
@@ -344,9 +387,11 @@ export default function LiveScore() {
               ))}
             </div>
           )}
-        </div>
+        </>
+      )}
+    </div>
 
-        {/* Sidebar - Tournament Widget */}
+    {/* Sidebar - Tournament Widget */}
         <div className="hidden lg:block">
           {relevantTournamentId ? (
             <TournamentWidget tournamentId={relevantTournamentId} />

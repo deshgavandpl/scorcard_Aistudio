@@ -104,15 +104,34 @@ export default function TournamentDetail() {
   useEffect(() => {
     if (!id) return;
     setError(null);
+
+    // Try to load from cache first
+    const cachedTournament = localStorage.getItem(`tournament_cache_${id}`);
+    if (cachedTournament) {
+      try {
+        const data = JSON.parse(cachedTournament);
+        setTournament(data);
+        setEditName(data.name);
+        setEditStatus(data.status);
+        setEditWinnerId(data.winnerId || '');
+        setEditResultMessage(data.resultMessage || '');
+      } catch (e) {
+        console.error("Failed to parse cached tournament", e);
+      }
+    }
+
     const unsub = onSnapshot(doc(db, 'tournaments', id), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as Tournament;
-        setTournament({ id: docSnap.id, ...data } as Tournament);
+        const fullData = { id: docSnap.id, ...data } as Tournament;
+        setTournament(fullData);
         setEditName(data.name);
         setEditStatus(data.status);
         setEditWinnerId(data.winnerId || '');
         setEditResultMessage(data.resultMessage || '');
         setError(null);
+        // Update cache
+        localStorage.setItem(`tournament_cache_${id}`, JSON.stringify(fullData));
       }
     }, (err) => {
       console.error("TournamentDetail Fetch Error:", err);
@@ -124,6 +143,17 @@ export default function TournamentDetail() {
 
   useEffect(() => {
     if (!id) return;
+
+    // Try to load matches from cache
+    const cachedMatches = localStorage.getItem(`tournament_matches_cache_${id}`);
+    if (cachedMatches) {
+      try {
+        setMatches(JSON.parse(cachedMatches));
+      } catch (e) {
+        console.error("Failed to parse cached matches", e);
+      }
+    }
+
     const q = query(collection(db, 'matches'), where('tournamentId', '==', id));
     const unsub = onSnapshot(q, (snapshot) => {
       const matchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
@@ -135,6 +165,8 @@ export default function TournamentDetail() {
         return a.createdAt - b.createdAt;
       });
       setMatches(sortedMatches);
+      // Update cache
+      localStorage.setItem(`tournament_matches_cache_${id}`, JSON.stringify(sortedMatches));
     }, (err) => {
       console.error("TournamentDetail Matches Fetch Error:", err);
       handleFirestoreError(err, OperationType.LIST, 'matches');
@@ -638,7 +670,7 @@ export default function TournamentDetail() {
     }
   };
 
-  if (error) {
+  if (error && !tournament) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-[2.5rem] border border-slate-200 p-12 text-center space-y-6 max-w-md w-full shadow-xl">
@@ -780,6 +812,23 @@ export default function TournamentDetail() {
       </button>
 
       <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl">
+        {error && (
+          <div className="mb-6 bg-amber-500/20 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 backdrop-blur-md relative z-20">
+            <div className="flex items-center gap-3">
+              <History className="w-5 h-5 text-amber-400" />
+              <div>
+                <p className="text-[10px] font-black text-amber-200 uppercase tracking-widest">Viewing Offline/Cached Data</p>
+                <p className="text-[8px] font-bold text-amber-400/80 uppercase tracking-widest">Database limit reached. Showing last known details.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-xl bg-amber-500 text-white text-[8px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <Trophy className="w-32 h-32" />
         </div>
