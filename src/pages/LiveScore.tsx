@@ -13,6 +13,7 @@ import { handleGoogleLogin } from '../lib/authUtils';
 import { useAdmin } from '../context/AdminContext';
 import { toast } from 'sonner';
 import TournamentWidget from '../components/TournamentWidget';
+import TournamentChampionBanner from '../components/TournamentChampionBanner';
 
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -171,6 +172,9 @@ export default function LiveScore() {
 
   return (
     <div className="space-y-8">
+      {/* Tournament Winners Announcement */}
+      <TournamentChampionBanner />
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <p className="text-slate-500 font-medium">
