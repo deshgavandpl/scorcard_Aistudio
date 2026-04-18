@@ -13,6 +13,8 @@ import Stats from './pages/Stats';
 import Teams from './pages/Teams';
 import Settings from './pages/Settings';
 import UserGuide from './pages/UserGuide';
+import Registration from './pages/Registration';
+import Vision from './pages/Vision';
 import { PlayerProfileProvider } from './context/PlayerProfileContext';
 import { AdminProvider } from './context/AdminContext';
 import PlayerProfileModal from './components/PlayerProfileModal';
@@ -39,6 +41,8 @@ export default function App() {
               <Route path="/teams" element={<Teams />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/help" element={<UserGuide />} />
+              <Route path="/registration" element={<Registration />} />
+              <Route path="/vision" element={<Vision />} />
             </Routes>
           </Layout>
         </PlayerProfileProvider>

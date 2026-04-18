@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User, Mail, Shield, Phone, MessageSquare, Send, BookOpen } from 'lucide-react';
+import { Trophy, Home, BarChart2, Users, PlayCircle, Menu, X, LogIn, LogOut, User, Mail, Shield, Phone, MessageSquare, Send, BookOpen, UserPlus, Target } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut, User as FirebaseUser, getRedirectResult } from 'firebase/auth';
@@ -108,8 +108,10 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Home', path: 'https://apnacricket.co.in', icon: Home, isExternal: true },
     { name: 'Live Score', path: '/live', icon: PlayCircle },
     { name: 'Tournaments', path: '/tournaments', icon: Trophy },
+    { name: 'Registration', path: '/registration', icon: UserPlus },
     { name: 'Teams', path: '/teams', icon: Users },
     { name: 'Stats', path: '/stats', icon: BarChart2 },
+    { name: 'Vision', path: '/vision', icon: Target },
     { name: 'Help', path: '/help', icon: BookOpen },
   ];
 
@@ -572,8 +574,10 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex flex-wrap justify-center gap-6">
               <a href="https://apnacricket.co.in" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Home</a>
               <Link to="/tournaments" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Tournaments</Link>
+              <Link to="/registration" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Registration</Link>
               <Link to="/teams" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Teams</Link>
               <Link to="/stats" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Stats</Link>
+              <Link to="/vision" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Vision</Link>
               <Link to="/help" className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Help Guide</Link>
               <button onClick={() => setShowAbout(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">About</button>
               <button onClick={() => setShowContact(true)} className="text-slate-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">Contact</button>

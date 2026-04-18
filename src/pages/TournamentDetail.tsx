@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download, Settings, AlertCircle, RotateCcw } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download, Settings, AlertCircle, RotateCcw, TrendingUp, Smartphone, Globe, MessageSquare, Info } from 'lucide-react';
 import { Tournament, Match, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -22,7 +22,7 @@ export default function TournamentDetail() {
   const { isAdminMode } = useAdmin();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams'>('fixtures');
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'points' | 'teams' | 'overview' | 'stats'>('overview');
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [error, setError] = useState<string | null>(null);
   const [showAddMatch, setShowAddMatch] = useState(false);
@@ -88,6 +88,72 @@ export default function TournamentDetail() {
   const [manualOversFaced, setManualOversFaced] = useState(0);
   const [manualRunsConceded, setManualRunsConceded] = useState(0);
   const [manualOversBowled, setManualOversBowled] = useState(0);
+
+  const getAggregatedBattingStats = () => {
+    const stats: Record<string, any> = {};
+    matches.forEach(m => {
+      [m.innings1, m.innings2].forEach(inn => {
+        if (!inn) return;
+        (Object.values(inn.battingStats) as BatterStats[]).forEach(b => {
+          if (!stats[b.playerName]) {
+            stats[b.playerName] = { name: b.playerName, runs: 0, balls: 0, fours: 0, sixes: 0, matches: 0 };
+          }
+          stats[b.playerName].runs += b.runs;
+          stats[b.playerName].balls += b.balls;
+          stats[b.playerName].fours += b.fours;
+          stats[b.playerName].sixes += b.sixes;
+          stats[b.playerName].matches += 1;
+        });
+      });
+    });
+    return Object.values(stats).sort((a: any, b: any) => b.runs - a.runs).slice(0, 10);
+  };
+
+  const getAggregatedBowlingStats = () => {
+    const stats: Record<string, any> = {};
+    matches.forEach(m => {
+      [m.innings1, m.innings2].forEach(inn => {
+        if (!inn) return;
+        (Object.values(inn.bowlingStats) as BowlerStats[]).forEach(b => {
+          if (!stats[b.playerName]) {
+            stats[b.playerName] = { name: b.playerName, wickets: 0, runs: 0, overs: 0, balls: 0, matches: 0 };
+          }
+          stats[b.playerName].wickets += b.wickets;
+          stats[b.playerName].runs += b.runs;
+          stats[b.playerName].overs += b.overs;
+          stats[b.playerName].balls += b.balls;
+          stats[b.playerName].matches += 1;
+        });
+      });
+    });
+    return Object.values(stats).sort((a: any, b: any) => b.wickets - a.wickets).slice(0, 10);
+  };
+
+  const getTournamentRecords = () => {
+    let highestScore = { runs: 0, player: '-' };
+    let bestBowling = { wickets: 0, runs: 0, player: '-' };
+    let mostSixes = { count: 0, player: '-' };
+    const playerSixes: Record<string, number> = {};
+
+    matches.forEach(m => {
+      [m.innings1, m.innings2].forEach(inn => {
+        if (!inn) return;
+        (Object.values(inn.battingStats) as BatterStats[]).forEach(b => {
+          if (b.runs > highestScore.runs) highestScore = { runs: b.runs, player: b.playerName };
+          playerSixes[b.playerName] = (playerSixes[b.playerName] || 0) + b.sixes;
+        });
+        (Object.values(inn.bowlingStats) as BowlerStats[]).forEach(b => {
+          if (b.wickets > bestBowling.wickets || (b.wickets === bestBowling.wickets && b.runs < bestBowling.runs)) {
+            bestBowling = { wickets: b.wickets, runs: b.runs, player: b.playerName };
+          }
+        });
+      });
+    });
+    Object.entries(playerSixes).forEach(([player, count]) => {
+      if (count > mostSixes.count) mostSixes = { count, player };
+    });
+    return { highestScore, bestBowling, mostSixes };
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -641,6 +707,52 @@ export default function TournamentDetail() {
     }
   };
 
+  const exportTournamentData = () => {
+    if (!tournament) return;
+
+    // 1. Tournament Info
+    let csvContent = "\ufeff"; // BOM for Excel UTF-8 support
+    csvContent += "Tournament Information\n";
+    csvContent += `Name,${tournament.name}\n`;
+    csvContent += `Status,${tournament.status}\n`;
+    csvContent += `Created At,${tournament.createdAt ? new Date(tournament.createdAt).toLocaleString() : 'N/A'}\n\n`;
+
+    // 2. Teams & Players
+    csvContent += "TEAM DATA\n";
+    csvContent += "Team ID,Team Name,Player Name,Player ID,Role,Is Captain\n";
+    tournament.teams.forEach(team => {
+      if (team.players && team.players.length > 0) {
+        team.players.forEach(player => {
+          csvContent += `"${team.id}","${team.name}","${player.name}","${player.id}","${player.role}","${player.isCaptain ? 'Yes' : 'No'}"\n`;
+        });
+      } else {
+        csvContent += `"${team.id}","${team.name}","No Players","","",""\n`;
+      }
+    });
+
+    // 3. Matches
+    csvContent += "\nMATCH DATA\n";
+    csvContent += "Match ID,Order,Stage,Team A,Team B,Status,Winner,Result Message,Venue,Date,Time\n";
+    [...matches].sort((a, b) => (a.order || 0) - (b.order || 0)).forEach((match, idx) => {
+      const winnerName = match.winnerId === 'Draw' ? 'Draw' : 
+                         (match.winnerId === match.teamAId ? match.teamAName : 
+                         (match.winnerId === match.teamBId ? match.teamBName : 'No Winner'));
+      
+      csvContent += `"${match.id}","${match.order || idx + 1}","${match.name || 'League Stage'}","${match.teamAName}","${match.teamBName}","${match.status}","${winnerName}","${match.resultMessage || ''}","${match.venue || ''}","${match.matchDate || ''}","${match.matchTime || ''}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${tournament.name.replace(/\s+/g, '_')}_Full_Data.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Tournament data exported successfully!");
+  };
+
   const applyDPLQuickFix = async () => {
     if (!canManage || !id || !tournament) return;
     
@@ -850,6 +962,15 @@ export default function TournamentDetail() {
               )}
               {canManage && (
                 <button 
+                  onClick={exportTournamentData}
+                  className="p-3 rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all shadow-lg"
+                  title="Export Tournament Data (CSV)"
+                >
+                  <Download className="w-6 h-6" />
+                </button>
+              )}
+              {canManage && (
+                <button 
                   onClick={refreshData}
                   disabled={isRefreshing}
                   className="p-3 rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all shadow-lg"
@@ -895,6 +1016,15 @@ export default function TournamentDetail() {
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm w-full md:w-fit overflow-x-auto no-scrollbar">
           <button 
+            onClick={() => setActiveTab('overview')}
+            className={cn(
+              "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
+              activeTab === 'overview' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+            )}
+          >
+            <Zap className="w-4 h-4" /> Overview
+          </button>
+          <button 
             onClick={() => setActiveTab('fixtures')}
             className={cn(
               "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
@@ -920,6 +1050,15 @@ export default function TournamentDetail() {
             )}
           >
             <Users className="w-4 h-4" /> Teams
+          </button>
+          <button 
+            onClick={() => setActiveTab('stats')}
+            className={cn(
+              "flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap",
+              activeTab === 'stats' ? "bg-brand-red text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+            )}
+          >
+            <Trophy className="w-4 h-4" /> Stats
           </button>
         </div>
 
@@ -1384,7 +1523,103 @@ export default function TournamentDetail() {
         )}
       </AnimatePresence>
 
-      {activeTab === 'fixtures' ? (
+      {activeTab === 'overview' ? (
+        <div className="space-y-8">
+          {/* Quick Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                <Play className="w-8 h-8 fill-current" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Status</p>
+                <p className={cn(
+                  "text-xl font-black uppercase italic transform -skew-x-6",
+                  tournament.status === 'Live' ? "text-emerald-600" : tournament.status === 'Finished' ? "text-brand-red" : "text-slate-400"
+                )}>
+                  {tournament.status}
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                <Users className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Participation</p>
+                <p className="text-xl font-black text-slate-900 uppercase">
+                  {tournament.teams.length} Teams
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                <Trophy className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Winner Prize</p>
+                <p className="text-xl font-black text-slate-900 uppercase italic transform -skew-x-6">
+                  {tournament.status === 'Finished' ? "Distributed" : "₹ Pending"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-brand-red opacity-10 blur-[100px] -mr-32 -mt-32"></div>
+               <div className="relative z-10 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-red flex items-center justify-center">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-black uppercase italic transform -skew-x-6 tracking-tight">About Tournament</h3>
+                  </div>
+                  <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                    This tournament is a professional local tennis cricket event managed via Apna Cricket platform. It follows standard T20 rules adapted for local grounds with binary ball-by-ball scoring.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="p-4 rounded-2xl bg-slate-800 border border-slate-700">
+                        <p className="text-brand-red font-black text-xl leading-none">6-10</p>
+                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mt-1">Overs/Match</p>
+                     </div>
+                     <div className="p-4 rounded-2xl bg-slate-800 border border-slate-700">
+                        <p className="text-brand-red font-black text-xl leading-none">Tennis</p>
+                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mt-1">Ball Type</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 border border-slate-200 shadow-sm space-y-8">
+               <div className="flex items-center justify-between">
+                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Rules & Info</h3>
+                 <Info className="w-6 h-6 text-slate-300" />
+               </div>
+               <div className="space-y-4">
+                  {[
+                    "Standard local tennis cricket rules apply.",
+                    "Match duration depends on match type & phase.",
+                    "Reporting time: 30 mins before toss.",
+                    "Discipline is key to the tournament success."
+                  ].map((rule, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{rule}</span>
+                    </div>
+                  ))}
+               </div>
+               {canManage && (
+                 <button onClick={() => setShowEditTournament(true)} className="w-full py-4 rounded-xl bg-slate-100 text-slate-600 font-bold uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
+                   <Edit2 className="w-3 h-3" /> Edit Tournament Info
+                 </button>
+               )}
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'fixtures' ? (
         <div className="space-y-8">
           {/* Final Winner Banner - GenZ Style */}
           {tournament.status === 'Finished' && tournament.winnerId && (
@@ -1634,7 +1869,7 @@ export default function TournamentDetail() {
           </div>
         </div>
       </div>
-    ) : (
+    ) : activeTab === 'teams' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {tournament.teams.map(team => (
             <div key={team.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
@@ -1719,7 +1954,121 @@ export default function TournamentDetail() {
             </div>
           ))}
         </div>
-      )}
+      ) : activeTab === 'stats' ? (
+        <div className="space-y-8">
+          {/* Records Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-all">
+                <Zap className="w-20 h-20" />
+              </div>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4 text-center md:text-left">Highest Score</p>
+              <div className="space-y-1 text-center md:text-left">
+                <p className="text-3xl font-black text-slate-900 uppercase italic transform -skew-x-6">{getTournamentRecords().highestScore.runs}</p>
+                <p className="text-xs font-bold text-brand-red uppercase tracking-widest">{getTournamentRecords().highestScore.player}</p>
+              </div>
+            </div>
+            
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-all">
+                <Target className="w-20 h-20" />
+              </div>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4 text-center md:text-left">Best Bowling</p>
+              <div className="space-y-1 text-center md:text-left">
+                <p className="text-3xl font-black text-slate-900 uppercase italic transform -skew-x-6">
+                  {getTournamentRecords().bestBowling.wickets}/{getTournamentRecords().bestBowling.runs}
+                </p>
+                <p className="text-xs font-bold text-brand-red uppercase tracking-widest">{getTournamentRecords().bestBowling.player}</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-all">
+                <Trophy className="w-20 h-20" />
+              </div>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4 text-center md:text-left">Most Sixes</p>
+              <div className="space-y-1 text-center md:text-left">
+                <p className="text-3xl font-black text-slate-900 uppercase italic transform -skew-x-6">{getTournamentRecords().mostSixes.count}</p>
+                <p className="text-xs font-bold text-brand-red uppercase tracking-widest">{getTournamentRecords().mostSixes.player}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
+                    <Zap className="w-5 h-5 fill-current" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Top Scorers</h3>
+                </div>
+                <TrendingUp className="w-5 h-5 text-slate-300" />
+              </div>
+              <div className="divide-y divide-slate-50">
+                {getAggregatedBattingStats().map((player, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-center justify-between p-6 hover:bg-slate-50 transition-colors cursor-pointer group"
+                    onClick={() => openPlayerProfile('', player.name)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-black text-slate-300 w-4">{idx + 1}</span>
+                      <div>
+                        <p className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-brand-red transition-colors">{player.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{player.matches} Matches</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-slate-900">{player.runs}</p>
+                      <p className="text-[10px] font-black text-brand-red uppercase tracking-widest">Runs</p>
+                    </div>
+                  </div>
+                ))}
+                {getAggregatedBattingStats().length === 0 && (
+                  <p className="text-center py-12 text-slate-400 font-bold uppercase tracking-widest text-xs">No data recorded yet</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-red/10 flex items-center justify-center text-brand-red">
+                    <Target className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Top Bowlers</h3>
+                </div>
+                <TrendingUp className="w-5 h-5 text-slate-300" />
+              </div>
+              <div className="divide-y divide-slate-50">
+                {getAggregatedBowlingStats().map((player, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-center justify-between p-6 hover:bg-slate-50 transition-colors cursor-pointer group"
+                    onClick={() => openPlayerProfile('', player.name)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-black text-slate-300 w-4">{idx + 1}</span>
+                      <div>
+                        <p className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-brand-red transition-colors">{player.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{player.matches} Matches</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-slate-900">{player.wickets}</p>
+                      <p className="text-[10px] font-black text-brand-red uppercase tracking-widest">Wickets</p>
+                    </div>
+                  </div>
+                ))}
+                {getAggregatedBowlingStats().length === 0 && (
+                  <p className="text-center py-12 text-slate-400 font-bold uppercase tracking-widest text-xs">No data recorded yet</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmationModal
         isOpen={showDeleteConfirm}
