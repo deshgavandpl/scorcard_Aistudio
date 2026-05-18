@@ -584,6 +584,46 @@ export default function MatchScoring() {
     }
   };
 
+  const updateTeamRoster = async (teamId: string, teamName: string, newPlayer: Player) => {
+    try {
+      // 1. Update in the teams collection
+      const teamDoc = await getDoc(doc(db, 'teams', teamId));
+      if (teamDoc.exists()) {
+        const teamData = teamDoc.data() as Team;
+        const players = teamData.players || [];
+        if (!players.some(p => p.id === newPlayer.id || p.name.trim().toLowerCase() === newPlayer.name.trim().toLowerCase())) {
+          await updateDoc(doc(db, 'teams', teamId), {
+            players: [...players, newPlayer]
+          });
+        }
+      }
+
+      // 2. Update in all tournaments that have this team
+      const tournamentsQuery = query(collection(db, 'tournaments'));
+      const tournamentsSnapshot = await getDocs(tournamentsQuery);
+      
+      for (const tourDoc of tournamentsSnapshot.docs) {
+        const tourData = tourDoc.data() as Tournament;
+        const teamInTourIndex = tourData.teams.findIndex(t => t.id === teamId || t.name === teamName);
+        
+        if (teamInTourIndex !== -1) {
+          const updatedTeams = [...tourData.teams];
+          const teamInTour = updatedTeams[teamInTourIndex];
+          const players = teamInTour.players || [];
+          
+          if (!players.some(p => p.id === newPlayer.id || p.name.trim().toLowerCase() === newPlayer.name.trim().toLowerCase())) {
+            teamInTour.players = [...players, newPlayer];
+            await updateDoc(doc(db, 'tournaments', tourDoc.id), {
+              teams: updatedTeams
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error updating team roster:", err);
+    }
+  };
+
   const confirmPlayers = async () => {
     if (!canManage || !match) return;
 
@@ -602,7 +642,39 @@ export default function MatchScoring() {
     const nonStriker = (Object.values(currentInn.battingStats || {}) as BatterStats[]).find(b => !b.isStriker && !b.isOut);
     const bowlerId = currentInn.currentBowlerId;
 
-    let hasError = false;
+    const isTeamABatting = currentInn.battingTeamId === match.teamAId || currentInn.battingTeamId === match.teamAName;
+    const battingRosterOriginal = isTeamABatting ? teamARoster : teamBRoster;
+    const bowlingRosterOriginal = isTeamABatting ? teamBRoster : teamARoster;
+    const battingTeamId = currentInn.battingTeamId;
+    const bowlingTeamId = currentInn.bowlingTeamId;
+    const battingTeamNameActual = isTeamABatting ? match.teamAName : match.teamBName;
+    const bowlingTeamNameActual = isTeamABatting ? match.teamBName : match.teamAName;
+
+    const resolvePlayer = async (name: string, roster: Player[], teamId: string, teamName: string, isBattingTeam: boolean) => {
+      const trimmedName = name.trim();
+      const existing = roster.find(p => p.name.trim().toLowerCase() === trimmedName.toLowerCase());
+      
+      if (existing) {
+        return { id: existing.id, name: existing.name };
+      } else {
+        const newId = 'player_' + Math.random().toString(36).substr(2, 6);
+        const newPlayer: Player = { id: newId, name: trimmedName, role: 'All-Rounder' };
+        
+        // Background update
+        updateTeamRoster(teamId, teamName, newPlayer);
+        
+        // Update local state to show in roster immediately
+        if (isBattingTeam) {
+          if (isTeamABatting) setTeamARoster(prev => [...prev.filter(p => p.id !== newId), newPlayer]);
+          else setTeamBRoster(prev => [...prev.filter(p => p.id !== newId), newPlayer]);
+        } else {
+          if (isTeamABatting) setTeamBRoster(prev => [...prev.filter(p => p.id !== newId), newPlayer]);
+          else setTeamARoster(prev => [...prev.filter(p => p.id !== newId), newPlayer]);
+        }
+
+        return { id: newId, name: trimmedName };
+      }
+    };
 
     const needsStriker = !striker;
     const needsNonStriker = striker && !nonStriker;
@@ -614,14 +686,18 @@ export default function MatchScoring() {
       if (!strikerName.trim()) {
         setError("Please enter striker name");
         return;
-      } else if (currentInn.battingStats[strikerName]?.isOut) {
-        setError(`${strikerName} is already out`);
+      }
+      
+      const resolved = await resolvePlayer(strikerName, battingRosterOriginal, battingTeamId, battingTeamNameActual, true);
+      
+      if (currentInn.battingStats[resolved.id]?.isOut) {
+        setError(`${resolved.name} is already out`);
         return;
       } else {
         const nextOrder = Object.keys(currentInn.battingStats || {}).length + 1;
-        currentInn.battingStats[strikerName] = {
-          playerId: strikerName,
-          playerName: strikerName,
+        currentInn.battingStats[resolved.id] = {
+          playerId: resolved.id,
+          playerName: resolved.name,
           runs: 0,
           balls: 0,
           fours: 0,
@@ -638,17 +714,21 @@ export default function MatchScoring() {
       if (!nonStrikerName.trim()) {
         setError("Please enter non-striker name");
         return;
-      } else if (nonStrikerName === striker.playerName) {
+      }
+      
+      const resolved = await resolvePlayer(nonStrikerName, battingRosterOriginal, battingTeamId, battingTeamNameActual, true);
+
+      if (resolved.id === striker.playerId) {
         setError("Striker and Non-Striker cannot be the same person");
         return;
-      } else if (currentInn.battingStats[nonStrikerName]?.isOut) {
-        setError(`${nonStrikerName} is already out`);
+      } else if (currentInn.battingStats[resolved.id]?.isOut) {
+        setError(`${resolved.name} is already out`);
         return;
       } else {
         const nextOrder = Object.keys(currentInn.battingStats || {}).length + 1;
-        currentInn.battingStats[nonStrikerName] = {
-          playerId: nonStrikerName,
-          playerName: nonStrikerName,
+        currentInn.battingStats[resolved.id] = {
+          playerId: resolved.id,
+          playerName: resolved.name,
           runs: 0,
           balls: 0,
           fours: 0,
@@ -666,20 +746,22 @@ export default function MatchScoring() {
         setError("Please enter bowler name");
         return;
       } else {
+        const resolved = await resolvePlayer(bowlerName, bowlingRosterOriginal, bowlingTeamId, bowlingTeamNameActual, false);
+
         // Check if bowler bowled the last over
         if (currentInn.ballHistory.length > 0) {
           const lastBall = currentInn.ballHistory[currentInn.ballHistory.length - 1];
-          if (lastBall.bowlerId === bowlerName && currentInn.balls === 0) {
-            setError(`${bowlerName} cannot bowl consecutive overs`);
+          if (lastBall.bowlerId === resolved.id && currentInn.balls === 0) {
+            setError(`${resolved.name} cannot bowl consecutive overs`);
             return;
           }
         }
         
-        currentInn.currentBowlerId = bowlerName;
-        if (!currentInn.bowlingStats[bowlerName]) {
-          currentInn.bowlingStats[bowlerName] = {
-            playerId: bowlerName,
-            playerName: bowlerName,
+        currentInn.currentBowlerId = resolved.id;
+        if (!currentInn.bowlingStats[resolved.id]) {
+          currentInn.bowlingStats[resolved.id] = {
+            playerId: resolved.id,
+            playerName: resolved.name,
             overs: 0,
             balls: 0,
             runs: 0,
@@ -693,47 +775,50 @@ export default function MatchScoring() {
     // 4. Handle Manual Update (if all set)
     else if (allPlayersSet) {
       // Striker Replace/Rename
-      if (strikerName && strikerName !== striker.playerName) {
-        if (currentInn.battingStats[strikerName]) {
+      if (strikerName && strikerName.trim() !== striker.playerName) {
+        const resolved = await resolvePlayer(strikerName, battingRosterOriginal, battingTeamId, battingTeamNameActual, true);
+        if (currentInn.battingStats[resolved.id]) {
           // Player already exists in stats, just switch striker flag
           (Object.values(currentInn.battingStats) as BatterStats[]).forEach(b => {
-            if (b.playerName === striker.playerName) b.isStriker = false;
-            if (b.playerName === strikerName) b.isStriker = true;
+            if (b.playerId === striker.playerId) b.isStriker = false;
+            if (b.playerId === resolved.id) b.isStriker = true;
           });
         } else {
           // New player name, rename existing stats
-          const stats = currentInn.battingStats[striker.playerName];
-          delete currentInn.battingStats[striker.playerName];
-          currentInn.battingStats[strikerName] = { ...stats, playerName: strikerName, playerId: strikerName };
+          const stats = currentInn.battingStats[striker.playerId];
+          delete currentInn.battingStats[striker.playerId];
+          currentInn.battingStats[resolved.id] = { ...stats, playerName: resolved.name, playerId: resolved.id };
         }
       }
 
       // Non-Striker Replace/Rename
-      if (nonStrikerName && nonStrikerName !== nonStriker.playerName) {
-        if (currentInn.battingStats[nonStrikerName]) {
+      if (nonStrikerName && nonStrikerName.trim() !== nonStriker.playerName) {
+        const resolved = await resolvePlayer(nonStrikerName, battingRosterOriginal, battingTeamId, battingTeamNameActual, true);
+        if (currentInn.battingStats[resolved.id]) {
           // Player already exists in stats, just ensure they are not striker
           (Object.values(currentInn.battingStats) as BatterStats[]).forEach(b => {
-            if (b.playerName === nonStrikerName) b.isStriker = false;
+            if (b.playerId === resolved.id) b.isStriker = false;
           });
         } else {
           // New player name, rename existing stats
-          const stats = currentInn.battingStats[nonStriker.playerName];
-          delete currentInn.battingStats[nonStriker.playerName];
-          currentInn.battingStats[nonStrikerName] = { ...stats, playerName: nonStrikerName, playerId: nonStrikerName };
+          const stats = currentInn.battingStats[nonStriker.playerId];
+          delete currentInn.battingStats[nonStriker.playerId];
+          currentInn.battingStats[resolved.id] = { ...stats, playerName: resolved.name, playerId: resolved.id };
         }
       }
 
       // Bowler Replace/Rename
-      if (bowlerName && bowlerName !== bowlerId) {
-        if (currentInn.bowlingStats[bowlerName]) {
+      if (bowlerName && bowlerName.trim() !== bowlerId) {
+        const resolved = await resolvePlayer(bowlerName, bowlingRosterOriginal, bowlingTeamId, bowlingTeamNameActual, false);
+        if (currentInn.bowlingStats[resolved.id]) {
           // Bowler already exists, just switch currentBowlerId
-          currentInn.currentBowlerId = bowlerName;
+          currentInn.currentBowlerId = resolved.id;
         } else {
           // New bowler name, rename existing stats
           const stats = currentInn.bowlingStats[bowlerId!];
           delete currentInn.bowlingStats[bowlerId!];
-          currentInn.bowlingStats[bowlerName] = { ...stats, playerName: bowlerName, playerId: bowlerName };
-          currentInn.currentBowlerId = bowlerName;
+          currentInn.bowlingStats[resolved.id] = { ...stats, playerName: resolved.name, playerId: resolved.id };
+          currentInn.currentBowlerId = resolved.id;
         }
       }
     }
@@ -2435,7 +2520,7 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
+                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
                   </div>
                 ));
               })()}
@@ -2761,7 +2846,7 @@ export default function MatchScoring() {
                       "bg-slate-50 border-slate-200 text-slate-600"
                     )}
                   >
-                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
+                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
                   </div>
                 ));
               })()}

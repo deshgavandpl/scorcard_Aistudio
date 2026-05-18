@@ -51,6 +51,7 @@ export default function TournamentDetail() {
   const [editInn2Overs, setEditInn2Overs] = useState(0);
   const [editInn2Balls, setEditInn2Balls] = useState(0);
   const [editMatchWinnerId, setEditMatchWinnerId] = useState('');
+  const [editMatchResultMessage, setEditMatchResultMessage] = useState('');
   
   // Player Management State
   const [teamPlayerInputs, setTeamPlayerInputs] = useState<Record<string, { name: string, role: 'Batsman' | 'Bowler' | 'All-Rounder' | 'Wicket-Keeper' }>>({});
@@ -436,6 +437,7 @@ export default function TournamentDetail() {
     setEditInn2Overs(match.innings2?.overs || 0);
     setEditInn2Balls(match.innings2?.balls || 0);
     setEditMatchWinnerId(match.winnerId || '');
+    setEditMatchResultMessage(match.resultMessage || '');
   };
 
   const updateMatch = async () => {
@@ -460,6 +462,7 @@ export default function TournamentDetail() {
       matchTime: editMatchTime,
       status: editMatchStatus,
       winnerId: editMatchWinnerId || undefined,
+      resultMessage: editMatchResultMessage || undefined,
       innings1: {
         ...(showEditMatch.innings1 || {
           extras: { wide: 0, noBall: 0, bye: 0, legBye: 0 },
@@ -1506,6 +1509,17 @@ export default function TournamentDetail() {
                           <option value={editMatchTeamB}>{tournament.teams.find(t => t.id === editMatchTeamB)?.name}</option>
                           <option value="Draw">Draw</option>
                         </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Result Message</label>
+                        <input 
+                          type="text" 
+                          value={editMatchResultMessage}
+                          onChange={(e) => setEditMatchResultMessage(e.target.value)}
+                          placeholder="e.g. Team A won by 20 runs"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                        />
                       </div>
                     </>
                   )}

@@ -367,7 +367,7 @@ export default function LiveMatchView() {
                   {inn.ballHistory.map((ball, bi) => (
                     <div key={bi} className="flex justify-between text-xs font-medium border-b border-slate-100 py-1">
                       <span>Over {ball.over}.{ball.ball}</span>
-                      <span>{ball.isWicket ? 'WICKET' : ball.runs + (ball.isExtra ? ' (' + ball.extraType + ')' : '')}</span>
+                      <span>{ball.isWicket ? 'WICKET' : ball.isExtra ? `${ball.extraType}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}</span>
                     </div>
                   ))}
                 </div>
@@ -653,7 +653,7 @@ export default function LiveMatchView() {
                     "bg-slate-50 border-slate-100 text-slate-600"
                   )}
                 >
-                  {ball.isWicket ? 'W' : ball.isExtra ? ball.extraType : ball.runs}
+                  {ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}
                 </motion.div>
               ))}
           </div>
