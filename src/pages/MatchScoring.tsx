@@ -37,6 +37,7 @@ import { Tournament, Team } from '../types/cricket';
 import TournamentSidebar from '../components/TournamentSidebar';
 import LiveChat from '../components/LiveChat';
 import { getHypeCommentary, speakHype, testSound } from '../lib/audioUtils';
+import ConfettiEffect from '../components/ConfettiEffect';
 
 const calculateManOfTheMatch = (match: Match, winningTeamId: string) => {
   if (winningTeamId === 'Draw') return 'N/A';
@@ -1756,8 +1757,9 @@ export default function MatchScoring() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-slate-900"
+              className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-slate-900 relative overflow-visible"
             >
+              <ConfettiEffect active={showOverSummary} />
               <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-8 h-8 text-white" />
               </div>

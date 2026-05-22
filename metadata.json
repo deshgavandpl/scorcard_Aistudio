@@ -1,5 +1,6 @@
 {
   "name": "Apna Cricket | Rural Cricket & DPL Live Scoring",
   "description": "The ultimate live cricket scoring system for rural cricket, Deshgavhan Premier League, and local tennis cricket tournaments. Managed by Avinash Huse at apnacricket.co.in.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

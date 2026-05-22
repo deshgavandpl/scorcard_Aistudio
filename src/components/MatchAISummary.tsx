@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import { Match, BatterStats, BowlerStats } from '../types/cricket';
 import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
 
@@ -18,8 +17,6 @@ export default function MatchAISummary({ match }: MatchAISummaryProps) {
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-      
       const matchData = {
         tournament: match.tournamentName,
         matchName: match.name,
@@ -56,26 +53,24 @@ export default function MatchAISummary({ match }: MatchAISummaryProps) {
         } : null
       };
 
-      const prompt = `As a friendly and expert cricket commentator, provide a brief, engaging summary of this cricket match. 
-      Structure your response as follows:
-      1. A catchy headline for the match.
-      2. A brief summary of the 1st innings (key performers and total).
-      3. A brief summary of the 2nd innings (how the chase went or how the defense succeeded).
-      4. A final concluding sentence on the overall result.
-      
-      Keep the total length under 180 words. Use a user-friendly, conversational tone.
-      
-      Match Data: ${JSON.stringify(matchData, null, 2)}`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-latest",
-        contents: prompt,
+      const response = await fetch('/api/match-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ matchData }),
       });
 
-      setSummary(response.text || "Could not generate summary.");
-    } catch (err) {
-      console.error("AI Summary Error:", err);
-      setError("Failed to generate AI summary. Please try again later.");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to generate summary from server.');
+      }
+
+      const data = await response.json();
+      setSummary(data.summary || 'Could not generate summary.');
+    } catch (err: any) {
+      console.error('AI Summary Error:', err);
+      setError(err.message || 'Failed to generate AI summary. Please try again later.');
     } finally {
       setLoading(false);
     }

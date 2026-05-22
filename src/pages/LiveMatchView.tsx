@@ -29,6 +29,7 @@ import { generateTeamPDF } from '../lib/pdfGenerator';
 import { Team } from '../types/cricket';
 import Scorecard from '../components/Scorecard';
 import MatchAISummary from '../components/MatchAISummary';
+import MatchInsights from '../components/MatchInsights';
 import Certificate from '../components/Certificate';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
@@ -308,6 +309,9 @@ export default function LiveMatchView() {
 
         {/* AI Match Summary */}
         <MatchAISummary match={match} />
+
+        {/* Match Insights & Analytics Dashboard */}
+        <MatchInsights match={match} />
 
         {/* Final Scorecard Window */}
         <div className="space-y-12">
@@ -708,6 +712,9 @@ export default function LiveMatchView() {
           </div>
         </div>
       </div>
+
+      {/* Match Insights & Analytics Dashboard */}
+      <MatchInsights match={match} />
 
       {/* Full Scorecard */}
       <div className="bg-white rounded-3xl p-4 md:p-8 border border-slate-200 shadow-sm space-y-6 md:space-y-8">
