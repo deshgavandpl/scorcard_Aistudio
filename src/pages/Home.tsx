@@ -25,6 +25,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { useAdmin } from '../context/AdminContext';
+import AdvertisementBanner from '../components/AdvertisementBanner';
 
 const ICON_MAP: Record<string, any> = {
   Youtube,
@@ -123,6 +124,9 @@ export default function Home() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8 md:space-y-12">
+        {/* Sponsorship Product Advertisement */}
+        <AdvertisementBanner />
+
         {/* Hero Section - Reverted to Old Style from Photo */}
         <section className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-brand-red text-white p-6 md:p-16 shadow-2xl">
           <div className="absolute inset-0 opacity-10 pointer-events-none">

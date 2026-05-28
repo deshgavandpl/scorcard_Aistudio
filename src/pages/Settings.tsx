@@ -638,6 +638,97 @@ export default function Settings() {
             )}
           </div>
 
+          {/* Real-time Simulator / Preview Panel */}
+          <div className="bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+              <div>
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500 fill-current animate-pulse" />
+                  Live Sponsorship System Simulator
+                </h4>
+                <p className="text-[10px] text-slate-400 font-medium">Real-time preview of how the ad will render to active users</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem('ad_dismissed_time');
+                  localStorage.removeItem('last_ad_id');
+                  toast.success('Your browser dismissal cache has been reset! Ad popups will now display again for you on live matches & scores page.');
+                }}
+                className="text-[10px] bg-white hover:bg-slate-100 text-slate-700 font-black px-3 py-1.5 rounded-lg border border-slate-200 uppercase tracking-wider transition-colors active:scale-95 cursor-pointer"
+              >
+                🔄 Reset My Browser Dismissal Cache
+              </button>
+            </div>
+
+            {/* Display Locations */}
+            <div className="text-[10px] font-bold text-slate-500 flex flex-wrap gap-x-4 gap-y-1 bg-white px-3 py-2 rounded-xl border border-slate-150">
+              <span className="text-slate-700 uppercase font-extrabold tracking-wider">Active Live On:</span>
+              <Link to="/" className="text-brand-red hover:underline uppercase flex items-center gap-1">🏡 Home Page</Link>
+              <Link to="/live" className="text-brand-red hover:underline uppercase flex items-center gap-1">🏏 Live Scores</Link>
+              <span className="text-slate-400 uppercase">📈 Match Detail Pages</span>
+            </div>
+
+            <div className="space-y-4">
+              {/* Type 1: Ticker marquee preview */}
+              {(adDisplayType === 'both' || adDisplayType === 'marquee') && (
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1 block">1. Top Scrolling Ticker Preview</span>
+                  <div className="bg-slate-900 text-amber-300 py-2 border border-slate-950 font-mono text-[10px] font-black uppercase tracking-wider overflow-hidden rounded-xl relative group">
+                    <div className="whitespace-nowrap flex animate-marquee-custom">
+                      <span className="inline-block shrink-0 px-4">
+                        🏏 MATCH DAY SPECIAL: {adProductName ? adProductName.toUpperCase() : 'YOUR PRODUCT NAME'} — {adDescription ? adDescription.toUpperCase() : 'PROMO TAGLINE DESCRIPTION'} {adCtaText ? `[ 👉 ${adCtaText.toUpperCase()} NOW ]` : ''} 🏏
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Type 2: Popup Card preview */}
+              {(adDisplayType === 'both' || adDisplayType === 'popup') && (
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1 block">2. Pop-up Interactive Card Preview</span>
+                  <div className="bg-white rounded-2xl border border-slate-300 shadow-md p-4 space-y-3 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 bg-slate-900 text-amber-400 font-mono font-black text-[7px] tracking-wider px-2 py-1 rounded-br-xl uppercase">
+                      Featured Ad
+                    </div>
+                    
+                    <div className="pt-3 flex gap-3">
+                      {adImageUrl ? (
+                        <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                          <img src={adImageUrl} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl bg-amber-50 text-amber-500 border border-amber-100 flex items-center justify-center shrink-0">
+                          <ShoppingBag className="w-6 h-6" />
+                        </div>
+                      )}
+
+                      <div className="text-left flex-1 min-w-0">
+                        <h5 className="font-extrabold text-slate-900 text-xs tracking-tight truncate uppercase">
+                          {adProductName || 'Your Awesome Product'}
+                        </h5>
+                        <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-0.5">
+                          {adDescription || 'Your promotional campaign description will show right here in this field! Add attractive discount codes or free delivery offers.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 justify-end pt-1">
+                      <span className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg font-bold text-[10px] uppercase cursor-not-allowed">
+                        Later
+                      </span>
+                      <span className="px-3 py-1.5 bg-brand-red text-white rounded-lg font-black text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-not-allowed">
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        {adCtaText || 'Get Deal'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-3">
             <button
               onClick={handleSaveAd}
