@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { toast } from 'sonner';
-import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft, Megaphone, Trash2, Send, Plus, Twitter, Github, MessageCircle, Shield, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { Save, Youtube, Instagram, Facebook, Globe, Linkedin, ArrowLeft, Megaphone, Trash2, Send, Plus, Twitter, Github, MessageCircle, Shield, Upload, Image as ImageIcon, X, ShoppingBag, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
@@ -107,6 +107,17 @@ export default function Settings() {
   const [isUploading, setIsUploading] = useState(false);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
 
+  // Product Advertisement States
+  const [adActive, setAdActive] = useState(false);
+  const [adProductName, setAdProductName] = useState('');
+  const [adDescription, setAdDescription] = useState('');
+  const [adImageUrl, setAdImageUrl] = useState('');
+  const [adTargetUrl, setAdTargetUrl] = useState('');
+  const [adCtaText, setAdCtaText] = useState('Buy Now');
+  const [adDisplayType, setAdDisplayType] = useState<'marquee' | 'popup' | 'both'>('both');
+  const [isAdUploading, setIsAdUploading] = useState(false);
+  const [savingAd, setSavingAd] = useState(false);
+
   useEffect(() => {
     if (!isAdminMode) return;
     async function fetchSettings() {
@@ -136,6 +147,19 @@ export default function Settings() {
           const data = announceSnap.data();
           setAnnouncementMessage(data.message || '');
           setAnnouncementImage(data.imageUrl || '');
+        }
+
+        const adRef = doc(db, 'settings', 'advertisement');
+        const adSnap = await getDoc(adRef);
+        if (adSnap.exists()) {
+          const data = adSnap.data();
+          setAdActive(data.active || false);
+          setAdProductName(data.productName || '');
+          setAdDescription(data.description || '');
+          setAdImageUrl(data.imageUrl || '');
+          setAdTargetUrl(data.targetUrl || '');
+          setAdCtaText(data.ctaText || 'Buy Now');
+          setAdDisplayType(data.displayType || 'both');
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -241,6 +265,89 @@ export default function Settings() {
       toast.error('Failed to clear announcement');
     } finally {
       setBroadcasting(false);
+    }
+  };
+
+  const handleAdImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 800 * 1024) {
+      toast.error('Image is too large. Please select an image under 800KB.');
+      return;
+    }
+
+    setIsAdUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAdImageUrl(reader.result as string);
+      setIsAdUploading(false);
+      toast.success('Product image uploaded successfully');
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+      setIsAdUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveAd = async () => {
+    if (!adProductName.trim()) {
+      toast.error('Please enter a product name');
+      return;
+    }
+    if (!adDescription.trim()) {
+      toast.error('Please enter a description / promo tagline');
+      return;
+    }
+
+    setSavingAd(true);
+    try {
+      await setDoc(doc(db, 'settings', 'advertisement'), {
+        active: adActive,
+        productName: adProductName,
+        description: adDescription,
+        imageUrl: adImageUrl,
+        targetUrl: adTargetUrl,
+        ctaText: adCtaText || 'Buy Now',
+        displayType: adDisplayType,
+        timestamp: Date.now()
+      });
+      toast.success('Product advertisement settings updated successfully!');
+    } catch (error) {
+      console.error('Error saving ad settings:', error);
+      toast.error('Failed to save advertisement settings');
+    } finally {
+      setSavingAd(false);
+    }
+  };
+
+  const handleClearAd = async () => {
+    setSavingAd(true);
+    try {
+      await setDoc(doc(db, 'settings', 'advertisement'), {
+        active: false,
+        productName: '',
+        description: '',
+        imageUrl: '',
+        targetUrl: '',
+        ctaText: 'Buy Now',
+        displayType: 'both',
+        timestamp: Date.now()
+      });
+      setAdActive(false);
+      setAdProductName('');
+      setAdDescription('');
+      setAdImageUrl('');
+      setAdTargetUrl('');
+      setAdCtaText('Buy Now');
+      setAdDisplayType('both');
+      toast.success('Advertisement cleared successfully');
+    } catch (error) {
+      console.error('Error clearing ad:', error);
+      toast.error('Failed to clear advertisement');
+    } finally {
+      setSavingAd(false);
     }
   };
 
@@ -365,6 +472,190 @@ export default function Settings() {
               disabled={broadcasting}
               className="px-6 py-3 bg-slate-100 text-slate-600 font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
               title="Clear current announcement"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Product Advertisement Section */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in" id="admin-product-ad-form">
+        <div className="p-6 border-b border-slate-100 bg-amber-50/50">
+          <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 text-amber-700">
+            <ShoppingBag className="w-5 h-5 text-amber-600 shrink-0" />
+            Live Page Advertisement
+          </h2>
+          <p className="text-sm text-slate-500">Configure promotional products, discounts, or alerts shown in real-time on live matches.</p>
+        </div>
+
+        <div className="p-6 space-y-5 text-left">
+          {/* Active status & display types inline */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest block ml-1">Status</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAdActive(true)}
+                  className={cn(
+                    "flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase transition-all border cursor-pointer",
+                    adActive 
+                      ? "bg-slate-950 border-slate-950 text-amber-400 font-extrabold shadow-sm" 
+                      : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                  )}
+                >
+                  🟢 Enabled
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdActive(false)}
+                  className={cn(
+                    "flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase transition-all border cursor-pointer",
+                    !adActive 
+                      ? "bg-slate-950 border-slate-950 text-slate-400 font-extrabold shadow-sm" 
+                      : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                  )}
+                >
+                  🔴 Disabled
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest block ml-1">Display Style</span>
+              <select
+                value={adDisplayType}
+                onChange={(e) => setAdDisplayType(e.target.value as any)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent outline-none transition-all text-xs font-black text-slate-700 uppercase tracking-wider h-[46px]"
+              >
+                <option value="both">Both (Ticker + Popup)</option>
+                <option value="marquee">Top Scrolling Ticker Only</option>
+                <option value="popup">Interactive Popup Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Product Title</span>
+              <input
+                type="text"
+                value={adProductName}
+                onChange={(e) => setAdProductName(e.target.value)}
+                placeholder="e.g. Apna Cricket Pro Bat"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent outline-none transition-all text-sm font-bold text-slate-800"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">CTA Button Text</span>
+              <input
+                type="text"
+                value={adCtaText}
+                onChange={(e) => setAdCtaText(e.target.value)}
+                placeholder="e.g. Shop Now, Get 25% Off"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent outline-none transition-all text-sm font-bold text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Promo Description Tagline</span>
+            <textarea
+              value={adDescription}
+              onChange={(e) => setAdDescription(e.target.value)}
+              placeholder="e.g. Selected English willow, extreme power stroke, order yours today and get a free trial ball!"
+              rows={2}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent outline-none transition-all text-sm font-medium resize-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Target Action Location URL</span>
+            <input
+              type="url"
+              value={adTargetUrl}
+              onChange={(e) => setAdTargetUrl(e.target.value)}
+              placeholder="e.g. https://wa.me/91XXXXXXXXXX or storefront link"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent outline-none transition-all text-sm font-medium"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Showcase Product Image</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 block">Upload Product File</span>
+                <label className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl appearance-none cursor-pointer hover:border-brand-red focus:outline-none group">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-brand-red transition-colors mb-2" />
+                    <p className="text-xs text-slate-500 font-medium select-none">
+                      {isAdUploading ? 'Reading file...' : 'Choose illustration'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">Max size: 800KB</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleAdImageUpload}
+                    disabled={isAdUploading}
+                  />
+                </label>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 block">Or Paste URL link</span>
+                <input
+                  type="url"
+                  value={adImageUrl.startsWith('data:') ? '' : adImageUrl}
+                  onChange={(e) => setAdImageUrl(e.target.value)}
+                  placeholder="https://example.com/cricket-bat.png"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-red focus:border-transparent outline-none transition-all text-sm font-medium h-32"
+                />
+              </div>
+            </div>
+
+            {adImageUrl && (
+              <div className="mt-4 relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 p-2 flex items-center justify-center group">
+                <img 
+                  src={adImageUrl} 
+                  alt="Product Ad Showcase" 
+                  className="max-h-full max-w-full object-contain mx-auto block rounded-lg text-xs"
+                  referrerPolicy="no-referrer"
+                />
+                <button
+                  onClick={() => setAdImageUrl('')}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-brand-red transition-all opacity-0 group-hover:opacity-100 cursor-pointer shadow-md"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-2 left-2 px-2.5 py-0.5 bg-black/60 text-white text-[9px] font-mono font-bold rounded uppercase tracking-widest shadow-sm">
+                  {adImageUrl.startsWith('data:') ? 'Uploaded File' : 'External URL'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-3">
+            <button
+              onClick={handleSaveAd}
+              disabled={savingAd || isAdUploading}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-amber-600/15 cursor-pointer"
+            >
+              {savingAd ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save className="w-5 h-5" />
+              )}
+              Save Advertisement
+            </button>
+            <button
+              onClick={handleClearAd}
+              disabled={savingAd}
+              className="px-6 py-3.5 bg-slate-100 text-slate-600 font-bold uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50 cursor-pointer"
+              title="Deactivate and Clear Ad Fields"
             >
               <Trash2 className="w-5 h-5" />
             </button>

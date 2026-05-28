@@ -36,6 +36,7 @@ import { usePlayerProfile } from '../context/PlayerProfileContext';
 import TournamentSidebar from '../components/TournamentSidebar';
 import LiveChat from '../components/LiveChat';
 import { getHypeCommentary, speakHype } from '../lib/audioUtils';
+import AdvertisementBanner from '../components/AdvertisementBanner';
 
 export default function LiveMatchView() {
   const { id } = useParams();
@@ -208,6 +209,9 @@ export default function LiveMatchView() {
 
     return (
       <div className="max-w-4xl mx-auto space-y-8 pb-20 print:p-0">
+        {/* Sponsorship Product Advertisement */}
+        <AdvertisementBanner />
+
         {/* Hidden Certificate for Generation */}
         <div className="fixed -left-[9999px] top-0 pointer-events-none" ref={certificateRef}>
           {match.manOfTheMatch && (
@@ -388,6 +392,9 @@ export default function LiveMatchView() {
       "max-w-4xl mx-auto space-y-6 pb-20 transition-all duration-500",
       showLiveVideo && "h-screen overflow-hidden flex flex-col max-w-none px-0 space-y-0 pb-0"
     )}>
+      {/* Sponsorship Product Advertisement */}
+      <AdvertisementBanner />
+
       <div className={cn(
         "space-y-6 transition-all duration-500",
         showLiveVideo ? "flex-1 overflow-y-auto p-4 bg-slate-50" : ""

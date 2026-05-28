@@ -1776,9 +1776,9 @@ export default function TournamentDetail() {
                     <Link 
                       to={canManage ? `/admin/match/${match.id}` : `/match/${match.id}`}
                       className={cn(
-                        "block p-6 rounded-[2rem] border transition-all relative",
+                        "block p-6 rounded-[2rem] border transition-all relative space-y-4",
                         match.status === 'Live' 
-                          ? "bg-[#fff5f5] border-red-100 ring-1 ring-red-50" 
+                          ? "bg-[#fff5f5] border-brand-red animate-live-pulse-glow" 
                           : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
                       )}
                     >

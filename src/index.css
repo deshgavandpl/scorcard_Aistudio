@@ -26,3 +26,33 @@
     @apply bg-brand-red text-white font-black uppercase tracking-wider rounded-xl py-3 px-6 shadow-lg hover:bg-red-700 transition-all active:scale-95;
   }
 }
+
+@keyframes marqueeCustom {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.animate-marquee-custom {
+  animation: marqueeCustom 26s linear infinite;
+}
+
+.animate-marquee-custom:hover {
+  animation-play-state: paused;
+}
+
+@keyframes livePulseGlow {
+  0%, 100% {
+    border-color: rgba(209, 29, 39, 0.35);
+    box-shadow: 0 0 10px rgba(209, 29, 39, 0.1);
+  }
+  50% {
+    border-color: rgba(209, 29, 39, 1);
+    box-shadow: 0 0 20px rgba(209, 29, 39, 0.3);
+  }
+}
+
+.animate-live-pulse-glow {
+  animation: livePulseGlow 2s infinite ease-in-out;
+}
+
+

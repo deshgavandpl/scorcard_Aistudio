@@ -241,9 +241,9 @@ export default function TournamentSidebar({ isOpen, onClose, tournamentId, curre
                       to={`/match/${match.id}`}
                       onClick={onClose}
                       className={cn(
-                        "block p-6 rounded-[2rem] border transition-all group relative",
+                        "block p-6 rounded-[2rem] border transition-all group relative space-y-4",
                         match.status === 'Live' 
-                          ? "bg-[#fff5f5] border-red-100 ring-1 ring-red-50" 
+                          ? "bg-[#fff5f5] border-brand-red animate-live-pulse-glow" 
                           : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
                       )}
                     >

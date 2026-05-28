@@ -14,6 +14,7 @@ import { useAdmin } from '../context/AdminContext';
 import { toast } from 'sonner';
 import TournamentWidget from '../components/TournamentWidget';
 import TournamentChampionBanner from '../components/TournamentChampionBanner';
+import AdvertisementBanner from '../components/AdvertisementBanner';
 
 export default function LiveScore() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -172,6 +173,9 @@ export default function LiveScore() {
 
   return (
     <div className="space-y-8">
+      {/* Sponsorship Product Advertisement */}
+      <AdvertisementBanner />
+
       {/* Tournament Winners Announcement */}
       <TournamentChampionBanner />
 
@@ -308,7 +312,12 @@ export default function LiveScore() {
                         key={match.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
+                        className={cn(
+                          "bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden space-y-4",
+                          match.status === 'Live'
+                            ? "border-brand-red animate-live-pulse-glow shadow-md"
+                            : "border-slate-200"
+                        )}
                       >
                         {/* Tournament Label */}
                         <div className="absolute top-0 right-0">

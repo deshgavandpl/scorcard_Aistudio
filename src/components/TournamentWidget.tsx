@@ -187,9 +187,9 @@ export default function TournamentWidget({ tournamentId }: TournamentWidgetProps
                 key={match.id}
                 to={`/match/${match.id}`}
                 className={cn(
-                  "block p-4 rounded-2xl border transition-all group relative",
+                  "block p-4 rounded-2xl border transition-all group relative space-y-4",
                   match.status === 'Live' 
-                    ? "bg-[#fff5f5] border-red-100 ring-1 ring-red-50" 
+                    ? "bg-[#fff5f5] border-brand-red animate-live-pulse-glow" 
                     : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
                 )}
               >
