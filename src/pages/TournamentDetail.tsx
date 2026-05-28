@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download, Settings, AlertCircle, RotateCcw, TrendingUp, Smartphone, Globe, MessageSquare, Info } from 'lucide-react';
+import { Trophy, Calendar, BarChart2, ChevronLeft, ChevronRight, Play, CheckCircle, Trash2, Plus, X, Edit2, Users, UserPlus, User, Target, Zap, Shield, Download, Settings, AlertCircle, RotateCcw, TrendingUp, Smartphone, Globe, MessageSquare, Info, Share2 } from 'lucide-react';
 import { Tournament, Match, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -710,6 +710,39 @@ export default function TournamentDetail() {
     }
   };
 
+  const handleShareTournament = async () => {
+    if (!tournament) return;
+    const shareData = {
+      title: `Apna Cricket - ${tournament.name}`,
+      text: `Follow the live scores, matches, and stats for the "${tournament.name}" tournament on Apna Cricket!`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        toast.success('Shared successfully!');
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing:', err);
+          try {
+            await navigator.clipboard.writeText(window.location.href);
+            toast.success('Tournament link copied to clipboard!');
+          } catch (clipErr) {
+            toast.error('Failed to copy link. Please copy the URL from your address bar.');
+          }
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Tournament link copied to clipboard!');
+      } catch (clipErr) {
+        toast.error('Failed to copy link. Please copy the URL from your address bar.');
+      }
+    }
+  };
+
   const exportTournamentData = () => {
     if (!tournament) return;
 
@@ -953,10 +986,26 @@ export default function TournamentDetail() {
         </div>
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-4">
-            <span className="px-3 py-1 rounded-full bg-brand-red text-white text-[10px] font-black uppercase tracking-[0.2em] inline-block">
+            <span className="px-3.5 py-1.5 rounded-full bg-brand-red text-white text-[10px] font-black uppercase tracking-[0.2em] inline-flex items-center gap-1.5">
+              <span className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                tournament.status.toLowerCase() === 'live' || tournament.status.toLowerCase() === 'active' || tournament.status.toLowerCase() === 'ongoing'
+                  ? "bg-emerald-400 animate-pulse ring-2 ring-emerald-400/50"
+                  : tournament.status.toLowerCase() === 'finished' || tournament.status.toLowerCase() === 'completed'
+                    ? "bg-slate-400"
+                    : "bg-amber-400 animate-pulse ring-2 ring-amber-400/50"
+              )} />
               {tournament.status}
             </span>
             <div className="flex gap-2">
+              <button 
+                onClick={handleShareTournament}
+                className="p-3 rounded-2xl bg-white/10 text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2 cursor-pointer"
+                title="Share Tournament"
+              >
+                <Share2 className="w-5 h-5 text-amber-400" />
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Share</span>
+              </button>
               {canManage && tournament.name.toUpperCase().includes('DPL') && (
                 <button 
                   onClick={applyDPLQuickFix}

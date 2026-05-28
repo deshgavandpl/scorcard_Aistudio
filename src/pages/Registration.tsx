@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   UserPlus, Search, Trophy, Shield, Users, Smartphone, Globe, Target, 
-  MapPin, Phone, Briefcase, Plus, Trash2, Award, CheckCircle2, AlertCircle, X, ChevronDown, UserCheck 
+  MapPin, Phone, Briefcase, Plus, Trash2, Award, CheckCircle2, AlertCircle, X, ChevronDown, UserCheck, Camera, UploadCloud
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAdmin } from '../context/AdminContext';
 import { toast } from 'sonner';
 import { collection, onSnapshot, query, setDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { PlayerRole, Tournament, Team, Player } from '../types/cricket';
+import { PlayerRole, Tournament, Team, Player, BatterStats, BowlerStats } from '../types/cricket';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
 interface GlobalRegistration {
@@ -23,7 +23,17 @@ interface GlobalRegistration {
   experience: string;
   isVerified: boolean;
   createdAt: number;
+  photoUrl?: string;
 }
+
+const PRESET_AVATARS = [
+  { name: 'Power Cap', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&q=80' },
+  { name: 'Elite Bat', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&q=80' },
+  { name: 'Super Star', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&q=80' },
+  { name: 'Spin Icon', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&q=80' },
+  { name: 'Champ Focus', url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&q=80' },
+  { name: 'Young Gun', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80' }
+];
 
 export default function Registration() {
   const [activeTab, setActiveTab] = useState<'global' | 'tournament'>('global');
@@ -38,6 +48,7 @@ export default function Registration() {
   const [showTeamForm, setShowTeamForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [selectedPlayer, setSelectedPlayer] = useState<GlobalRegistration | null>(null);
 
   // Player Form States
   const [playerName, setPlayerName] = useState('');
@@ -47,6 +58,7 @@ export default function Registration() {
   const [bowlingStyle, setBowlingStyle] = useState<'Right-arm Fast' | 'Right-arm Spin' | 'Left-arm Fast' | 'Left-arm Spin' | 'None'>('None');
   const [playerCity, setPlayerCity] = useState('');
   const [playerExperience, setPlayerExperience] = useState('');
+  const [playerPhotoUrl, setPlayerPhotoUrl] = useState('');
 
   // Team Form States
   const [selectedTournamentId, setSelectedTournamentId] = useState('');
@@ -84,6 +96,25 @@ export default function Registration() {
     };
   }, []);
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 800 * 1024) { 
+        toast.error('Image size must be less than 800KB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPlayerPhotoUrl(reader.result as string);
+        toast.success('Photo uploaded successfully!');
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read image file');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Submit Global Player Profile
   const handleRegisterPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +134,8 @@ export default function Registration() {
       city: playerCity.trim(),
       experience: playerExperience.trim() || 'Club Level Enthusiast',
       isVerified: true, // Mark verified directly for polished feel
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      ...(playerPhotoUrl ? { photoUrl: playerPhotoUrl } : {})
     };
 
     try {
@@ -117,6 +149,7 @@ export default function Registration() {
       setBowlingStyle('None');
       setPlayerCity('');
       setPlayerExperience('');
+      setPlayerPhotoUrl('');
       setShowPlayerForm(false);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `registrations/${regId}`);
@@ -207,6 +240,135 @@ export default function Registration() {
     const matchesRole = roleFilter === 'all' || r.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  const calculatePlayerStats = (playerNameStr: string, playerRole: PlayerRole) => {
+    let matchesPlayed = 0;
+    let totalRuns = 0;
+    let totalBalls = 0;
+    let fours = 0;
+    let sixes = 0;
+    let dismissals = 0;
+    let inningsBat = 0;
+    
+    let bowlingOvers = 0;
+    let bowlingBalls = 0;
+    let bowlingRuns = 0;
+    let bowlingWickets = 0;
+    let maidens = 0;
+
+    const normalizedName = playerNameStr.trim().toLowerCase();
+
+    tournaments.forEach(tour => {
+      (tour.matches || []).forEach(match => {
+        let playedInThisMatch = false;
+
+        // Check Innings 1 Batting
+        if (match.innings1?.battingStats) {
+          (Object.values(match.innings1.battingStats) as BatterStats[]).forEach(stat => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              playedInThisMatch = true;
+              totalRuns += stat.runs || 0;
+              totalBalls += stat.balls || 0;
+              fours += stat.fours || 0;
+              sixes += stat.sixes || 0;
+              if (stat.isOut) dismissals++;
+              inningsBat++;
+            }
+          });
+        }
+        // Check Innings 2 Batting
+        if (match.innings2?.battingStats) {
+          (Object.values(match.innings2.battingStats) as BatterStats[]).forEach(stat => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              playedInThisMatch = true;
+              totalRuns += stat.runs || 0;
+              totalBalls += stat.balls || 0;
+              fours += stat.fours || 0;
+              sixes += stat.sixes || 0;
+              if (stat.isOut) dismissals++;
+              inningsBat++;
+            }
+          });
+        }
+
+        // Check Innings 1 Bowling
+        if (match.innings1?.bowlingStats) {
+          (Object.values(match.innings1.bowlingStats) as BowlerStats[]).forEach(stat => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              playedInThisMatch = true;
+              bowlingOvers += stat.overs || 0;
+              bowlingBalls += stat.balls || 0;
+              bowlingRuns += stat.runs || 0;
+              bowlingWickets += stat.wickets || 0;
+              maidens += stat.maiden || 0;
+            }
+          });
+        }
+        // Check Innings 2 Bowling
+        if (match.innings2?.bowlingStats) {
+          (Object.values(match.innings2.bowlingStats) as BowlerStats[]).forEach(stat => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              playedInThisMatch = true;
+              bowlingOvers += stat.overs || 0;
+              bowlingBalls += stat.balls || 0;
+              bowlingRuns += stat.runs || 0;
+              bowlingWickets += stat.wickets || 0;
+              maidens += stat.maiden || 0;
+            }
+          });
+        }
+
+        if (playedInThisMatch) {
+          matchesPlayed++;
+        }
+      });
+    });
+
+    // Helper calculate skills based on role
+    const getSkills = () => {
+      switch (playerRole) {
+        case 'Batsman':
+          return { power: 92, speed: 35, spin: 20, reflex: 88, mental: 90 };
+        case 'Bowler':
+          return { power: 45, speed: 89, spin: 85, reflex: 75, mental: 80 };
+        case 'All-Rounder':
+          return { power: 84, speed: 78, spin: 70, reflex: 85, mental: 88 };
+        case 'Wicket-Keeper':
+          return { power: 78, speed: 15, spin: 10, reflex: 96, mental: 92 };
+        default:
+          return { power: 65, speed: 60, spin: 55, reflex: 70, mental: 75 };
+      }
+    };
+
+    // calculate bowling overs representation correctly
+    const extraOversFromBalls = Math.floor(bowlingBalls / 6);
+    const residualBalls = bowlingBalls % 6;
+    const finalOvers = bowlingOvers + extraOversFromBalls + (residualBalls / 10);
+
+    return {
+      matchesPlayed,
+      hasScoredStats: matchesPlayed > 0,
+      skills: getSkills(),
+      batting: {
+        totalRuns,
+        totalBalls,
+        fours,
+        sixes,
+        dismissals,
+        innings: inningsBat,
+        avg: dismissals > 0 ? (totalRuns / dismissals).toFixed(1) : (totalRuns > 0 ? totalRuns.toString() : 'N/A'),
+        sr: totalBalls > 0 ? ((totalRuns / totalBalls) * 100).toFixed(1) : 'N/A'
+      },
+      bowling: {
+        overs: finalOvers.toFixed(1),
+        runs: bowlingRuns,
+        wickets: bowlingWickets,
+        maidens,
+        economy: (bowlingOvers * 6 + bowlingBalls) > 0 ? ((bowlingRuns / (bowlingOvers * 6 + bowlingBalls)) * 6).toFixed(2) : 'N/A',
+        avg: bowlingWickets > 0 ? (bowlingRuns / bowlingWickets).toFixed(1) : 'N/A'
+      }
+    };
+  };
 
   return (
     <div className="space-y-8 px-2 md:px-0 max-w-7xl mx-auto">
@@ -299,6 +461,101 @@ export default function Registration() {
                 </div>
 
                 <form onSubmit={handleRegisterPlayer} className="space-y-6">
+                  {/* Profile Photo / Avatar Option */}
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-5">
+                      {/* Photo Preview inside a beautiful circular frame */}
+                      <div className="relative shrink-0">
+                        <div className="w-24 h-24 rounded-full bg-white border-2 border-brand-red/20 overflow-hidden flex items-center justify-center text-slate-300 shadow-xl relative ring-4 ring-slate-100 flex-shrink-0">
+                          {playerPhotoUrl ? (
+                            <div className="w-full h-full relative group">
+                              <img src={playerPhotoUrl} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-[8px] font-black text-white uppercase tracking-wider">Live Preview</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center p-2">
+                              <span className="font-sans font-black text-3xl text-slate-400 uppercase tracking-tight block animate-pulse">
+                                {playerName ? playerName[0].toUpperCase() : '?'}
+                              </span>
+                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mt-0.5">No Photo</span>
+                            </div>
+                          )}
+                        </div>
+                        {playerPhotoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setPlayerPhotoUrl('')}
+                            className="absolute -top-1 -right-1 bg-slate-900 hover:bg-brand-red text-white rounded-full p-1.5 transition-all cursor-pointer shadow-lg hover:scale-105"
+                            title="Remove Photo"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Photo Options Meta */}
+                      <div className="space-y-1.5 flex-1 w-full text-center sm:text-left">
+                        <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center justify-center sm:justify-start gap-1">
+                          <Camera className="w-3.5 h-3.5 text-brand-red" />
+                          Profile Photo & Identity Badge
+                        </h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest max-w-sm mx-auto sm:mx-0">
+                          Select one of our preset athlete badges, upload your own local profile photo, or enter a custom URL below.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Presets choice */}
+                    <div className="space-y-1.5">
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Preset Athlete Avatars</span>
+                      <div className="grid grid-cols-6 gap-2">
+                        {PRESET_AVATARS.map((avatar) => (
+                          <button
+                            key={avatar.name}
+                            type="button"
+                            onClick={() => setPlayerPhotoUrl(avatar.url)}
+                            className={cn(
+                              "relative rounded-xl overflow-hidden aspect-square border-2 transition-all hover:scale-105 active:scale-95 cursor-pointer",
+                              playerPhotoUrl === avatar.url ? "border-brand-red ring-2 ring-brand-red/25 shadow-sm" : "border-transparent opacity-75 hover:opacity-100"
+                            )}
+                          >
+                            <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom File Upload & URL Address inputs */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-200">
+                      <div>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-1">Upload Local Image File</span>
+                        <label className="flex items-center justify-center gap-2 w-full py-2.5 bg-white hover:bg-slate-100/80 border border-slate-200 text-slate-800 font-extrabold text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all">
+                          <UploadCloud className="w-4 h-4 text-slate-400" />
+                          <span>Choose local file...</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      <div>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-1">Or Paste Image URL</span>
+                        <input
+                          type="url"
+                          value={playerPhotoUrl && !playerPhotoUrl.startsWith('data:') ? playerPhotoUrl : ''}
+                          onChange={(e) => setPlayerPhotoUrl(e.target.value)}
+                          placeholder="e.g. https://domain.com/avatar.jpg"
+                          className="w-full bg-white border border-slate-200 text-slate-800 font-bold px-3 py-2 rounded-xl text-xs outline-none focus:border-brand-red transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Name */}
                     <div className="space-y-1.5">
@@ -513,12 +770,20 @@ export default function Registration() {
                     {filteredRegistrations.map((player) => (
                       <div 
                         key={player.id} 
-                        className="bg-slate-50 p-4 rounded-2xl border border-slate-150 hover:border-brand-red transition-all flex flex-col justify-between gap-3 group"
+                        onClick={() => setSelectedPlayer(player)}
+                        className="bg-slate-50 p-4 rounded-2xl border border-slate-150 hover:border-brand-red hover:bg-white hover:shadow-lg hover:scale-[1.02] active:scale-[0.99] transition-all flex flex-col justify-between gap-3 group cursor-pointer relative overflow-hidden"
+                        title="Click to view full player profile & stats"
                       >
+                        {/* Interactive overlay card accent */}
+                        <div className="absolute top-0 right-0 w-2 h-0 group-hover:h-full bg-brand-red transition-all duration-300"></div>
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-extrabold text-sm border border-orange-200">
-                              {player.name[0].toUpperCase()}
+                            <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-extrabold text-sm border border-orange-200 overflow-hidden shrink-0">
+                              {player.photoUrl ? (
+                                <img src={player.photoUrl} alt={player.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                player.name[0].toUpperCase()
+                              )}
                             </div>
                             <div className="max-w-[140px] md:max-w-none">
                               <h4 className="font-extrabold text-slate-900 uppercase text-xs tracking-tight flex items-center gap-1">
@@ -775,6 +1040,281 @@ export default function Registration() {
             )}
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Interactive Global Player Profile Modal */}
+      <AnimatePresence>
+        {selectedPlayer && (() => {
+          const stats = calculatePlayerStats(selectedPlayer.name, selectedPlayer.role);
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+              onClick={() => setSelectedPlayer(null)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden border border-slate-200/60 shadow-2xl relative my-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header Background Banner with Red/Dark Accent */}
+                <div className="bg-slate-950 h-36 relative overflow-hidden flex items-center px-8 border-b border-slate-900">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-brand-red opacity-15 blur-[80px] -mr-16 -mt-16"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-600 opacity-5 blur-[80px] -ml-16 -mb-16"></div>
+                  <div className="relative z-10 flex justify-between items-center w-full">
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-400 font-mono flex items-center gap-1.5">
+                      <Shield className="w-4 h-4 fill-current text-amber-500 animate-pulse" />
+                      Apna Cricket Verified Card
+                    </span>
+                    <button
+                      onClick={() => setSelectedPlayer(null)}
+                      className="p-2 bg-white/10 hover:bg-brand-red text-white hover:text-white rounded-full transition-all cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Profile Photo Floating Over Header */}
+                <div className="px-8 pb-8 relative -mt-16 space-y-6">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
+                    <div className="relative shrink-0">
+                      <div className="w-32 h-32 rounded-full border-4 border-white bg-slate-100 overflow-hidden flex items-center justify-center text-slate-300 shadow-xl relative ring-8 ring-slate-100">
+                        {selectedPlayer.photoUrl ? (
+                          <img src={selectedPlayer.photoUrl} alt={selectedPlayer.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="font-sans font-black text-5xl text-slate-400 uppercase tracking-tight">
+                            {selectedPlayer.name[0].toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <span className="absolute bottom-1 right-1 bg-blue-500 text-white p-1 rounded-full border border-white shadow-md">
+                        <CheckCircle2 className="w-4.5 h-4.5 fill-current text-white shrink-0" />
+                      </span>
+                    </div>
+
+                    <div className="text-center sm:text-left space-y-1.5 flex-1 pb-2">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        {selectedPlayer.name}
+                      </h2>
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-slate-900 text-white font-black text-[9px] uppercase tracking-wider border border-slate-900">
+                          {selectedPlayer.role}
+                        </span>
+                        <div className="flex items-center gap-1 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                          <MapPin className="w-3.5 h-3.5 text-brand-red shrink-0" />
+                          <span>{selectedPlayer.city}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* About / Bios */}
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100/85 space-y-1.5 text-left">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Bio & Achievements</span>
+                    <p className="text-xs text-slate-600 font-semibold italic leading-relaxed">
+                      "{selectedPlayer.experience || 'Club Level Enthusiast'}"
+                    </p>
+                  </div>
+
+                  {/* Body Content Grid (Left: Attributes, Right: System Recorded Stats) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                    {/* Athlete Rating & Attributes */}
+                    <div className="space-y-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-1.5">
+                          <Target className="w-4 h-4 text-brand-red shrink-0" />
+                          Athlete Metrics
+                        </h3>
+                        <span className="font-mono text-[9px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md uppercase">
+                          Overall Rating: {
+                            selectedPlayer.role === 'Batsman' ? '90' :
+                            selectedPlayer.role === 'Bowler' ? '86' :
+                            selectedPlayer.role === 'All-Rounder' ? '88' : '84'
+                          }
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 pt-1">
+                        {/* Batting Power */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
+                            <span>Batting Power / Timing</span>
+                            <span className="font-mono text-slate-700">{stats.skills.power}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200/60 h-2.5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${stats.skills.power}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="bg-brand-red h-full rounded-full"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Bowling Speed / Pace */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
+                            <span>Bowling Speed / Velocity</span>
+                            <span className="font-mono text-slate-700">{stats.skills.speed}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200/60 h-2.5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${stats.skills.speed}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="bg-orange-500 h-full rounded-full"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Spin Control */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
+                            <span>Spin Coefficient & Rpm</span>
+                            <span className="font-mono text-slate-700">{stats.skills.spin}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200/60 h-2.5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${stats.skills.spin}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="bg-indigo-500 h-full rounded-full"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Athletic Reflexes */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
+                            <span>Field Reflex & Reactions</span>
+                            <span className="font-mono text-slate-700">{stats.skills.reflex}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200/60 h-2.5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${stats.skills.reflex}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="bg-emerald-500 h-full rounded-full"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Composure */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
+                            <span>Mental Composure / Clutch</span>
+                            <span className="font-mono text-slate-700">{stats.skills.mental}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200/60 h-2.5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${stats.skills.mental}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="bg-amber-500 h-full rounded-full"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recorded Official Match Stats */}
+                    <div className="space-y-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                          <h3 className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-1.5">
+                            <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
+                            Official Match Scorecards
+                          </h3>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-white rounded-xl border border-slate-100 text-center">
+                            <span className="text-[8px] font-black uppercase text-slate-400 block tracking-widest">Matches Played</span>
+                            <span className="text-xl font-black text-slate-900 tracking-tight block mt-1">{stats.matchesPlayed}</span>
+                          </div>
+                          <div className="p-3 bg-white rounded-xl border border-slate-100 text-center">
+                            <span className="text-[8px] font-black uppercase text-slate-400 block tracking-widest">Total Runs</span>
+                            <span className="text-xl font-black text-slate-900 tracking-tight block mt-1">{stats.batting.totalRuns}</span>
+                          </div>
+                          <div className="p-3 bg-white rounded-xl border border-slate-100 text-center">
+                            <span className="text-[8px] font-black uppercase text-slate-400 block tracking-widest">Batting Average</span>
+                            <span className="text-base font-black text-slate-900 tracking-tight block mt-1.5">{stats.batting.avg}</span>
+                          </div>
+                          <div className="p-3 bg-white rounded-xl border border-slate-100 text-center">
+                            <span className="text-[8px] font-black uppercase text-slate-400 block tracking-widest">Wickets Taken</span>
+                            <span className="text-xl font-black text-slate-900 block mt-1">{stats.bowling.wickets}</span>
+                          </div>
+                        </div>
+
+                        {/* Extra metrics detail lists */}
+                        <div className="bg-white p-3 rounded-xl border border-slate-100 space-y-2 text-[10px] font-bold text-slate-600">
+                          <div className="flex justify-between items-center">
+                            <span className="uppercase text-slate-400 text-[8px] tracking-widest">Batting Strike Rate</span>
+                            <span className="font-mono text-slate-900 font-extrabold">{stats.batting.sr}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="uppercase text-slate-400 text-[8px] tracking-widest">Overs Bowled</span>
+                            <span className="font-mono text-slate-900 font-extrabold">{stats.bowling.overs}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="uppercase text-slate-400 text-[8px] tracking-widest">Economy & Average</span>
+                            <span className="font-mono text-slate-900 font-extrabold">{stats.bowling.economy} / {stats.bowling.avg}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info context message */}
+                      <div className="text-[9px] text-slate-400 font-bold p-1 bg-white/50 rounded-lg text-center border border-slate-100 uppercase tracking-wider block mt-3">
+                        {stats.hasScoredStats 
+                          ? "✓ Verified player activity automatically synced with physical match ledger."
+                          : "ⓘ Active registrant. No officially scored Apna Cricket matches logged yet."
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Mobile Communication / Contact Badges */}
+                  <div className="pt-4 border-t border-slate-150 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
+                        <Phone className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[8px] font-black uppercase text-slate-400 block tracking-widest">Contact Identity Badge</span>
+                        <a href={`tel:${selectedPlayer.phone}`} className="text-xs font-bold text-slate-700 hover:text-brand-red transition-all font-mono">
+                          {selectedPlayer.phone}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <a 
+                        href={`https://wa.me/${selectedPlayer.phone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 sm:flex-none px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black tracking-widest text-[9px] uppercase rounded-xl border border-emerald-200 transition-all text-center"
+                      >
+                        Contact via WhatsApp
+                      </a>
+                      <button 
+                        onClick={() => setSelectedPlayer(null)}
+                        className="flex-1 sm:flex-none px-5 py-2 bg-slate-900 hover:bg-brand-red text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+                      >
+                        Close Card
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
