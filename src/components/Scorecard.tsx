@@ -1,7 +1,7 @@
 import React from 'react';
 import { Match, MatchInnings, BatterStats, BowlerStats } from '../types/cricket';
 import { cn } from '../lib/utils';
-import { Zap } from 'lucide-react';
+import { Zap, Trophy } from 'lucide-react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
 
 interface ScorecardProps {
@@ -21,9 +21,9 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
   const bowlers = Object.values(innings.bowlingStats || {});
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col items-center space-y-4 w-full">
       {/* Mobile Tabs */}
-      <div className="flex lg:hidden bg-slate-100 p-1 rounded-xl border border-slate-200">
+      <div className="flex lg:hidden bg-slate-100 p-1 rounded-xl border border-slate-200 w-full">
         <button
           onClick={() => setActiveTab('batting')}
           className={cn(
@@ -44,7 +44,7 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         {/* Batting Section */}
         <div className={cn(
           "bg-slate-50 rounded-2xl p-4 border border-slate-200 h-full",
@@ -92,6 +92,11 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
                             <span className="text-[10px] text-slate-300 w-4">{b.order || '-'}</span>
                             {b.playerName}{b.isStriker ? '*' : ''}
                             {b.isStriker && <Zap className="w-3 h-3 fill-brand-red" />}
+                            {match.manOfTheMatch && b.playerName.toLowerCase().trim() === match.manOfTheMatch.toLowerCase().trim() && (
+                              <span className="inline-flex items-center gap-0.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full shadow-sm ml-1 animate-pulse">
+                                <Trophy className="w-2 h-2 fill-white" /> MVP
+                              </span>
+                            )}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium italic">
                             {b.isOut ? (b.howOut || 'Out') : 'Not Out'}
@@ -157,6 +162,11 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
                         >
                           {b.playerName}
                           {isCurrentBowler && <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse"></span>}
+                          {match.manOfTheMatch && b.playerName.toLowerCase().trim() === match.manOfTheMatch.toLowerCase().trim() && (
+                            <span className="inline-flex items-center gap-0.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
+                              <Trophy className="w-2 h-2 fill-white" /> MVP
+                            </span>
+                          )}
                         </button>
                       </td>
                       <td className="py-3 text-right text-slate-500 text-xs">{b.overs}.{b.balls}</td>

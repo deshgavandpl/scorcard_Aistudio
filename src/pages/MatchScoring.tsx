@@ -257,6 +257,52 @@ export default function MatchScoring() {
   const [teamARoster, setTeamARoster] = useState<Player[]>([]);
   const [teamBRoster, setTeamBRoster] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [isCustomMoM, setIsCustomMoM] = useState(false);
+
+  const getMatchPlayersList = () => {
+    const playersMap = new Map<string, string>();
+
+    // 1. Add from rosters
+    if (teamARoster) {
+      teamARoster.forEach(p => {
+        if (p?.name) {
+          playersMap.set(p.name, match?.teamAName || 'Team A');
+        }
+      });
+    }
+    if (teamBRoster) {
+      teamBRoster.forEach(p => {
+        if (p?.name) {
+          playersMap.set(p.name, match?.teamBName || 'Team B');
+        }
+      });
+    }
+
+    // 2. Add from scorecards
+    if (match) {
+      [match.innings1, match.innings2].forEach(inn => {
+        if (!inn) return;
+        if (inn.battingStats) {
+          (Object.values(inn.battingStats) as BatterStats[]).forEach(b => {
+            if (b?.playerName) {
+              const teamName = inn.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
+              playersMap.set(b.playerName, teamName || 'Batting Team');
+            }
+          });
+        }
+        if (inn.bowlingStats) {
+          (Object.values(inn.bowlingStats) as BowlerStats[]).forEach(b => {
+            if (b?.playerName) {
+              const teamName = inn.bowlingTeamId === match.teamAId ? match.teamAId === match.teamAId ? match.teamAName : match.teamBName : match.teamBName;
+              playersMap.set(b.playerName, teamName || 'Bowling Team');
+            }
+          });
+        }
+      });
+    }
+
+    return Array.from(playersMap.entries()).map(([name, team]) => ({ name, team }));
+  };
 
   // Force voices to load
   useEffect(() => {
@@ -1695,14 +1741,56 @@ export default function MatchScoring() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Man of the Match</label>
-                  <input 
-                    type="text" 
-                    value={manOfTheMatch}
-                    onChange={(e) => setManOfTheMatch(e.target.value)}
-                    placeholder="Player Name"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-brand-red transition-all"
-                  />
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block font-sans">Man of the Match</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomMoM(!isCustomMoM)}
+                      className="text-[9px] font-bold text-brand-red uppercase tracking-wider hover:underline"
+                    >
+                      {isCustomMoM ? "Select from roster" : "Type custom name"}
+                    </button>
+                  </div>
+                  {isCustomMoM ? (
+                    <input 
+                      type="text" 
+                      value={manOfTheMatch}
+                      onChange={(e) => setManOfTheMatch(e.target.value)}
+                      placeholder="Type player name"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-sm outline-none focus:border-brand-red transition-all"
+                    />
+                  ) : (
+                    <select 
+                      value={manOfTheMatch}
+                      onChange={(e) => setManOfTheMatch(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 font-black tracking-tight text-sm outline-none focus:border-brand-red transition-all"
+                    >
+                      <option value="">Select Player</option>
+                      <optgroup label={match?.teamAName || 'Team A'}>
+                        {getMatchPlayersList()
+                          .filter(p => p.team === match?.teamAName)
+                          .map(p => (
+                            <option key={p.name} value={p.name}>{p.name}</option>
+                          ))}
+                      </optgroup>
+                      <optgroup label={match?.teamBName || 'Team B'}>
+                        {getMatchPlayersList()
+                          .filter(p => p.team === match?.teamBName)
+                          .map(p => (
+                            <option key={p.name} value={p.name}>{p.name}</option>
+                          ))}
+                      </optgroup>
+                      {getMatchPlayersList().filter(p => p.team !== match?.teamAName && p.team !== match?.teamBName).length > 0 && (
+                        <optgroup label="Other Match Players">
+                          {getMatchPlayersList()
+                            .filter(p => p.team !== match?.teamAName && p.team !== match?.teamBName)
+                            .map(p => (
+                              <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                        </optgroup>
+                      )}
+                    </select>
+                  )}
                 </div>
 
                 <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-left">
@@ -2257,21 +2345,66 @@ export default function MatchScoring() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Man of the Match</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Man of the Match</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomMoM(!isCustomMoM)}
+                    className="text-[8px] font-bold text-brand-red uppercase tracking-wider hover:underline animate-fade-in"
+                  >
+                    {isCustomMoM ? "Select from list" : "Type custom"}
+                  </button>
+                </div>
                 <div className="space-y-2">
-                  <input 
-                    type="text" 
-                    value={manOfTheMatch}
-                    onChange={(e) => setManOfTheMatch(e.target.value)}
-                    placeholder="Enter player name"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-brand-red transition-all"
-                  />
+                  {isCustomMoM ? (
+                    <input 
+                      type="text" 
+                      value={manOfTheMatch}
+                      onChange={(e) => setManOfTheMatch(e.target.value)}
+                      placeholder="Enter player name"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 font-bold text-xs outline-none focus:border-brand-red transition-all"
+                    />
+                  ) : (
+                    <select 
+                      value={manOfTheMatch || ''}
+                      onChange={(e) => setManOfTheMatch(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 font-black tracking-tight text-xs outline-none focus:border-brand-red transition-all"
+                    >
+                      <option value="">Select Player</option>
+                      <optgroup label={match?.teamAName || 'Team A'}>
+                        {getMatchPlayersList()
+                          .filter(p => p.team === match?.teamAName)
+                          .map(p => (
+                            <option key={p.name} value={p.name}>{p.name}</option>
+                          ))}
+                      </optgroup>
+                      <optgroup label={match?.teamBName || 'Team B'}>
+                        {getMatchPlayersList()
+                          .filter(p => p.team === match?.teamBName)
+                          .map(p => (
+                            <option key={p.name} value={p.name}>{p.name}</option>
+                          ))}
+                      </optgroup>
+                      {getMatchPlayersList().filter(p => p.team !== match?.teamAName && p.team !== match?.teamBName).length > 0 && (
+                        <optgroup label="Other Match Players">
+                          {getMatchPlayersList()
+                            .filter(p => p.team !== match?.teamAName && p.team !== match?.teamBName)
+                            .map(p => (
+                              <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                        </optgroup>
+                      )}
+                    </select>
+                  )}
                   {momSuggestions.length > 0 && (
                     <div className="flex gap-1">
                       {momSuggestions.map(p => (
                         <button
                           key={p.name}
-                          onClick={() => setManOfTheMatch(p.name)}
+                          onClick={() => {
+                            setManOfTheMatch(p.name);
+                            setIsCustomMoM(false);
+                          }}
                           className={cn(
                             "flex-1 px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest transition-all border",
                             manOfTheMatch === p.name ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100"
@@ -2509,22 +2642,33 @@ export default function MatchScoring() {
             <div className="flex flex-wrap gap-1.5">
               {(() => {
                 const thisOverBalls = currentInnings?.ballHistory.filter(ball => ball.over === currentInnings.overs) || [];
-                return thisOverBalls.map((ball, idx) => (
-                  <div 
-                    key={idx}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border transition-all",
-                      idx === thisOverBalls.length - 1 && "ring-2 ring-brand-red ring-offset-1 scale-110",
-                      ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
-                      ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
-                      ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
-                      ball.isExtra ? "bg-amber-100 border-amber-500 text-amber-600" :
-                      "bg-slate-50 border-slate-200 text-slate-600"
-                    )}
-                  >
-                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
-                  </div>
-                ));
+                return thisOverBalls.map((ball, idx) => {
+                  const isLatest = idx === thisOverBalls.length - 1;
+                  return (
+                    <motion.div 
+                      key={`${idx}-${ball.isWicket}`}
+                      initial={ball.isWicket && isLatest ? { scale: 0.8, backgroundColor: "#fee2e2", borderColor: "#ef4444" } : { scale: 1 }}
+                      animate={ball.isWicket && isLatest ? {
+                        scale: [1, 1.4, 1, 1.3, 1],
+                        backgroundColor: ["#fee2e2", "#ef4444", "#fee2e2", "#ef4444", "#fee2e2"],
+                        borderColor: ["#f87171", "#dc2626", "#f87171", "#dc2626", "#ef4444"],
+                        color: ["#ef4444", "#ffffff", "#ef4444", "#ffffff", "#ef4444"]
+                      } : { scale: 1 }}
+                      transition={{ duration: 1.5, ease: "easeInOut" }}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border transition-all",
+                        isLatest && "ring-2 ring-brand-red ring-offset-1 scale-110",
+                        ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
+                        ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
+                        ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
+                        ball.isExtra ? "bg-amber-100 border-amber-500 text-amber-600" :
+                        "bg-slate-50 border-slate-200 text-slate-600"
+                      )}
+                    >
+                      {isLatest ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
+                    </motion.div>
+                  );
+                });
               })()}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
                 <p className="text-slate-300 italic text-[8px] py-1">No balls in this over yet.</p>
@@ -2835,22 +2979,33 @@ export default function MatchScoring() {
             <div className="flex flex-wrap gap-2 overflow-y-auto max-h-[400px]">
               {(() => {
                 const thisOverBalls = currentInnings?.ballHistory.filter(ball => ball.over === currentInnings.overs) || [];
-                return thisOverBalls.map((ball, idx) => (
-                  <div 
-                    key={idx}
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 transition-all",
-                      idx === thisOverBalls.length - 1 && "ring-4 ring-brand-red ring-offset-2 scale-110",
-                      ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
-                      ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
-                      ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
-                      ball.isExtra ? "bg-red-50 border-brand-red text-brand-red" :
-                      "bg-slate-50 border-slate-200 text-slate-600"
-                    )}
-                  >
-                    {idx === thisOverBalls.length - 1 ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
-                  </div>
-                ));
+                return thisOverBalls.map((ball, idx) => {
+                  const isLatest = idx === thisOverBalls.length - 1;
+                  return (
+                    <motion.div 
+                      key={`${idx}-${ball.isWicket}`}
+                      initial={ball.isWicket && isLatest ? { scale: 0.8, backgroundColor: "#fee2e2", borderColor: "#ef4444" } : { scale: 1 }}
+                      animate={ball.isWicket && isLatest ? {
+                        scale: [1, 1.4, 1, 1.3, 1],
+                        backgroundColor: ["#fee2e2", "#ef4444", "#fee2e2", "#ef4444", "#fee2e2"],
+                        borderColor: ["#f87171", "#dc2626", "#f87171", "#dc2626", "#ef4444"],
+                        color: ["#ef4444", "#ffffff", "#ef4444", "#ffffff", "#ef4444"]
+                      } : { scale: 1 }}
+                      transition={{ duration: 1.5, ease: "easeInOut" }}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 transition-all",
+                        isLatest && "ring-4 ring-brand-red ring-offset-2 scale-110",
+                        ball.isWicket ? "bg-red-100 border-red-500 text-red-600" :
+                        ball.runs === 4 ? "bg-emerald-100 border-emerald-500 text-emerald-600" :
+                        ball.runs === 6 ? "bg-purple-100 border-purple-500 text-purple-600" :
+                        ball.isExtra ? "bg-red-50 border-brand-red text-brand-red" :
+                        "bg-slate-50 border-slate-200 text-slate-600"
+                      )}
+                    >
+                      {isLatest ? `[${ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs}]` : (ball.isWicket ? 'W' : ball.isExtra ? `${ball.extraType?.toUpperCase()}${ball.runs > 0 ? '+' + ball.runs : ''}` : ball.runs)}
+                    </motion.div>
+                  );
+                });
               })()}
               {(!currentInnings?.ballHistory || currentInnings.ballHistory.filter(ball => ball.over === currentInnings.overs).length === 0) && (
                 <p className="text-slate-300 italic text-sm py-4">No balls in this over yet.</p>

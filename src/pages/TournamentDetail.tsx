@@ -920,6 +920,10 @@ export default function TournamentDetail() {
     return parseFloat(b.nrr) - parseFloat(a.nrr);
   });
 
+  const totalMatchesCount = matches.length;
+  const finishedMatchesCount = matches.filter(m => m.status === 'Finished').length;
+  const completionPercentage = totalMatchesCount > 0 ? Math.round((finishedMatchesCount / totalMatchesCount) * 100) : 0;
+
   return (
     <div className="space-y-8">
       <button onClick={() => navigate('/tournaments')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold uppercase text-xs tracking-widest transition-colors">
@@ -1003,14 +1007,44 @@ export default function TournamentDetail() {
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight transform -skew-x-6">{tournament.name}</h1>
-          <div className="flex gap-6 mt-6">
-            <div className="flex flex-col">
-              <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Teams</span>
-              <span className="text-2xl font-black">{tournament.teams.length}</span>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mt-6">
+            <div className="flex gap-6">
+              <div className="flex flex-col">
+                <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Teams</span>
+                <span className="text-2xl font-black">{tournament.teams.length}</span>
+              </div>
+              <div className="flex flex-col border-l border-slate-800 pl-6">
+                <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Matches</span>
+                <span className="text-2xl font-black">{matches.length}</span>
+              </div>
+              <div className="flex flex-col border-l border-slate-800 pl-6">
+                <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Finished</span>
+                <span className="text-2xl font-black text-emerald-400">{finishedMatchesCount}</span>
+              </div>
             </div>
-            <div className="flex flex-col border-l border-slate-800 pl-6">
-              <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Matches</span>
-              <span className="text-2xl font-black">{matches.length}</span>
+
+            {/* Visual Dynamic Progress Bar */}
+            <div className="w-full md:max-w-[320px] bg-slate-800/60 p-4 rounded-2xl border border-slate-800/80 backdrop-blur-sm shadow-inner shrink-0">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-slate-300 text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  Tournament Progress
+                </span>
+                <span className="text-white text-[10px] font-black tracking-tight uppercase">
+                  {finishedMatchesCount}/{totalMatchesCount} ({completionPercentage}%)
+                </span>
+              </div>
+              <div className="w-full bg-slate-950/80 h-2 rounded-full overflow-hidden p-[1px] border border-slate-800">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${completionPercentage}%` }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  className="bg-gradient-to-r from-brand-red via-orange-500 to-amber-400 h-full rounded-full"
+                />
+              </div>
             </div>
           </div>
         </div>
