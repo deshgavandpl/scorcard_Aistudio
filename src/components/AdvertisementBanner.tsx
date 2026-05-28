@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback } from 'react';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ExternalLink, Sparkles, ShoppingBag, Megaphone } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AdData {
   active: boolean;
@@ -19,6 +20,98 @@ export default function AdvertisementBanner() {
   const [ad, setAd] = useState<AdData | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [isPopupDismissed, setIsPopupDismissed] = useState(false);
+  const [pulse, setPulse] = useState(false);
+
+  const handleDismissPopup = useCallback(() => {
+    localStorage.setItem('ad_dismissed_time', Date.now().toString());
+    setIsPopupDismissed(true);
+    setShowPopup(false);
+  }, []);
+
+  // Synchronously monitor all live matches to spot when a batsman or team records a new high score
+  useEffect(() => {
+    const q = query(collection(db, 'matches'), where('status', '==', 'Live'));
+    let lastMaxBatterScore = 0;
+    let lastMaxTeamScore = 0;
+    let isFirstLoad = true;
+    let pulseTimeoutId: NodeJS.Timeout | null = null;
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      let currentMaxBatterScore = 0;
+      let currentMaxTeamScore = 0;
+      let topBatterName = '';
+
+      snapshot.docs.forEach((docSnap) => {
+        const matchData = docSnap.data();
+        
+        // Find maximum team scores in this match
+        const runs1 = matchData.innings1?.runs || 0;
+        const runs2 = matchData.innings2?.runs || 0;
+        const maxMatchTeamScore = Math.max(runs1, runs2);
+        if (maxMatchTeamScore > currentMaxTeamScore) {
+          currentMaxTeamScore = maxMatchTeamScore;
+        }
+
+        // Find individual batsman scores
+        if (matchData.innings1?.battingStats) {
+          Object.values(matchData.innings1.battingStats).forEach((stats: any) => {
+            if (stats.runs && stats.runs > currentMaxBatterScore) {
+              currentMaxBatterScore = stats.runs;
+              topBatterName = stats.playerName || '';
+            }
+          });
+        }
+
+        if (matchData.innings2?.battingStats) {
+          Object.values(matchData.innings2.battingStats).forEach((stats: any) => {
+            if (stats.runs && stats.runs > currentMaxBatterScore) {
+              currentMaxBatterScore = stats.runs;
+              topBatterName = stats.playerName || '';
+            }
+          });
+        }
+      });
+
+      // Compare to check if a new milestone / high score has been recorded during live feed update
+      if (!isFirstLoad) {
+        let scoreIncreased = false;
+        let milestoneReason = '';
+
+        if (currentMaxBatterScore > lastMaxBatterScore && currentMaxBatterScore > 0) {
+          scoreIncreased = true;
+          milestoneReason = `🏏 ${topBatterName || 'Batsman'} reached a new high of ${currentMaxBatterScore} runs!`;
+        } else if (currentMaxTeamScore > lastMaxTeamScore && currentMaxTeamScore > 0) {
+          scoreIncreased = true;
+          milestoneReason = `🔥 Team score increased to a new high of ${currentMaxTeamScore} runs!`;
+        }
+
+        if (scoreIncreased) {
+          setPulse(true);
+          toast('⚡ Live Match Milestone!', {
+            description: milestoneReason,
+            duration: 5000,
+          });
+
+          if (pulseTimeoutId) clearTimeout(pulseTimeoutId);
+          pulseTimeoutId = setTimeout(() => {
+            setPulse(false);
+          }, 3000);
+        }
+      } else {
+        isFirstLoad = false;
+      }
+
+      lastMaxBatterScore = currentMaxBatterScore;
+      lastMaxTeamScore = currentMaxTeamScore;
+    }, (err) => {
+      console.warn("Milestone listener error:", err);
+    });
+
+    return () => {
+      unsub();
+      if (pulseTimeoutId) clearTimeout(pulseTimeoutId);
+    };
+  }, []);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'advertisement'), (snapshot) => {
@@ -55,11 +148,16 @@ export default function AdvertisementBanner() {
     return () => unsub();
   }, []);
 
-  const handleDismissPopup = () => {
-    localStorage.setItem('ad_dismissed_time', Date.now().toString());
-    setIsPopupDismissed(true);
-    setShowPopup(false);
-  };
+  // Automatically dismiss the popup after 15 seconds
+  useEffect(() => {
+    if (showPopup && ad && (ad.displayType === 'popup' || ad.displayType === 'both')) {
+      const timer = setTimeout(() => {
+        handleDismissPopup();
+      }, 15000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showPopup, ad, handleDismissPopup]);
 
   if (!ad || !ad.active) return null;
 
@@ -74,18 +172,29 @@ export default function AdvertisementBanner() {
     <div className="w-full space-y-3 z-40 relative">
       {/* 1. Marquee Scrolling Ticker Panel */}
       {showMarquee && (
-        <a
+        <motion.a
           href={ad.targetUrl || '#'}
           target={ad.targetUrl ? '_blank' : undefined}
           rel="noreferrer"
+          animate={pulse ? {
+            scale: [1, 1.02, 0.98, 1.01, 1],
+            backgroundColor: ["#0f172a", "#3b0712", "#450a0a", "#3b0712", "#0f172a"],
+            borderColor: ["#1e293b", "#eab308", "#ef4444", "#eab308", "#1e293b"],
+            boxShadow: [
+              "0 0 0 rgba(239, 68, 68, 0)",
+              "0 10px 15px -3px rgba(239, 68, 68, 0.3), 0 4px 6px -4px rgba(239, 68, 68, 0.3)",
+              "0 0 0 rgba(239, 68, 68, 0)"
+            ]
+          } : {}}
+          transition={{ duration: 1.5, ease: "easeInOut" }}
           className="block w-full bg-slate-900 border-y border-slate-800 text-amber-300 py-2.5 overflow-hidden relative group hover:bg-slate-950 transition-colors shadow-sm"
           id="live-ad-marquee-ticker"
         >
           {/* Neon side shading filters */}
-          <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900 to-transparent z-10 pointers-events-none"></div>
-          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-900 to-transparent z-10 pointers-events-none"></div>
+          <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900 to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-900 to-transparent z-10 pointer-events-none"></div>
           
-          <div className="whitespace-nowrap flex animate-marquee-custom font-mono text-xs font-black uppercase tracking-wider relative">
+          <div className={`whitespace-nowrap flex animate-marquee-custom font-mono text-xs font-black uppercase tracking-wider relative ${pulse ? 'text-amber-200 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]' : ''}`}>
             <span className="inline-block shrink-0">{marqueeRepeated}</span>
             <span className="inline-block shrink-0">{marqueeRepeated}</span>
           </div>
@@ -94,7 +203,7 @@ export default function AdvertisementBanner() {
             <span>Sponsor</span>
             <ExternalLink className="w-2.5 h-2.5" />
           </div>
-        </a>
+        </motion.a>
       )}
 
       {/* 2. Interactive Popup Product Advertisement */}
@@ -162,6 +271,16 @@ export default function AdvertisementBanner() {
                   <ShoppingBag className="w-4 h-4" />
                   {ad.ctaText || 'Get Deal'}
                 </a>
+              </div>
+
+              {/* Progress bar indication of auto-dismiss */}
+              <div className="absolute bottom-0 left-0 h-1 bg-slate-200 w-full overflow-hidden">
+                <motion.div
+                  initial={{ width: '100%' }}
+                  animate={{ width: '0%' }}
+                  transition={{ duration: 15, ease: 'linear' }}
+                  className="h-full bg-brand-red"
+                />
               </div>
             </motion.div>
           </div>
