@@ -115,6 +115,14 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Help', path: '/help', icon: BookOpen },
   ];
 
+  const mobileNavItems = [
+    { name: 'Home', path: '/', icon: Home },
+    { name: 'Live', path: '/live', icon: PlayCircle },
+    { name: 'Tournaments', path: '/tournaments', icon: Trophy },
+    { name: 'Teams', path: '/teams', icon: Users },
+    { name: 'Register', path: '/registration', icon: UserPlus },
+  ];
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <AnimatePresence>
@@ -557,7 +565,7 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
         {children}
       </main>
 
@@ -614,6 +622,54 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </footer>
+
+      {/* Modern Android-Style Floating Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-8px_30px_rgb(0,0,0,0.08)] md:hidden [padding-bottom:env(safe-area-inset-bottom)]">
+        <div className="flex justify-around items-center h-16 px-2">
+          {mobileNavItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "flex flex-col items-center justify-center w-full h-full text-center transition-all duration-200 relative group py-1",
+                  isActive ? "text-brand-red font-black scale-105" : "text-slate-400 font-bold hover:text-slate-600"
+                )}
+              >
+                {/* Active Indicator Slide dot */}
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeTabMarker"
+                    className="absolute top-0 w-8 h-1 bg-brand-red rounded-b-full shadow-[0_2px_10px_rgba(225,29,72,0.4)]"
+                    transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                  />
+                )}
+
+                <div className="relative flex items-center justify-center p-1.5 rounded-2xl transition-colors">
+                  <Icon className={cn("w-5 h-5 transition-transform duration-200", isActive ? "stroke-[2.5px] scale-110" : "stroke-[2px] group-hover:scale-105")} />
+                  
+                  {/* Flashing Live Feed Indicator specifically next to Live Score */}
+                  {item.name === 'Live' && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-red"></span>
+                    </span>
+                  )}
+                </div>
+
+                <span className="text-[10px] font-black uppercase tracking-wider scale-90 leading-none mt-0.5">
+                  {item.name}
+                </span>
+
+                {/* Android wave touch state style on tap */}
+                <div className="absolute inset-0 bg-slate-100/0 group-active:bg-slate-100 rounded-2xl -z-10 transition-colors mx-2 my-1" />
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,81 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Match, MatchInnings, BatterStats, BowlerStats } from '../types/cricket';
 import { cn } from '../lib/utils';
 import { Zap, Trophy } from 'lucide-react';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
-import { motion } from 'motion/react';
-
-interface AnimatedCounterProps {
-  value: number;
-  className?: string;
-}
-
-export function AnimatedCounter({ value, className }: AnimatedCounterProps) {
-  const [displayValue, setDisplayValue] = useState(value);
-  const prevValueRef = useRef(value);
-  const [key, setKey] = useState(0);
-
-  useEffect(() => {
-    const startValue = prevValueRef.current;
-    const endValue = value;
-    if (startValue === endValue) {
-      return;
-    }
-
-    setKey(prev => prev + 1);
-
-    const diff = endValue - startValue;
-    // If the difference is huge (initial state, match swap etc), jump immediately
-    if (Math.abs(diff) > 30) {
-      setDisplayValue(endValue);
-      prevValueRef.current = endValue;
-      return;
-    }
-
-    const duration = 650; // smooth 650ms counting animation
-    const startTime = performance.now();
-    let animationFrameId: number;
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      const easeProgress = progress * (2 - progress); // easeOutQuad
-      const currentValue = Math.floor(startValue + diff * easeProgress);
-      
-      setDisplayValue(currentValue);
-
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(animate);
-      } else {
-        setDisplayValue(endValue);
-        prevValueRef.current = endValue;
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [value]);
-
-  useEffect(() => {
-    prevValueRef.current = value;
-  }, [value]);
-
-  return (
-    <motion.span
-      key={key}
-      initial={{ scale: 1.25, y: -2 }}
-      animate={{ scale: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
-      className={cn("inline-block", className)}
-    >
-      {displayValue}
-    </motion.span>
-  );
-}
 
 interface ScorecardProps {
   match: Match;
@@ -128,9 +55,8 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
               Innings {inningsNumber}: {battingTeamName}
             </h3>
             <div className="text-right">
-              <p className="text-2xl font-black text-brand-red tracking-tight flex items-center justify-end gap-0.5">
-                <AnimatedCounter value={innings.runs} />/
-                <AnimatedCounter value={innings.wickets} />
+              <p className="text-2xl font-black text-brand-red tracking-tight">
+                {innings.runs}/{innings.wickets}
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 {innings.overs}.{innings.balls} Overs
