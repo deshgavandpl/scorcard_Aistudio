@@ -88,6 +88,35 @@
         "timestamp": { "type": "number" }
       },
       "required": ["id", "message", "active"]
+    },
+    "FCMToken": {
+      "title": "FCMToken",
+      "description": "Registered FCM Token details for push notifications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "token": { "type": "string" },
+        "userId": { "type": "string" },
+        "platform": { "type": "string" },
+        "updatedAt": { "type": "number" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "token", "platform", "updatedAt"]
+    },
+    "NotificationLog": {
+      "title": "NotificationLog",
+      "description": "Alert logs for wickets, match outcomes and tournament results.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "matchId": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "type": { "type": "string", "enum": ["wicket", "result", "event"] },
+        "createdAt": { "type": "number" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "title", "body", "type", "createdAt"]
     }
   },
   "firestore": {
@@ -106,6 +135,14 @@
     "/settings/{settingId}": {
       "schema": "Settings",
       "description": "Global settings documents."
+    },
+    "/fcm_tokens/{tokenId}": {
+      "schema": "FCMToken",
+      "description": "Registered Device tokens for FCM notifications."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "NotificationLog",
+      "description": "Stored historical in-app notifications."
     }
   }
 }

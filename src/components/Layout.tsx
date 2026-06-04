@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { useAdmin } from '../context/AdminContext';
+import NotificationCenterUI from './NotificationCenterUI';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -434,6 +435,8 @@ export default function Layout({ children }: LayoutProps) {
               ))}
               
               <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                <NotificationCenterUI />
+                
                 {isAdminMode && (
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end">
@@ -478,6 +481,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center gap-2">
+              <NotificationCenterUI />
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="text-slate-600 p-2"
