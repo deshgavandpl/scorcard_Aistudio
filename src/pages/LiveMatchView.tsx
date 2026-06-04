@@ -44,6 +44,61 @@ export default function LiveMatchView() {
   const { openPlayerProfile } = usePlayerProfile();
   const { match, setMatch, loading } = useCricketScoring(id);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const getThemeClasses = (color?: 'red' | 'blue' | 'green') => {
+    const c = color || 'red';
+    if (c === 'blue') {
+      return {
+        bg: 'bg-blue-600',
+        bgHover: 'hover:bg-blue-700',
+        bgLight: 'bg-blue-50',
+        text: 'text-blue-600',
+        textLight: 'text-blue-600',
+        textHover: 'hover:text-blue-600',
+        border: 'border-blue-600',
+        borderLight: 'border-blue-100',
+        focusRing: 'focus:ring-blue-600/20',
+        fill: 'fill-blue-600 text-blue-600',
+        badge: 'bg-blue-50 text-blue-600 border-blue-100',
+        ring: 'ring-blue-500',
+        targetBg: 'bg-blue-600/20 border-blue-600/30 text-blue-600'
+      };
+    } else if (c === 'green') {
+      return {
+        bg: 'bg-emerald-600',
+        bgHover: 'hover:bg-emerald-700',
+        bgLight: 'bg-emerald-50',
+        text: 'text-emerald-600',
+        textLight: 'text-emerald-600',
+        textHover: 'hover:text-emerald-600',
+        border: 'border-emerald-600',
+        borderLight: 'border-emerald-100',
+        focusRing: 'focus:ring-emerald-600/20',
+        fill: 'fill-emerald-600 text-emerald-600',
+        badge: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+        ring: 'ring-emerald-500',
+        targetBg: 'bg-emerald-600/20 border-emerald-600/30 text-emerald-600'
+      };
+    }
+    // Default: red
+    return {
+      bg: 'bg-brand-red',
+      bgHover: 'hover:bg-red-700',
+      bgLight: 'bg-red-50',
+      text: 'text-brand-red',
+      textLight: 'text-red-600',
+      textHover: 'hover:text-brand-red',
+      border: 'border-brand-red',
+      borderLight: 'border-red-100',
+      focusRing: 'focus:ring-brand-red/20',
+      fill: 'fill-brand-red text-brand-red',
+      badge: 'bg-red-50 text-brand-red border-red-100',
+      ring: 'ring-brand-red',
+      targetBg: 'bg-brand-red/20 border-brand-red/30 text-brand-red'
+    };
+  };
+
+  const themeClasses = getThemeClasses(match?.themeColor);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Default to muted for better UX
   const [showLiveVideo, setShowLiveVideo] = useState(false);
@@ -230,7 +285,7 @@ export default function LiveMatchView() {
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-slate-900 rounded-[3rem] p-12 text-center text-white shadow-2xl border-8 border-brand-red relative overflow-hidden"
+          className={cn("bg-slate-900 rounded-[3rem] p-12 text-center text-white shadow-2xl border-8 relative overflow-hidden", themeClasses.border)}
         >
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <Trophy className="w-64 h-64 absolute -top-10 -left-10 rotate-12" />
@@ -238,7 +293,7 @@ export default function LiveMatchView() {
           </div>
           
           <div className="relative z-10 space-y-6">
-            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-brand-red text-white font-black uppercase tracking-[0.3em] text-xs shadow-lg">
+            <div className={cn("inline-flex items-center gap-3 px-6 py-2 rounded-full text-white font-black uppercase tracking-[0.3em] text-xs shadow-lg", themeClasses.bg)}>
               <Trophy className="w-4 h-4" /> Champion
             </div>
             
@@ -247,7 +302,7 @@ export default function LiveMatchView() {
             </h1>
             
             <div className="p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 inline-block">
-              <p className="text-2xl font-black uppercase tracking-widest text-brand-red italic">{match.resultMessage}</p>
+              <p className={cn("text-2xl font-black uppercase tracking-widest italic", themeClasses.text)}>{match.resultMessage}</p>
             </div>
 
             {match.manOfTheMatch && (
@@ -259,7 +314,7 @@ export default function LiveMatchView() {
                 <button 
                   onClick={downloadCertificate}
                   disabled={isGenerating}
-                  className="px-8 py-4 bg-brand-red text-white rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-brand-red/90 transition-all flex items-center gap-3 mx-auto shadow-2xl disabled:opacity-50 active:scale-95"
+                  className={cn("px-8 py-4 text-white rounded-2xl font-black uppercase tracking-widest text-sm transition-all flex items-center gap-3 mx-auto shadow-2xl disabled:opacity-50 active:scale-95", themeClasses.bg, themeClasses.bgHover)}
                 >
                   {isGenerating ? (
                     <>
@@ -286,7 +341,7 @@ export default function LiveMatchView() {
               {match.innings1?.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}
             </h3>
             <div className="space-y-1">
-              <p className="text-5xl font-black text-brand-red tracking-tighter">
+              <p className={cn("text-5xl font-black tracking-tighter", themeClasses.text)}>
                 {match.innings1?.runs || 0}<span className="text-2xl text-slate-300">/{match.innings1?.wickets || 0}</span>
               </p>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
@@ -301,7 +356,7 @@ export default function LiveMatchView() {
               {match.innings2?.battingTeamId === match.teamAId ? match.teamAName : match.teamBName}
             </h3>
             <div className="space-y-1">
-              <p className="text-5xl font-black text-brand-red tracking-tighter">
+              <p className={cn("text-5xl font-black tracking-tighter", themeClasses.text)}>
                 {match.innings2?.runs || 0}<span className="text-2xl text-slate-300">/{match.innings2?.wickets || 0}</span>
               </p>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
@@ -323,7 +378,7 @@ export default function LiveMatchView() {
             <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 italic transform -skew-x-6">Final Scorecard</h2>
             <button 
               onClick={handlePrint}
-              className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-widest text-[10px] hover:bg-brand-red/90 transition-all shadow-lg flex items-center gap-2 print:hidden"
+              className={cn("px-6 py-3 rounded-xl text-white font-black uppercase tracking-widest text-[10px] transition-all shadow-lg flex items-center gap-2 print:hidden", themeClasses.bg, themeClasses.bgHover)}
             >
               <History className="w-4 h-4" /> Download Ball-by-Ball PDF
             </button>
@@ -345,7 +400,7 @@ export default function LiveMatchView() {
 
             {match.superOverInnings1 && (
               <div className="space-y-4">
-                <h3 className="text-xl font-black uppercase tracking-widest text-brand-red bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-2">
+                <h3 className={cn("text-xl font-black uppercase tracking-widest p-4 rounded-2xl border flex items-center gap-2", themeClasses.text, themeClasses.bgLight, themeClasses.borderLight)}>
                   <Zap className="w-5 h-5" /> Super Over: 1st Innings
                 </h3>
                 <Scorecard match={match} innings={match.superOverInnings1} inningsNumber={1} />
@@ -354,7 +409,7 @@ export default function LiveMatchView() {
 
             {match.superOverInnings2 && (
               <div className="space-y-4">
-                <h3 className="text-xl font-black uppercase tracking-widest text-brand-red bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-2">
+                <h3 className={cn("text-xl font-black uppercase tracking-widest p-4 rounded-2xl border flex items-center gap-2", themeClasses.text, themeClasses.bgLight, themeClasses.borderLight)}>
                   <Zap className="w-5 h-5" /> Super Over: 2nd Innings
                 </h3>
                 <Scorecard match={match} innings={match.superOverInnings2} inningsNumber={2} />
@@ -407,7 +462,7 @@ export default function LiveMatchView() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-brand-red text-white p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] text-sm shadow-lg"
+            className={cn("text-white p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] text-sm shadow-lg", themeClasses.bg)}
           >
             Second innings started soon
           </motion.div>
@@ -439,8 +494,8 @@ export default function LiveMatchView() {
               className={cn(
                 "px-4 py-2 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-all shadow-lg",
                 showLiveVideo 
-                  ? "bg-slate-900 text-white ring-2 ring-brand-red" 
-                  : "bg-brand-red text-white hover:bg-brand-red/90 animate-pulse"
+                  ? cn("bg-slate-900 text-white ring-2", themeClasses.ring) 
+                  : cn("text-white animate-pulse", themeClasses.bg, themeClasses.bgHover)
               )}
             >
               <Play className="w-4 h-4 fill-current" />
@@ -452,7 +507,7 @@ export default function LiveMatchView() {
               onClick={toggleAudio}
               className={cn(
                 "p-3 rounded-xl transition-all flex items-center gap-2 font-black uppercase tracking-widest text-[10px]",
-                isMuted ? "bg-slate-100 text-slate-400" : "bg-red-50 text-brand-red border border-red-100 shadow-sm"
+                isMuted ? "bg-slate-100 text-slate-400" : cn("border shadow-sm", themeClasses.bgLight, themeClasses.text, themeClasses.borderLight)
               )}
             >
               {isMuted ? (
@@ -468,9 +523,9 @@ export default function LiveMatchView() {
             {isMuted && <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Enable Commentary</p>}
           </div>
           {match.status === 'Live' && (
-            <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-              <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Live Broadcast</span>
+            <div className={cn("px-4 py-2 rounded-xl border flex items-center gap-2", themeClasses.bgLight, themeClasses.borderLight)}>
+              <span className={cn("w-2 h-2 rounded-full animate-pulse", themeClasses.bg)}></span>
+              <span className={cn("text-[10px] font-black uppercase tracking-widest", themeClasses.text)}>Live Broadcast</span>
             </div>
           )}
           {match.status === 'Finished' && (
@@ -539,7 +594,7 @@ export default function LiveMatchView() {
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
           <div className="space-y-3 md:space-y-6">
             <div>
-              <p className="text-brand-red text-[8px] md:text-xs font-black uppercase tracking-[0.3em] mb-1 md:mb-2">{battingTeamName} is Batting</p>
+              <p className={cn("text-[8px] md:text-xs font-black uppercase tracking-[0.3em] mb-1 md:mb-2", themeClasses.text)}>{battingTeamName} is Batting</p>
               <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-none">
                 {currentInnings?.runs}<span className="text-xl md:text-4xl text-slate-500">/{currentInnings?.wickets}</span>
               </h1>
@@ -558,7 +613,7 @@ export default function LiveMatchView() {
                 <div className="h-6 md:h-8 w-px bg-slate-800"></div>
                 <div className="text-center">
                   <p className="text-[7px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">Run Rate</p>
-                  <p className="text-base md:text-xl font-black text-brand-red">
+                  <p className={cn("text-base md:text-xl font-black", themeClasses.text)}>
                     {currentInnings && (currentInnings.overs > 0 || currentInnings.balls > 0) 
                       ? (currentInnings.runs / (currentInnings.overs + currentInnings.balls/6)).toFixed(2)
                       : '0.00'}
@@ -568,10 +623,10 @@ export default function LiveMatchView() {
             </div>
 
             {match.currentInnings === 2 && (match.isSuperOver ? match.superOverInnings1 : match.innings1) && (
-              <div className="p-3 md:p-6 rounded-2xl md:rounded-3xl bg-brand-red/20 border border-brand-red/30 backdrop-blur-sm">
+              <div className={cn("p-3 md:p-6 rounded-2xl md:rounded-3xl border backdrop-blur-sm", themeClasses.targetBg, themeClasses.borderLight)}>
                 <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-                  <Target className="w-3 h-3 md:w-5 md:h-5 text-brand-red" />
-                  <span className="text-[8px] md:text-xs font-black uppercase tracking-widest text-brand-red">
+                  <Target className={cn("w-3 h-3 md:w-5 md:h-5", themeClasses.text)} />
+                  <span className={cn("text-[8px] md:text-xs font-black uppercase tracking-widest", themeClasses.text)}>
                     Target: {((match.isSuperOver ? match.superOverInnings1?.runs : match.innings1?.runs) || 0) + 1}
                   </span>
                 </div>
@@ -587,13 +642,13 @@ export default function LiveMatchView() {
             <div className="grid grid-cols-1 gap-2 md:gap-3">
               <div className={cn(
                 "p-2.5 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
-                striker?.isStriker ? "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50" : "bg-slate-800/40 border-slate-700"
+                striker?.isStriker ? (match?.themeColor === 'blue' ? "bg-blue-600/20 border-blue-600/50 ring-1 ring-blue-600/50" : match?.themeColor === 'green' ? "bg-emerald-600/20 border-emerald-600/50 ring-1 ring-emerald-600/50" : "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50") : "bg-slate-800/40 border-slate-700"
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
-                  {striker?.isStriker && <Zap className="w-2.5 h-2.5 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
+                  {striker?.isStriker && <Zap className={cn("w-2.5 h-2.5 md:w-4 md:h-4", themeClasses.text, themeClasses.fill)} />}
                   <button 
                     onClick={() => striker && openPlayerProfile(striker.playerId, striker.playerName)}
-                    className="text-sm md:text-lg font-black truncate max-w-[100px] md:max-w-none text-left hover:text-brand-red transition-colors"
+                    className={cn("text-sm md:text-lg font-black truncate max-w-[100px] md:max-w-none text-left transition-colors", themeClasses.textHover)}
                   >
                     {striker?.playerName || 'Batsman'}
                   </button>
@@ -605,13 +660,13 @@ export default function LiveMatchView() {
 
               <div className={cn(
                 "p-2.5 md:p-4 rounded-xl md:rounded-2xl border transition-all flex justify-between items-center",
-                nonStriker?.isStriker ? "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50" : "bg-slate-800/40 border-slate-700"
+                nonStriker?.isStriker ? (match?.themeColor === 'blue' ? "bg-blue-600/20 border-blue-600/50 ring-1 ring-blue-600/50" : match?.themeColor === 'green' ? "bg-emerald-600/20 border-emerald-600/50 ring-1 ring-emerald-600/50" : "bg-brand-red/20 border-brand-red/50 ring-1 ring-brand-red/50") : "bg-slate-800/40 border-slate-700"
               )}>
                 <div className="flex items-center gap-2 md:gap-3">
-                  {nonStriker?.isStriker && <Zap className="w-2.5 h-2.5 md:w-4 md:h-4 text-brand-red fill-brand-red" />}
+                  {nonStriker?.isStriker && <Zap className={cn("w-2.5 h-2.5 md:w-4 md:h-4", themeClasses.text, themeClasses.fill)} />}
                   <button 
                     onClick={() => nonStriker && openPlayerProfile(nonStriker.playerId, nonStriker.playerName)}
-                    className="text-sm md:text-lg font-black truncate max-w-[100px] md:max-w-none text-left hover:text-brand-red transition-colors"
+                    className={cn("text-sm md:text-lg font-black truncate max-w-[100px] md:max-w-none text-left transition-colors", themeClasses.textHover)}
                   >
                     {nonStriker?.playerName || 'Batsman'}
                   </button>
@@ -623,7 +678,7 @@ export default function LiveMatchView() {
             </div>
 
             {/* Current Bowler */}
-            <div className="p-2.5 md:p-4 rounded-xl md:rounded-2xl bg-brand-red text-white flex justify-between items-center shadow-lg">
+            <div className={cn("p-2.5 md:p-4 rounded-xl md:rounded-2xl text-white flex justify-between items-center shadow-lg", themeClasses.bg)}>
               <div>
                 <span className="text-[7px] md:text-[10px] font-black uppercase tracking-widest opacity-60">Bowling Now</span>
                 <button 
@@ -661,7 +716,7 @@ export default function LiveMatchView() {
                     ball.isWicket ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-200" :
                     ball.runs === 4 ? "bg-emerald-500 border-emerald-500 text-white" :
                     ball.runs === 6 ? "bg-purple-600 border-purple-600 text-white" :
-                    ball.isExtra ? "bg-red-50 border-red-200 text-brand-red" :
+                    ball.isExtra ? cn("border text-brand-red", themeClasses.bgLight, themeClasses.borderLight, themeClasses.text) :
                     "bg-slate-50 border-slate-100 text-slate-600"
                   )}
                 >
@@ -681,7 +736,7 @@ export default function LiveMatchView() {
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <p className="text-sm font-black text-slate-900 uppercase truncate">{striker?.playerName}</p>
-              <p className="text-xl font-black text-brand-red">{striker?.runs || 0}</p>
+              <p className={cn("text-xl font-black", themeClasses.text)}>{striker?.runs || 0}</p>
             </div>
             <div className="px-4 text-center">
               <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border-2 border-slate-100">
@@ -693,7 +748,7 @@ export default function LiveMatchView() {
             </div>
             <div className="text-center flex-1">
               <p className="text-sm font-black text-slate-900 uppercase truncate">{nonStriker?.playerName}</p>
-              <p className="text-xl font-black text-brand-red">{nonStriker?.runs || 0}</p>
+              <p className={cn("text-xl font-black", themeClasses.text)}>{nonStriker?.runs || 0}</p>
             </div>
           </div>
         </div>
@@ -705,17 +760,17 @@ export default function LiveMatchView() {
           <div className="grid grid-cols-1 gap-2">
             <button 
               onClick={() => downloadTeamSheet('team_a')}
-              className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 hover:border-brand-red hover:bg-red-50 transition-all flex items-center justify-between group"
+              className={cn("px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 transition-all flex items-center justify-between group", match?.themeColor === 'blue' ? "hover:border-blue-600 hover:bg-blue-50" : match?.themeColor === 'green' ? "hover:border-emerald-600 hover:bg-emerald-50" : "hover:border-brand-red hover:bg-red-50")}
             >
               <span className="text-[10px] font-black text-slate-900 uppercase truncate">{match.teamAName}</span>
-              <Download className="w-3 h-3 text-slate-400 group-hover:text-brand-red" />
+              <Download className={cn("w-3 h-3 text-slate-400", match?.themeColor === 'blue' ? "group-hover:text-blue-600" : match?.themeColor === 'green' ? "group-hover:text-emerald-600" : "group-hover:text-brand-red")} />
             </button>
             <button 
               onClick={() => downloadTeamSheet('team_b')}
-              className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 hover:border-brand-red hover:bg-red-50 transition-all flex items-center justify-between group"
+              className={cn("px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 transition-all flex items-center justify-between group", match?.themeColor === 'blue' ? "hover:border-blue-600 hover:bg-blue-50" : match?.themeColor === 'green' ? "hover:border-emerald-600 hover:bg-emerald-50" : "hover:border-brand-red hover:bg-red-50")}
             >
               <span className="text-[10px] font-black text-slate-900 uppercase truncate">{match.teamBName}</span>
-              <Download className="w-3 h-3 text-slate-400 group-hover:text-brand-red" />
+              <Download className={cn("w-3 h-3 text-slate-400", match?.themeColor === 'blue' ? "group-hover:text-blue-600" : match?.themeColor === 'green' ? "group-hover:text-emerald-600" : "group-hover:text-brand-red")} />
             </button>
           </div>
         </div>
@@ -747,7 +802,7 @@ export default function LiveMatchView() {
           )}
           {match.superOverInnings1 && (
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-widest text-brand-red px-1 flex items-center gap-2">
+              <h3 className={cn("text-xs font-black uppercase tracking-widest px-1 flex items-center gap-2", themeClasses.text)}>
                 <Zap className="w-3 h-3" /> Super Over: 1st Innings
               </h3>
               <Scorecard match={match} innings={match.superOverInnings1} inningsNumber={1} />
@@ -755,7 +810,7 @@ export default function LiveMatchView() {
           )}
           {match.superOverInnings2 && (
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-widest text-brand-red px-1 flex items-center gap-2">
+              <h3 className={cn("text-xs font-black uppercase tracking-widest px-1 flex items-center gap-2", themeClasses.text)}>
                 <Zap className="w-3 h-3" /> Super Over: 2nd Innings
               </h3>
               <Scorecard match={match} innings={match.superOverInnings2} inningsNumber={2} />
@@ -773,9 +828,9 @@ export default function LiveMatchView() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsSidebarOpen(true)}
-            className="fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-slate-900 text-white p-3 rounded-l-2xl shadow-2xl flex flex-col items-center gap-2 border-l-4 border-brand-red group"
+            className={cn("fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-slate-900 text-white p-3 rounded-l-2xl shadow-2xl flex flex-col items-center gap-2 border-l-4 group", match?.themeColor === 'blue' ? "border-blue-600" : match?.themeColor === 'green' ? "border-emerald-600" : "border-brand-red")}
           >
-            <Trophy className="w-5 h-5 text-brand-red group-hover:animate-bounce" />
+            <Trophy className={cn("w-5 h-5 group-hover:animate-bounce", themeClasses.text)} />
             <span className="[writing-mode:vertical-lr] text-[8px] font-black uppercase tracking-widest rotate-180">Tournament</span>
           </motion.button>
 
@@ -788,18 +843,18 @@ export default function LiveMatchView() {
         </>
       )}
 
-      {match?.chatEnabled !== false && <LiveChat matchId={match.id} />}
+      {match?.chatEnabled !== false && <LiveChat matchId={match.id} themeColor={match?.themeColor} />}
       </div>
       
       {showLiveVideo && match.youtubeLiveUrl && (
         <motion.div 
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
-          className="h-[45vh] md:h-[50vh] bg-black border-t-4 border-brand-red relative z-50"
+          className={cn("h-[45vh] md:h-[50vh] bg-black border-t-4 relative z-50", match?.themeColor === 'blue' ? "border-blue-600" : match?.themeColor === 'green' ? "border-emerald-600" : "border-brand-red")}
         >
           <button 
             onClick={() => setShowLiveVideo(false)}
-            className="absolute -top-10 right-4 bg-slate-900 text-white px-4 py-2 rounded-t-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 border-t-2 border-x-2 border-brand-red shadow-2xl"
+            className={cn("absolute -top-10 right-4 bg-slate-900 text-white px-4 py-2 rounded-t-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 border-t-2 border-x-2 shadow-2xl", match?.themeColor === 'blue' ? "border-blue-600" : match?.themeColor === 'green' ? "border-emerald-600" : "border-brand-red")}
           >
             <X className="w-3 h-3" /> Close Video
           </button>
@@ -812,7 +867,7 @@ export default function LiveMatchView() {
             ></iframe>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-white space-y-4">
-              <AlertCircle className="w-12 h-12 text-brand-red" />
+              <AlertCircle className={cn("w-12 h-12", themeClasses.text)} />
               <p className="font-black uppercase tracking-widest text-sm">Invalid YouTube URL</p>
             </div>
           )}

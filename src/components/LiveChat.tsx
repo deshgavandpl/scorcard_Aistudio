@@ -10,14 +10,48 @@ import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 interface LiveChatProps {
   matchId: string;
   userName?: string;
+  themeColor?: 'red' | 'blue' | 'green';
 }
 
-export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
+export default function LiveChat({ matchId, userName = 'Fan', themeColor = 'red' }: LiveChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const getThemeConfig = () => {
+    if (themeColor === 'blue') {
+      return {
+        bg: 'bg-blue-600',
+        textLight: 'text-blue-200',
+        bgLight: 'bg-blue-50',
+        text: 'text-blue-600',
+        ring: 'focus:ring-blue-600/20',
+        shadow: 'shadow-blue-100',
+      };
+    } else if (themeColor === 'green') {
+      return {
+        bg: 'bg-emerald-600',
+        textLight: 'text-emerald-200',
+        bgLight: 'bg-emerald-50',
+        text: 'text-emerald-600',
+        ring: 'focus:ring-emerald-600/20',
+        shadow: 'shadow-emerald-100',
+      };
+    }
+    // Default: red
+    return {
+      bg: 'bg-brand-red',
+      textLight: 'text-red-200',
+      bgLight: 'bg-red-50',
+      text: 'text-brand-red',
+      ring: 'focus:ring-brand-red/20',
+      shadow: 'shadow-red-100',
+    };
+  };
+
+  const themeConfig = getThemeConfig();
 
   const emojis = ['🔥', '🏏', '💯', '👏', '😮', '🙌', ' wicket ', ' boundary ', ' out '];
 
@@ -115,14 +149,14 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
                     className={cn(
                       "max-w-[85%] p-3 rounded-2xl text-sm shadow-sm",
                       msg.userId === auth.currentUser?.uid 
-                        ? "bg-brand-red text-white ml-auto rounded-tr-none" 
+                        ? `${themeConfig.bg} text-white ml-auto rounded-tr-none` 
                         : "bg-white text-slate-700 border border-slate-100 rounded-tl-none"
                     )}
                   >
                     <div className="flex justify-between items-center gap-2 mb-1">
                       <span className={cn(
                         "text-[8px] font-black uppercase tracking-widest",
-                        msg.userId === auth.currentUser?.uid ? "text-red-200" : "text-slate-400"
+                        msg.userId === auth.currentUser?.uid ? themeConfig.textLight : "text-slate-400"
                       )}>
                         {msg.userName}
                       </span>
@@ -163,7 +197,7 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
                 onClick={() => setShowEmojis(!showEmojis)}
                 className={cn(
                   "p-2 rounded-xl transition-all",
-                  showEmojis ? "bg-red-50 text-brand-red" : "text-slate-400 hover:bg-slate-50"
+                  showEmojis ? `${themeConfig.bgLight} ${themeConfig.text}` : "text-slate-400 hover:bg-slate-50"
                 )}
               >
                 <Smile className="w-5 h-5" />
@@ -174,12 +208,12 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && sendMessage(inputText)}
                 placeholder="Type a message..."
-                className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-brand-red/20 outline-none"
+                className={cn("flex-1 bg-slate-50 border-none rounded-xl px-4 py-2 text-xs font-bold outline-none", themeConfig.ring)}
               />
               <button 
                 onClick={() => sendMessage(inputText)}
                 disabled={!inputText.trim()}
-                className="p-2 bg-brand-red text-white rounded-xl shadow-lg shadow-red-100 disabled:opacity-50 active:scale-95 transition-all"
+                className={cn("p-2 text-white rounded-xl shadow-lg disabled:opacity-50 active:scale-95 transition-all", themeConfig.bg, themeConfig.shadow)}
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -194,7 +228,7 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all relative",
-          isOpen ? "bg-slate-900 text-white" : "bg-brand-red text-white"
+          isOpen ? "bg-slate-900 text-white" : `${themeConfig.bg} text-white`
         )}
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}

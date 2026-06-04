@@ -20,7 +20,8 @@
         "innings1": { "$ref": "MatchInnings" },
         "innings2": { "$ref": "MatchInnings" },
         "youtubeLiveUrl": { "type": "string" },
-        "chatEnabled": { "type": "boolean" }
+        "chatEnabled": { "type": "boolean" },
+        "themeColor": { "type": "string" }
       },
       "required": ["id", "teamAName", "teamBName", "status", "createdAt"]
     },

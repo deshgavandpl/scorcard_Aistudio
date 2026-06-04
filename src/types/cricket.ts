@@ -108,6 +108,7 @@ export interface Match {
   youtubeLiveUrl?: string;
   hypeCount?: number;
   chatEnabled?: boolean;
+  themeColor?: 'red' | 'blue' | 'green';
   order?: number;
   matchDate?: string;
   matchTime?: string;

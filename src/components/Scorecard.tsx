@@ -12,13 +12,47 @@ interface ScorecardProps {
 
 export default function Scorecard({ match, innings, inningsNumber }: ScorecardProps) {
   const { openPlayerProfile } = usePlayerProfile();
-  const [activeTab, setActiveTab] = React.useState<'batting' | 'bowling'>('batting');
+  const [activeTab, setActiveTab ] = React.useState<'batting' | 'bowling'>('batting');
   
   const battingTeamName = innings.battingTeamId === match.teamAId ? match.teamAName : match.teamBName;
   const bowlingTeamName = innings.bowlingTeamId === match.teamAId ? match.teamAName : match.teamBName;
 
   const batsmen = Object.values(innings.battingStats || {}).sort((a, b) => (a.order || 0) - (b.order || 0));
   const bowlers = Object.values(innings.bowlingStats || {});
+
+  const getThemeConfig = () => {
+    const themeColor = match.themeColor || 'red';
+    if (themeColor === 'blue') {
+      return {
+        text: 'text-blue-600',
+        textLight: 'text-blue-500',
+        bgStriker: 'bg-blue-50/30',
+        hoverText: 'group-hover/player:text-blue-600 hover:text-blue-600',
+        fill: 'fill-blue-600 text-blue-600',
+        bg: 'bg-blue-600'
+      };
+    } else if (themeColor === 'green') {
+      return {
+        text: 'text-emerald-600',
+        textLight: 'text-emerald-500',
+        bgStriker: 'bg-emerald-50/30',
+        hoverText: 'group-hover/player:text-emerald-600 hover:text-emerald-600',
+        fill: 'fill-emerald-600 text-emerald-600',
+        bg: 'bg-emerald-600'
+      };
+    }
+    // Default red
+    return {
+      text: 'text-brand-red',
+      textLight: 'text-red-500',
+      bgStriker: 'bg-red-50/30',
+      hoverText: 'group-hover/player:text-brand-red hover:text-brand-red',
+      fill: 'fill-brand-red text-brand-red',
+      bg: 'bg-brand-red'
+    };
+  };
+
+  const themeConfig = getThemeConfig();
 
   return (
     <div className="flex flex-col items-center space-y-4 w-full">
@@ -55,7 +89,7 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
               Innings {inningsNumber}: {battingTeamName}
             </h3>
             <div className="text-right">
-              <p className="text-2xl font-black text-brand-red tracking-tight">
+              <p className={cn("text-2xl font-black tracking-tight", themeConfig.text)}>
                 {innings.runs}/{innings.wickets}
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -82,16 +116,16 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
                   const isNonStriker = !b.isStriker && !b.isOut;
                   
                   return (
-                    <tr key={b.playerId} className={cn("border-b border-slate-100 last:border-0", (b.isStriker || isNonStriker) && "bg-red-50/30")}>
+                    <tr key={b.playerId} className={cn("border-b border-slate-100 last:border-0", (b.isStriker || isNonStriker) && themeConfig.bgStriker)}>
                       <td className="py-3 pr-4">
                         <button 
                           onClick={() => openPlayerProfile(b.playerId, b.playerName)}
                           className="flex flex-col text-left group/player"
                         >
-                          <span className={cn("font-bold text-sm flex items-center gap-1 group-hover/player:text-brand-red transition-colors", b.isStriker ? "text-brand-red" : isNonStriker ? "text-slate-900" : "text-slate-600")}>
+                          <span className={cn("font-bold text-sm flex items-center gap-1 group-hover/player:text-brand-red transition-colors", b.isStriker ? themeConfig.text : isNonStriker ? "text-slate-900" : "text-slate-600", themeConfig.hoverText)}>
                             <span className="text-[10px] text-slate-300 w-4">{b.order || '-'}</span>
                             {b.playerName}{b.isStriker ? '*' : ''}
-                            {b.isStriker && <Zap className="w-3 h-3 fill-brand-red" />}
+                            {b.isStriker && <Zap className={cn("w-3 h-3", themeConfig.fill)} />}
                             {match.manOfTheMatch && b.playerName.toLowerCase().trim() === match.manOfTheMatch.toLowerCase().trim() && (
                               <span className="inline-flex items-center gap-0.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full shadow-sm ml-1 animate-pulse">
                                 <Trophy className="w-2 h-2 fill-white" /> MVP
@@ -158,10 +192,10 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
                       <td className="py-3 pr-4">
                         <button 
                           onClick={() => openPlayerProfile(b.playerId, b.playerName)}
-                          className="font-bold text-sm flex items-center gap-2 hover:text-brand-red transition-colors text-left"
+                          className={cn("font-bold text-sm flex items-center gap-2 transition-colors text-left", themeConfig.hoverText)}
                         >
                           {b.playerName}
-                          {isCurrentBowler && <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse"></span>}
+                          {isCurrentBowler && <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", themeConfig.bg)}></span>}
                           {match.manOfTheMatch && b.playerName.toLowerCase().trim() === match.manOfTheMatch.toLowerCase().trim() && (
                             <span className="inline-flex items-center gap-0.5 bg-amber-500 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
                               <Trophy className="w-2 h-2 fill-white" /> MVP
@@ -172,7 +206,7 @@ export default function Scorecard({ match, innings, inningsNumber }: ScorecardPr
                       <td className="py-3 text-right text-slate-500 text-xs">{b.overs}.{b.balls}</td>
                       <td className="py-3 text-right text-slate-500 text-xs">{b.maiden}</td>
                       <td className="py-3 text-right font-black text-sm">{b.runs}</td>
-                      <td className="py-3 text-right font-black text-sm text-red-600">{b.wickets}</td>
+                      <td className={cn("py-3 text-right font-black text-sm", themeConfig.textLight)}>{b.wickets}</td>
                       <td className="py-3 text-right text-slate-500 text-xs">
                         {b.overs > 0 || b.balls > 0 ? (b.runs / (b.overs + b.balls/6)).toFixed(2) : '0.00'}
                       </td>

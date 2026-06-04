@@ -144,6 +144,7 @@ export default function MatchScoring() {
   const [umpireName, setUmpireName] = useState('');
   const [youtubeLiveUrl, setYoutubeLiveUrl] = useState('');
   const [chatEnabled, setChatEnabled] = useState(true);
+  const [themeColor, setThemeColor] = useState<'red' | 'blue' | 'green'>('red');
   const [tossWinner, setTossWinner] = useState('');
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
@@ -257,6 +258,7 @@ export default function MatchScoring() {
     if (match) {
       setYoutubeLiveUrl(match.youtubeLiveUrl || '');
       setChatEnabled(match.chatEnabled !== false);
+      setThemeColor(match.themeColor || 'red');
     }
   }, [match]);
 
@@ -543,6 +545,7 @@ export default function MatchScoring() {
       currentInnings: 1,
       hypeCount: 0,
       chatEnabled: match?.chatEnabled !== undefined ? match.chatEnabled : true,
+      themeColor: match?.themeColor || 'red',
       createdAt: match?.createdAt || Date.now(),
       innings1: {
         battingTeamId,
@@ -2083,6 +2086,41 @@ export default function MatchScoring() {
               </div>
 
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 block">Live Screen Theme Accent</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed block mt-0.5">
+                    Choose the accent color displayed to viewers on the live match screen.
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['red', 'blue', 'green'] as const).map((color) => {
+                    const colorMap = {
+                      red: { bg: 'bg-brand-red', border: 'border-brand-red', text: 'Red' },
+                      blue: { bg: 'bg-blue-600', border: 'border-blue-600', text: 'Blue' },
+                      green: { bg: 'bg-emerald-600', border: 'border-emerald-600', text: 'Green' },
+                    };
+                    const active = themeColor === color;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setThemeColor(color)}
+                        className={cn(
+                          "py-2.5 rounded-xl border-2 font-black uppercase tracking-wider text-[9px] flex items-center justify-center gap-1 transition-all outline-none",
+                          active 
+                            ? `${colorMap[color].bg} text-white border-transparent shadow-md` 
+                            : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                        )}
+                      >
+                        <span className={cn("w-2 h-2 rounded-full", active ? "bg-white" : colorMap[color].bg)} />
+                        {colorMap[color].text}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Audio Commentary</span>
                   <button 
@@ -2103,7 +2141,8 @@ export default function MatchScoring() {
                     try {
                       await updateDoc(doc(db, 'matches', id), { 
                         youtubeLiveUrl,
-                        chatEnabled 
+                        chatEnabled,
+                        themeColor
                       });
                       toast.success('Settings updated!');
                       setShowSettingsModal(false);
