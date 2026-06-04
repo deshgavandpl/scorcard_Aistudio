@@ -209,13 +209,16 @@ export default function AdvertisementBanner() {
       {/* 2. Interactive Popup Product Advertisement */}
       <AnimatePresence>
         {showPopupUI && (
-          <div className="fixed bottom-6 right-6 z-50 max-w-sm w-[calc(100vw-2.5rem)]" id="live-ad-popup-card">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs md:bg-transparent md:backdrop-blur-none md:top-auto md:left-auto md:bottom-6 md:right-6 md:p-0 md:block md:w-[360px] md:max-w-sm" 
+            id="live-ad-popup-card"
+          >
             <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 40, scale: 0.95 }}
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="bg-white rounded-3xl border-2 border-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative flex flex-col p-5 space-y-4"
+              className="bg-white rounded-3xl border-2 border-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative flex flex-col p-5 space-y-4 max-w-xs sm:max-w-sm w-full md:w-full"
             >
               {/* Corner Badge */}
               <div className="absolute top-0 left-0 bg-slate-950 text-amber-400 font-mono font-black text-[8px] tracking-[0.2em] px-3.5 py-1.5 rounded-br-2xl uppercase flex items-center gap-1">
