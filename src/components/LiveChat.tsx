@@ -75,14 +75,14 @@ export default function LiveChat({ matchId, userName = 'Fan' }: LiveChatProps) {
   const visibleMessages = messages;
 
   return (
-    <div className="fixed bottom-6 left-6 z-50">
+    <div className="fixed bottom-26 left-6 md:bottom-6 md:left-6 z-[60]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="mb-4 w-80 h-[450px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
+            className="mb-4 w-[calc(100vw-3rem)] sm:w-80 h-[380px] sm:h-[450px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="bg-slate-900 p-4 text-white flex justify-between items-center">
