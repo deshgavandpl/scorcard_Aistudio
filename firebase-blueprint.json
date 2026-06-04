@@ -18,7 +18,9 @@
         "createdAt": { "type": "number" },
         "winnerId": { "type": "string" },
         "innings1": { "$ref": "MatchInnings" },
-        "innings2": { "$ref": "MatchInnings" }
+        "innings2": { "$ref": "MatchInnings" },
+        "youtubeLiveUrl": { "type": "string" },
+        "chatEnabled": { "type": "boolean" }
       },
       "required": ["id", "teamAName", "teamBName", "status", "createdAt"]
     },
@@ -117,12 +119,30 @@
         "read": { "type": "boolean" }
       },
       "required": ["id", "title", "body", "type", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual chat message for a match.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "type": { "type": "string", "enum": ["text", "emoji"] }
+      },
+      "required": ["userId", "userName", "text"]
     }
   },
   "firestore": {
     "/matches/{matchId}": {
       "schema": "Match",
       "description": "Individual match documents."
+    },
+    "/matches/{matchId}/chat/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Chat messages collection for a match."
     },
     "/tournaments/{tournamentId}": {
       "schema": "Tournament",

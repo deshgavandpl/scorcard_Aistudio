@@ -206,6 +206,7 @@ export default function MatchScoring() {
   const [overs, setOvers] = useState(6);
   const [umpireName, setUmpireName] = useState('');
   const [youtubeLiveUrl, setYoutubeLiveUrl] = useState('');
+  const [chatEnabled, setChatEnabled] = useState(true);
   const [tossWinner, setTossWinner] = useState('');
   const [tossDecision, setTossDecision] = useState<'Bat' | 'Bowl'>('Bat');
 
@@ -314,12 +315,13 @@ export default function MatchScoring() {
     }
   }, []);
 
-  // Sync youtubeLiveUrl when match loads
+  // Sync settings when match loads
   useEffect(() => {
-    if (match?.youtubeLiveUrl) {
-      setYoutubeLiveUrl(match.youtubeLiveUrl);
+    if (match) {
+      setYoutubeLiveUrl(match.youtubeLiveUrl || '');
+      setChatEnabled(match.chatEnabled !== false);
     }
-  }, [match?.youtubeLiveUrl]);
+  }, [match]);
 
   // Fetch all teams for selection
   useEffect(() => {
@@ -603,6 +605,7 @@ export default function MatchScoring() {
       status: 'Live',
       currentInnings: 1,
       hypeCount: 0,
+      chatEnabled: match?.chatEnabled !== undefined ? match.chatEnabled : true,
       createdAt: match?.createdAt || Date.now(),
       innings1: {
         battingTeamId,
@@ -2055,6 +2058,30 @@ export default function MatchScoring() {
                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Enter the full YouTube URL to show live video to users.</p>
               </div>
 
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 block">Spectator Live Chat</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed block mt-0.5">
+                    Allow spectators to discuss the live match.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setChatEnabled(!chatEnabled)}
+                  className={cn(
+                    "w-12 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                    chatEnabled ? "bg-brand-red" : "bg-slate-300"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300",
+                      chatEnabled ? "translate-x-6" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Audio Commentary</span>
@@ -2074,7 +2101,10 @@ export default function MatchScoring() {
                 onClick={async () => {
                   if (match && id) {
                     try {
-                      await updateDoc(doc(db, 'matches', id), { youtubeLiveUrl });
+                      await updateDoc(doc(db, 'matches', id), { 
+                        youtubeLiveUrl,
+                        chatEnabled 
+                      });
                       toast.success('Settings updated!');
                       setShowSettingsModal(false);
                     } catch (err) {
@@ -3128,7 +3158,7 @@ export default function MatchScoring() {
         </>
       )}
 
-      <LiveChat matchId={match.id} userName="Scorer" />
+      {match.chatEnabled !== false && <LiveChat matchId={match.id} userName="Scorer" />}
     </div>
   );
 }

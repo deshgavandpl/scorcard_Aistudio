@@ -31,6 +31,26 @@ export default function Layout({ children }: LayoutProps) {
   // Contact Form State
   const [contactForm, setContactForm] = useState({ name: '', mobile: '', issue: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("Connection restored! Live scores and databases synced.", { icon: '⚡' });
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.warning("You are currently viewing Apna Cricket in Offline Mode. Scoreboards and loaded match details remain readable.", { duration: 6000, icon: '📡' });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -435,6 +455,12 @@ export default function Layout({ children }: LayoutProps) {
               ))}
               
               <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                {!isOnline && (
+                  <span className="bg-amber-50 text-amber-800 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full border border-amber-200 animate-pulse flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                    Offline Mode
+                  </span>
+                )}
                 <NotificationCenterUI />
                 
                 {isAdminMode && (
@@ -480,7 +506,12 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden flex items-center gap-2">
+            <div className="md:hidden flex items-center gap-3">
+              {!isOnline && (
+                <span className="bg-amber-50 text-amber-800 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-amber-200 animate-pulse flex items-center gap-0.5">
+                  Offline
+                </span>
+              )}
               <NotificationCenterUI />
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}

@@ -107,6 +107,7 @@ export interface Match {
   isKnockout?: boolean;
   youtubeLiveUrl?: string;
   hypeCount?: number;
+  chatEnabled?: boolean;
   order?: number;
   matchDate?: string;
   matchTime?: string;

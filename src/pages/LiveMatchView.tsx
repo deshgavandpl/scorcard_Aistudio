@@ -383,6 +383,7 @@ export default function LiveMatchView() {
             ))}
           </div>
         </div>
+        {match?.chatEnabled !== false && <LiveChat matchId={match.id} />}
       </div>
     );
   }
@@ -787,7 +788,7 @@ export default function LiveMatchView() {
         </>
       )}
 
-      <LiveChat matchId={match.id} />
+      {match?.chatEnabled !== false && <LiveChat matchId={match.id} />}
       </div>
       
       {showLiveVideo && match.youtubeLiveUrl && (
