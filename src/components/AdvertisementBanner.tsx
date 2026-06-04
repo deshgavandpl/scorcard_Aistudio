@@ -210,7 +210,7 @@ export default function AdvertisementBanner() {
       <AnimatePresence>
         {showPopupUI && (
           <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs md:bg-transparent md:backdrop-blur-none md:top-auto md:left-auto md:bottom-6 md:right-6 md:p-0 md:block md:w-[360px] md:max-w-sm" 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none md:inset-auto md:fixed md:bottom-6 md:right-6 md:p-0 md:block md:w-[360px] md:max-w-sm" 
             id="live-ad-popup-card"
           >
             <motion.div
@@ -218,49 +218,56 @@ export default function AdvertisementBanner() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 40, scale: 0.95 }}
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="bg-white rounded-3xl border-2 border-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative flex flex-col p-5 space-y-4 max-w-xs sm:max-w-sm w-full md:w-full"
+              className="bg-white rounded-3xl border-2 border-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.4)] overflow-hidden relative flex flex-col p-5 space-y-4 max-w-sm w-full md:w-full"
             >
               {/* Corner Badge */}
-              <div className="absolute top-0 left-0 bg-slate-950 text-amber-400 font-mono font-black text-[8px] tracking-[0.2em] px-3.5 py-1.5 rounded-br-2xl uppercase flex items-center gap-1">
+              <div className="absolute top-0 left-0 bg-slate-950 text-amber-400 font-mono font-black text-[8px] tracking-[0.2em] px-3.5 py-1.5 rounded-br-2xl uppercase flex items-center gap-1 z-10">
                 <Sparkles className="w-3 h-3 text-amber-400 fill-current animate-spin" />
-                Featured Ad
+                Featured Partner
               </div>
 
               {/* Close Button */}
               <button
                 onClick={handleDismissPopup}
-                className="absolute top-3 right-3 p-1.5 bg-slate-100 hover:bg-brand-red text-slate-500 hover:text-white rounded-full transition-all cursor-pointer shadow-md"
+                className="absolute top-3 right-3 p-1.5 bg-slate-100/80 hover:bg-brand-red text-slate-500 hover:text-white rounded-full transition-all cursor-pointer shadow z-20"
                 title="Dismiss Deal"
               >
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="pt-4 flex items-start gap-4">
+              {/* Image & Description container */}
+              <div className="pt-4 space-y-3.5 text-left">
                 {ad.imageUrl ? (
-                  <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-150 overflow-hidden shrink-0 flex items-center justify-center">
-                    <img src={ad.imageUrl} alt={ad.productName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="w-full aspect-[4/3] sm:aspect-[16/10] rounded-2xl bg-slate-50 border border-slate-150 overflow-hidden flex items-center justify-center relative shadow-inner">
+                    <img 
+                      src={ad.imageUrl} 
+                      alt={ad.productName} 
+                      className="w-full h-full object-contain p-1" 
+                      referrerPolicy="no-referrer" 
+                    />
                   </div>
                 ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
-                    <ShoppingBag className="w-8 h-8" />
+                  <div className="w-full h-32 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
+                    <ShoppingBag className="w-10 h-10" />
                   </div>
                 )}
 
-                <div className="space-y-1 text-left flex-1 min-w-0">
-                  <h4 className="font-extrabold text-slate-950 text-sm tracking-tight truncate uppercase">
-                    {ad.productName}
+                <div className="space-y-1 min-w-0">
+                  <h4 className="font-extrabold text-slate-950 text-base tracking-tight uppercase flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse shrink-0"></span>
+                    <span className="truncate">{ad.productName}</span>
                   </h4>
-                  <p className="text-xs text-slate-600 font-semibold leading-normal">
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
                     {ad.description}
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleDismissPopup}
-                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase transition-colors"
+                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Later
                 </button>
@@ -269,7 +276,7 @@ export default function AdvertisementBanner() {
                   target={ad.targetUrl ? '_blank' : undefined}
                   rel="noreferrer"
                   onClick={handleDismissPopup}
-                  className="flex-1 py-3 bg-brand-red hover:bg-red-700 text-white rounded-xl text-center font-black text-xs uppercase tracking-widest transition-all shadow-md shadow-brand-red/20 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 bg-brand-red hover:bg-red-700 text-white rounded-xl text-center font-black text-xs uppercase tracking-widest transition-all shadow-md shadow-brand-red/20 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   {ad.ctaText || 'Get Deal'}
