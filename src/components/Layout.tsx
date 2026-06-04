@@ -623,9 +623,37 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </footer>
 
-      {/* Modern Android-Style Floating Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-8px_30px_rgb(0,0,0,0.08)] md:hidden [padding-bottom:env(safe-area-inset-bottom)]">
-        <div className="flex justify-around items-center h-16 px-2">
+      {/* Modern Android-Style Floating Bottom Navigation Bar with Curved Tri-Color Pride Theme */}
+      <div className="fixed bottom-4 left-4 right-4 z-50 bg-white/95 backdrop-blur-md rounded-[2rem] border border-slate-200/60 shadow-[0_12px_45px_rgba(0,0,0,0.16)] md:hidden overflow-hidden [padding-bottom:env(safe-area-inset-bottom)]">
+        {/* Slanted Curved Tri-Color Glory Belt (matches user reference image 2 exactly) */}
+        <div className="w-full h-1.5 flex relative overflow-hidden">
+          <div 
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(115deg, #10b981 0%, #10b981 33%, #fafafa 33%, #fafafa 66%, #f97316 66%, #f97316 100%)'
+            }}
+          />
+        </div>
+
+        {/* Beautiful curved shape filled with dual color waves (Green filling bottom-left, Saffron/Orange filling top-right) */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-15" preserveAspectRatio="none" viewBox="0 0 400 64">
+          <defs>
+            <linearGradient id="greenGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="orangeGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#f97316" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#fb923c" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {/* Green wave path filling up from bottom left */}
+          <path d="M 0,30 C 120,5 220,60 400,20 L 400,64 L 0,64 Z" fill="url(#greenGrad)" />
+          {/* Saffron Orange wave path filling up from top right */}
+          <path d="M 0,10 C 150,55 250,-10 400,25 L 400,0 L 0,0 Z" fill="url(#orangeGrad)" />
+        </svg>
+
+        <div className="flex justify-around items-center h-16 px-2 relative z-10">
           {mobileNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -635,14 +663,14 @@ export default function Layout({ children }: LayoutProps) {
                 to={item.path}
                 className={cn(
                   "flex flex-col items-center justify-center w-full h-full text-center transition-all duration-200 relative group py-1",
-                  isActive ? "text-brand-red font-black scale-105" : "text-slate-400 font-bold hover:text-slate-600"
+                  isActive ? "text-brand-red font-black scale-105" : "text-slate-500 font-bold hover:text-slate-800"
                 )}
               >
-                {/* Active Indicator Slide dot */}
+                {/* Active Indicator Slide pill */}
                 {isActive && (
                   <motion.div 
                     layoutId="activeTabMarker"
-                    className="absolute top-0 w-8 h-1 bg-brand-red rounded-b-full shadow-[0_2px_10px_rgba(225,29,72,0.4)]"
+                    className="absolute top-0 w-10 h-1 bg-brand-red rounded-b-full shadow-[0_2px_12px_rgba(225,29,72,0.5)]"
                     transition={{ type: "spring", stiffness: 350, damping: 28 }}
                   />
                 )}
@@ -664,7 +692,7 @@ export default function Layout({ children }: LayoutProps) {
                 </span>
 
                 {/* Android wave touch state style on tap */}
-                <div className="absolute inset-0 bg-slate-100/0 group-active:bg-slate-100 rounded-2xl -z-10 transition-colors mx-2 my-1" />
+                <div className="absolute inset-x-2 inset-y-1 bg-slate-100/0 group-active:bg-slate-100/60 rounded-2xl -z-10 transition-colors" />
               </Link>
             );
           })}
