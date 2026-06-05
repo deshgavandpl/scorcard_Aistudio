@@ -5,28 +5,31 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ExternalLink, Sparkles, ShoppingBag, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface AdData {
-  active: boolean;
+interface AdItem {
+  id: string;
   productName: string;
   description: string;
   imageUrl?: string;
   targetUrl?: string;
   ctaText?: string;
   displayType: 'marquee' | 'popup' | 'both';
-  timestamp?: number;
+  delayMin: number;
 }
 
 export default function AdvertisementBanner() {
-  const [ad, setAd] = useState<AdData | null>(null);
+  const [adList, setAdList] = useState<AdItem[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [adActive, setAdActive] = useState(false);
+  const [ad, setAd] = useState<AdItem | null>(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [isPopupDismissed, setIsPopupDismissed] = useState(false);
   const [pulse, setPulse] = useState(false);
 
   const handleDismissPopup = useCallback(() => {
-    localStorage.setItem('ad_dismissed_time', Date.now().toString());
-    setIsPopupDismissed(true);
+    if (ad) {
+      localStorage.setItem(`ad_dismissed_time_${ad.id}`, Date.now().toString());
+    }
     setShowPopup(false);
-  }, []);
+  }, [ad]);
 
   // Synchronously monitor all live matches to spot when a batsman or team records a new high score
   useEffect(() => {
@@ -116,37 +119,78 @@ export default function AdvertisementBanner() {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'advertisement'), (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data() as AdData;
-        setAd(data);
-        
-        // If there's an active popup, show it if the user hasn't dismissed it yet
-        if (data.active && (data.displayType === 'popup' || data.displayType === 'both')) {
-          // If a new timestamp exists or the ad has changed, we reset the dismissal
-          const storedDismissedTime = localStorage.getItem('ad_dismissed_time');
-          const lastAdId = localStorage.getItem('last_ad_id');
-          const currentAdId = `${data.productName}-${data.timestamp || 0}`;
+        const data = snapshot.data();
+        const active = data.active !== false;
+        setAdActive(active);
 
-          if (lastAdId !== currentAdId) {
-            localStorage.setItem('last_ad_id', currentAdId);
-            localStorage.removeItem('ad_dismissed_time');
-            setIsPopupDismissed(false);
-            setShowPopup(true);
-          } else if (!storedDismissedTime) {
-            setIsPopupDismissed(false);
-            setShowPopup(true);
-          } else {
-            // Dismissed already for this specific ad
-            setIsPopupDismissed(true);
-            setShowPopup(false);
-          }
-        } else {
-          setShowPopup(false);
+        let list: AdItem[] = [];
+        if (Array.isArray(data.ads) && data.ads.length > 0) {
+          list = data.ads;
+        } else if (data.productName) {
+          list = [{
+            id: 'legacy',
+            productName: data.productName,
+            description: data.description || '',
+            imageUrl: data.imageUrl || '',
+            targetUrl: data.targetUrl || '',
+            ctaText: data.ctaText || 'Buy Now',
+            displayType: data.displayType || 'both',
+            delayMin: 1
+          }];
         }
+
+        setAdList(list);
       }
+    }, (error) => {
+      console.warn("Error fetching advertisements in banner:", error);
     });
 
     return () => unsub();
   }, []);
+
+  // Synchronize active ad state when catalog or current index changes
+  useEffect(() => {
+    if (adList.length === 0) {
+      setAd(null);
+      setShowPopup(false);
+      return;
+    }
+
+    const safeIndex = currentIndex >= adList.length ? 0 : currentIndex;
+    if (safeIndex !== currentIndex) {
+      setCurrentIndex(safeIndex);
+      return;
+    }
+
+    const currentAd = adList[safeIndex];
+    setAd(currentAd);
+
+    if (adActive && (currentAd.displayType === 'popup' || currentAd.displayType === 'both')) {
+      const storedDismissedTime = localStorage.getItem(`ad_dismissed_time_${currentAd.id}`);
+      if (!storedDismissedTime) {
+        setShowPopup(true);
+      } else {
+        setShowPopup(false);
+      }
+    } else {
+      setShowPopup(false);
+    }
+  }, [currentIndex, adList, adActive]);
+
+  // Timed execution and scheduling for multiple advertisements
+  useEffect(() => {
+    if (adList.length <= 1 || !adActive) return;
+
+    const currentAd = adList[currentIndex >= adList.length ? 0 : currentIndex];
+    const delayMin = currentAd?.delayMin && currentAd.delayMin > 0 ? currentAd.delayMin : 1;
+    const delayMs = delayMin * 60 * 1000;
+
+    const timer = setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % adList.length);
+    }, delayMs);
+
+    return () => clearTimeout(timer);
+  }, [currentIndex, adList, adActive]);
 
   // Automatically dismiss the popup after 15 seconds
   useEffect(() => {
@@ -159,7 +203,7 @@ export default function AdvertisementBanner() {
     }
   }, [showPopup, ad, handleDismissPopup]);
 
-  if (!ad || !ad.active) return null;
+  if (!adActive || !ad) return null;
 
   const showMarquee = ad.displayType === 'marquee' || ad.displayType === 'both';
   const showPopupUI = showPopup && (ad.displayType === 'popup' || ad.displayType === 'both');
@@ -210,64 +254,65 @@ export default function AdvertisementBanner() {
       <AnimatePresence>
         {showPopupUI && (
           <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none md:inset-auto md:fixed md:bottom-6 md:right-6 md:p-0 md:block md:w-[360px] md:max-w-sm" 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm" 
             id="live-ad-popup-card"
           >
             <motion.div
+              key={ad.id}
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 40, scale: 0.95 }}
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="bg-white rounded-3xl border-2 border-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.4)] overflow-hidden relative flex flex-col p-5 space-y-4 max-w-sm w-full md:w-full"
+              className="bg-white rounded-[2rem] border-3 border-slate-950 shadow-[0_25px_60px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col p-6 space-y-5 max-w-md w-full"
             >
               {/* Corner Badge */}
-              <div className="absolute top-0 left-0 bg-slate-950 text-amber-400 font-mono font-black text-[8px] tracking-[0.2em] px-3.5 py-1.5 rounded-br-2xl uppercase flex items-center gap-1 z-10">
-                <Sparkles className="w-3 h-3 text-amber-400 fill-current animate-spin" />
+              <div className="absolute top-0 left-0 bg-slate-950 text-amber-400 font-mono font-black text-[9px] tracking-[0.22em] px-4 py-2 rounded-br-2xl uppercase flex items-center gap-1 z-10">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-current animate-spin" />
                 Featured Partner
               </div>
 
               {/* Close Button */}
               <button
                 onClick={handleDismissPopup}
-                className="absolute top-3 right-3 p-1.5 bg-slate-100/80 hover:bg-brand-red text-slate-500 hover:text-white rounded-full transition-all cursor-pointer shadow z-20"
+                className="absolute top-3.5 right-3.5 p-2 bg-slate-100/95 hover:bg-brand-red text-slate-500 hover:text-white rounded-full transition-all cursor-pointer shadow-md z-20"
                 title="Dismiss Deal"
               >
                 <X className="w-4 h-4" />
               </button>
 
               {/* Image & Description container */}
-              <div className="pt-4 space-y-3.5 text-left">
+              <div className="pt-4 space-y-4 text-left">
                 {ad.imageUrl ? (
-                  <div className="w-full aspect-[4/3] sm:aspect-[16/10] rounded-2xl bg-slate-50 border border-slate-150 overflow-hidden flex items-center justify-center relative shadow-inner">
+                  <div className="w-full aspect-[4/3] sm:aspect-[16/10] rounded-2.5xl bg-slate-50 border border-slate-150 overflow-hidden flex items-center justify-center relative shadow-inner">
                     <img 
                       src={ad.imageUrl} 
                       alt={ad.productName} 
-                      className="w-full h-full object-contain p-1" 
+                      className="w-full h-full object-contain p-2" 
                       referrerPolicy="no-referrer" 
                     />
                   </div>
                 ) : (
-                  <div className="w-full h-32 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
-                    <ShoppingBag className="w-10 h-10" />
+                  <div className="w-full h-40 rounded-2.5xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
+                    <ShoppingBag className="w-12 h-12" />
                   </div>
                 )}
 
-                <div className="space-y-1 min-w-0">
-                  <h4 className="font-extrabold text-slate-950 text-base tracking-tight uppercase flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-brand-red animate-pulse shrink-0"></span>
+                <div className="space-y-1.5 min-w-0">
+                  <h4 className="font-extrabold text-slate-150 text-lg tracking-tight uppercase flex items-center gap-2 text-slate-950">
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-red animate-pulse shrink-0"></span>
                     <span className="truncate">{ad.productName}</span>
                   </h4>
-                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  <p className="text-sm text-slate-600 font-medium leading-relaxed">
                     {ad.description}
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2.5 pt-1">
                 <button
                   onClick={handleDismissPopup}
-                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                  className="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Later
                 </button>
@@ -276,7 +321,7 @@ export default function AdvertisementBanner() {
                   target={ad.targetUrl ? '_blank' : undefined}
                   rel="noreferrer"
                   onClick={handleDismissPopup}
-                  className="flex-1 py-3 bg-brand-red hover:bg-red-700 text-white rounded-xl text-center font-black text-xs uppercase tracking-widest transition-all shadow-md shadow-brand-red/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-3.5 bg-brand-red hover:bg-red-700 text-white rounded-xl text-center font-black text-xs uppercase tracking-widest transition-all shadow-md shadow-brand-red/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   {ad.ctaText || 'Get Deal'}
@@ -286,6 +331,7 @@ export default function AdvertisementBanner() {
               {/* Progress bar indication of auto-dismiss */}
               <div className="absolute bottom-0 left-0 h-1 bg-slate-200 w-full overflow-hidden">
                 <motion.div
+                  key={ad.id}
                   initial={{ width: '100%' }}
                   animate={{ width: '0%' }}
                   transition={{ duration: 15, ease: 'linear' }}
