@@ -23,6 +23,7 @@ export default function AdvertisementBanner() {
   const [ad, setAd] = useState<AdItem | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [pulse, setPulse] = useState(false);
+  const [lastAdId, setLastAdId] = useState<string | null>(null);
 
   const handleDismissPopup = useCallback(() => {
     if (ad) {
@@ -153,6 +154,7 @@ export default function AdvertisementBanner() {
     if (adList.length === 0) {
       setAd(null);
       setShowPopup(false);
+      setLastAdId(null);
       return;
     }
 
@@ -165,6 +167,12 @@ export default function AdvertisementBanner() {
     const currentAd = adList[safeIndex];
     setAd(currentAd);
 
+    // Reset dismissal status when the ad rotates to a different one
+    if (lastAdId && lastAdId !== currentAd.id) {
+      localStorage.removeItem(`ad_dismissed_time_${currentAd.id}`);
+    }
+    setLastAdId(currentAd.id);
+
     if (adActive && (currentAd.displayType === 'popup' || currentAd.displayType === 'both')) {
       const storedDismissedTime = localStorage.getItem(`ad_dismissed_time_${currentAd.id}`);
       if (!storedDismissedTime) {
@@ -175,7 +183,7 @@ export default function AdvertisementBanner() {
     } else {
       setShowPopup(false);
     }
-  }, [currentIndex, adList, adActive]);
+  }, [currentIndex, adList, adActive, lastAdId]);
 
   // Timed execution and scheduling for multiple advertisements
   useEffect(() => {

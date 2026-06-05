@@ -932,6 +932,11 @@ export default function Settings() {
                 onClick={() => {
                   localStorage.removeItem('ad_dismissed_time');
                   localStorage.removeItem('last_ad_id');
+                  Object.keys(localStorage).forEach((key) => {
+                    if (key.startsWith('ad_dismissed_time_')) {
+                      localStorage.removeItem(key);
+                    }
+                  });
                   toast.success('Your browser dismissal cache has been reset! Ad popups will now display again for you on live matches & scores page.');
                 }}
                 className="text-[10px] bg-white hover:bg-slate-100 text-slate-700 font-black px-3 py-1.5 rounded-lg border border-slate-200 uppercase tracking-wider transition-colors active:scale-95 cursor-pointer"
