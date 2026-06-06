@@ -28,6 +28,7 @@ import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import Scorecard from '../components/Scorecard';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
@@ -103,6 +104,7 @@ export default function MatchScoring() {
   const navigate = useNavigate();
   const { openPlayerProfile } = usePlayerProfile();
   const { isAdminMode, login } = useAdmin();
+  const { currentUser } = useAuth();
   const [adminId, setAdminId] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -133,7 +135,7 @@ export default function MatchScoring() {
     };
   }, []);
 
-  const canManage = isAdminMode;
+  const canManage = isAdminMode || currentUser?.role === 'developer' || currentUser?.isPermittedCreator === true;
   
   // Setup State
   const [teamA, setTeamA] = useState('');
@@ -1002,7 +1004,7 @@ export default function MatchScoring() {
                 type="text" 
                 value={adminId}
                 onChange={(e) => setAdminId(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                className="w-full px-5 py-4 rounded-2xl bg-white text-slate-900 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
                 placeholder="Enter ID"
                 required
               />
@@ -1013,7 +1015,7 @@ export default function MatchScoring() {
                 type="password" 
                 value={adminPass}
                 onChange={(e) => setAdminPass(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                className="w-full px-5 py-4 rounded-2xl bg-white text-slate-900 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
                 placeholder="Enter PIN"
                 required
               />

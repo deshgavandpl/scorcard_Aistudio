@@ -55,7 +55,7 @@ export default function Settings() {
                 type="text" 
                 value={adminId}
                 onChange={(e) => setAdminId(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                className="w-full px-5 py-4 rounded-2xl bg-white text-slate-900 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
                 placeholder="Enter ID"
                 required
               />
@@ -66,7 +66,7 @@ export default function Settings() {
                 type="password" 
                 value={adminPass}
                 onChange={(e) => setAdminPass(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                className="w-full px-5 py-4 rounded-2xl bg-white text-slate-900 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
                 placeholder="Enter PIN"
                 required
               />

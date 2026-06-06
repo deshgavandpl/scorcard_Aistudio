@@ -15,7 +15,9 @@ import Settings from './pages/Settings';
 import UserGuide from './pages/UserGuide';
 import Registration from './pages/Registration';
 import Vision from './pages/Vision';
+import DeveloperPanel from './pages/DeveloperPanel';
 import { PlayerProfileProvider } from './context/PlayerProfileContext';
+import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { NotificationProvider } from './context/NotificationContext';
 import PlayerProfileModal from './components/PlayerProfileModal';
@@ -25,31 +27,34 @@ export default function App() {
   return (
     <Router>
       <Toaster position="top-right" richColors />
-      <AdminProvider>
-        <PlayerProfileProvider>
-          <NotificationProvider>
-            <PlayerProfileModal />
-            <AnnouncementOverlay />
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/live" element={<LiveScore />} />
-                <Route path="/match/:id" element={<LiveMatchView />} />
-                <Route path="/admin/match/:id" element={<MatchScoring />} />
-                <Route path="/tournaments" element={<TournamentList />} />
-                <Route path="/tournaments/new" element={<TournamentSetup />} />
-                <Route path="/tournament/:id" element={<TournamentDetail />} />
-                <Route path="/stats" element={<Stats />} />
-                <Route path="/teams" element={<Teams />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/help" element={<UserGuide />} />
-                <Route path="/registration" element={<Registration />} />
-                <Route path="/vision" element={<Vision />} />
-              </Routes>
-            </Layout>
-          </NotificationProvider>
-        </PlayerProfileProvider>
-      </AdminProvider>
+      <AuthProvider>
+        <AdminProvider>
+          <PlayerProfileProvider>
+            <NotificationProvider>
+              <PlayerProfileModal />
+              <AnnouncementOverlay />
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/live" element={<LiveScore />} />
+                  <Route path="/match/:id" element={<LiveMatchView />} />
+                  <Route path="/admin/match/:id" element={<MatchScoring />} />
+                  <Route path="/tournaments" element={<TournamentList />} />
+                  <Route path="/tournaments/new" element={<TournamentSetup />} />
+                  <Route path="/tournament/:id" element={<TournamentDetail />} />
+                  <Route path="/stats" element={<Stats />} />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/help" element={<UserGuide />} />
+                  <Route path="/registration" element={<Registration />} />
+                  <Route path="/vision" element={<Vision />} />
+                  <Route path="/developer" element={<DeveloperPanel />} />
+                </Routes>
+              </Layout>
+            </NotificationProvider>
+          </PlayerProfileProvider>
+        </AdminProvider>
+      </AuthProvider>
     </Router>
   );
 }

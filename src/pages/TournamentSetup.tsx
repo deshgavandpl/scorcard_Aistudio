@@ -11,11 +11,13 @@ import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { handleGoogleLogin } from '../lib/authUtils';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 
 export default function TournamentSetup() {
   const navigate = useNavigate();
   const { isAdminMode, login } = useAdmin();
+  const { currentUser } = useAuth();
   const [adminId, setAdminId] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -30,7 +32,9 @@ export default function TournamentSetup() {
     }
   };
 
-  if (!isAdminMode) {
+  const canAccess = isAdminMode || currentUser?.role === 'developer' || currentUser?.isPermittedCreator === true;
+
+  if (!canAccess) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] p-4">
         <div className="w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 space-y-8">
@@ -39,7 +43,7 @@ export default function TournamentSetup() {
               <Shield className="w-10 h-10 text-brand-red" />
             </div>
             <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Tournament Setup</h1>
-            <p className="text-slate-500 font-medium">Enter admin credentials to create tournament.</p>
+            <p className="text-slate-500 font-medium">Enter admin credentials or sign in as a permitted Player/Developer from the header to create a tournament.</p>
           </div>
 
           <form onSubmit={handleAdminLogin} className="space-y-5">
@@ -49,7 +53,7 @@ export default function TournamentSetup() {
                 type="text" 
                 value={adminId}
                 onChange={(e) => setAdminId(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                className="w-full px-5 py-4 rounded-2xl bg-white text-slate-900 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
                 placeholder="Enter ID"
                 required
               />
@@ -60,7 +64,7 @@ export default function TournamentSetup() {
                 type="password" 
                 value={adminPass}
                 onChange={(e) => setAdminPass(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
+                className="w-full px-5 py-4 rounded-2xl bg-white text-slate-900 border border-slate-200 focus:border-brand-red focus:ring-4 focus:ring-brand-red/5 outline-none font-bold transition-all"
                 placeholder="Enter PIN"
                 required
               />
@@ -74,9 +78,9 @@ export default function TournamentSetup() {
 
             <button 
               type="submit"
-              className="w-full py-5 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-brand-red/20 active:scale-95"
+              className="w-full py-5 rounded-2xl bg-brand-red text-white font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-brand-red/20 active:scale-95 animate-pulse"
             >
-              Unlock Setup
+              Sign In Admin / Organizer
             </button>
           </form>
 
@@ -126,7 +130,7 @@ export default function TournamentSetup() {
     };
   }, []);
 
-  const canManage = isAdminMode;
+  const canManage = isAdminMode || currentUser?.role === 'developer' || currentUser?.isPermittedCreator === true;
 
   const handleLogin = async () => {
     try {
@@ -290,7 +294,10 @@ export default function TournamentSetup() {
       name,
       teams,
       matches: orderedMatches,
-      status: 'Live'
+      status: 'Live',
+      createdBy: currentUser ? currentUser.id : 'admin',
+      createdByName: currentUser ? currentUser.name : 'Super Admin',
+      createdAt: Date.now()
     };
 
     try {

@@ -11,6 +11,7 @@ import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { handleGoogleLogin } from '../lib/authUtils';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import TournamentWidget from '../components/TournamentWidget';
 import TournamentChampionBanner from '../components/TournamentChampionBanner';
@@ -21,6 +22,7 @@ export default function LiveScore() {
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [error, setError] = useState<string | null>(null);
   const { isAdminMode } = useAdmin();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,7 +35,13 @@ export default function LiveScore() {
     };
   }, []);
 
-  const canManage = isAdminMode;
+  const canCreateMatch = isAdminMode || !!currentUser;
+  
+  const canManageMatch = (m: Match) => {
+    if (isAdminMode) return true;
+    if (currentUser?.role === 'developer') return true;
+    return !!(currentUser && m.createdBy === currentUser.id);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -157,17 +165,21 @@ export default function LiveScore() {
     }
   };
 
-  const deleteMatch = async (id: string) => {
-    if (!canManage) return;
+  const deleteMatch = async (id: string, m?: Match) => {
+    if (m && !canManageMatch(m)) {
+      toast.error('You do not have permission to delete this match.');
+      return;
+    }
     try {
       await deleteDoc(doc(db, 'matches', id));
+      toast.success('Match deleted successfully.');
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `matches/${id}`);
     }
   };
 
   const createNewMatch = () => {
-    if (!canManage) return;
+    if (!canCreateMatch) return;
     navigate('/admin/match/new');
   };
 
@@ -185,7 +197,7 @@ export default function LiveScore() {
             Follow live matches and tournament standings.
           </p>
         </div>
-        {canManage && (
+        {canCreateMatch && (
           <div className="flex gap-3">
             <button 
               onClick={createNewMatch}
@@ -348,10 +360,10 @@ export default function LiveScore() {
                               Match {match.order || idx + 1}
                             </span>
                           </div>
-                          {canManage && (
+                          {canManageMatch(match) && (
                             <button 
-                              onClick={() => deleteMatch(match.id)}
-                              className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                              onClick={() => deleteMatch(match.id, match)}
+                              className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-sm cursor-pointer"
                               title="Delete Match"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -387,10 +399,10 @@ export default function LiveScore() {
 
                         <div className="flex justify-center">
                           <Link 
-                            to={canManage && match.status !== 'Finished' ? `/admin/match/${match.id}` : `/match/${match.id}`}
+                            to={canManageMatch(match) && match.status !== 'Finished' ? `/admin/match/${match.id}` : `/match/${match.id}`}
                             className="w-full text-center py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-black uppercase tracking-widest text-xs hover:bg-brand-red hover:text-white hover:border-brand-red transition-all"
                           >
-                            {match.status === 'Finished' ? 'View Scorecard' : (canManage ? 'Resume Scoring' : 'View Live Score')}
+                            {match.status === 'Finished' ? 'View Scorecard' : (canManageMatch(match) ? 'Resume Scoring' : 'View Live Score')}
                           </Link>
                         </div>
                       </motion.div>

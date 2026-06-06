@@ -22,6 +22,7 @@ export interface Team {
   manualOversFaced?: number;
   manualRunsConceded?: number;
   manualOversBowled?: number;
+  createdBy?: string;
 }
 
 export interface MatchInnings {
@@ -113,6 +114,7 @@ export interface Match {
   matchDate?: string;
   matchTime?: string;
   createdAt: number;
+  createdBy?: string;
 }
 
 export interface Tournament {
@@ -123,6 +125,9 @@ export interface Tournament {
   status: 'Draft' | 'Live' | 'Finished';
   winnerId?: string;
   resultMessage?: string;
+  createdBy?: string;
+  createdByName?: string;
+  createdAt?: number;
 }
 
 export interface ChatMessage {

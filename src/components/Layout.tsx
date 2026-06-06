@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import NotificationCenterUI from './NotificationCenterUI';
 
 interface LayoutProps {
@@ -18,9 +19,18 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { isAdminMode, login, logout } = useAdmin();
+  const { currentUser, loginPlayer, loginDeveloper, logout: logoutPlayer } = useAuth();
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  
+  // Custom Player Authentication Dialogs
+  const [showPlayerLogin, setShowPlayerLogin] = useState(false);
+  const [playerMobile, setPlayerMobile] = useState('');
+  const [playerPin, setPlayerPin] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
   const [showContact, setShowContact] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -98,7 +108,27 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleAdminLogout = () => {
     logout();
+    logoutPlayer();
     toast.info('Admin Mode Locked');
+  };
+
+  const handlePlayerLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSigningIn(true);
+    try {
+      const normalizedMobile = playerMobile.trim().replace(/[^0-9]/g, '');
+      const success = await loginPlayer(normalizedMobile, playerPin);
+      if (success) {
+        setShowPlayerLogin(false);
+        setPlayerMobile('');
+        setPlayerPin('');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Player authentication failed');
+    } finally {
+      setIsSigningIn(false);
+    }
   };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
@@ -129,7 +159,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Home', path: 'https://apnacricket.co.in', icon: Home, isExternal: true },
     { name: 'Live Score', path: '/live', icon: PlayCircle },
     { name: 'Tournaments', path: '/tournaments', icon: Trophy },
-    { name: 'Registration', path: '/registration', icon: UserPlus },
+    { name: currentUser ? 'My Profile' : 'Registration', path: '/registration', icon: currentUser ? User : UserPlus },
     { name: 'Teams', path: '/teams', icon: Users },
     { name: 'Stats', path: '/stats', icon: BarChart2 },
     { name: 'Vision', path: '/vision', icon: Target },
@@ -141,8 +171,68 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Live', path: '/live', icon: PlayCircle },
     { name: 'Tournaments', path: '/tournaments', icon: Trophy },
     { name: 'Teams', path: '/teams', icon: Users },
-    { name: 'Register', path: '/registration', icon: UserPlus },
+    { name: currentUser ? 'My Profile' : 'Register', path: '/registration', icon: currentUser ? User : UserPlus },
   ];
+
+  if (currentUser?.role === 'developer') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
+        {/* Immersive Terminal Admin Header */}
+        <header className="sticky top-0 z-50 bg-slate-900 border-b border-emerald-500/20 px-4 sm:px-6 lg:px-8 py-3.5 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-emerald-500 text-slate-950 rounded-xl flex items-center justify-center font-black shadow-lg shadow-emerald-500/10">
+                <Shield className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-black tracking-widest border border-emerald-500/30">MASTER ACCESS TERMINAL</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+                <h1 className="text-sm font-black uppercase tracking-wider text-white">Apna Cricket Workspace</h1>
+              </div>
+            </div>
+
+            {/* Quick action buttons & routes */}
+            <div className="flex items-center gap-4">
+              <Link 
+                to="/developer"
+                className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-800 text-emerald-400 border border-emerald-500/30 font-black text-xs uppercase tracking-wider rounded-xl transition-all"
+              >
+                Control Dashboard
+              </Link>
+
+              <div className="h-6 w-px bg-slate-800" />
+
+              <div className="flex items-center gap-2">
+                <div className="text-right leading-none hidden sm:block">
+                  <span className="text-[10px] text-slate-400 font-bold block">LOGGED IN AS</span>
+                  <span className="text-xs text-white font-extrabold uppercase">{currentUser.name}</span>
+                </div>
+                <button
+                  onClick={handleAdminLogout}
+                  className="px-3.5 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-500/20 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Lock terminal & return to regular website"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Lock & Exit
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
+
+        <footer className="bg-slate-900/40 border-t border-slate-900 py-6 text-center text-xs text-slate-500 font-bold tracking-wider uppercase">
+          🚨 SYSTEM CONTROL BOARD • DIRECT MANAGEMENT TERMINAL SECURED
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -174,7 +264,7 @@ export default function Layout({ children }: LayoutProps) {
                     type="text" 
                     value={adminId}
                     onChange={(e) => setAdminId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-blue-500 outline-none font-bold"
                     placeholder="Enter ID"
                   />
                 </div>
@@ -184,7 +274,7 @@ export default function Layout({ children }: LayoutProps) {
                     type="password" 
                     value={adminPass}
                     onChange={(e) => setAdminPass(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none font-bold"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-blue-500 outline-none font-bold"
                     placeholder="Enter PIN"
                   />
                 </div>
@@ -196,6 +286,106 @@ export default function Layout({ children }: LayoutProps) {
                   Unlock Admin Mode
                 </button>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Player & Organiser Authentication Modal */}
+        {showPlayerLogin && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-5 text-left border border-slate-100"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Player Sign In</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">APNA CRICKET SYSTEM</p>
+                </div>
+                <button 
+                  onClick={() => setShowPlayerLogin(false)} 
+                  className="p-1 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handlePlayerLoginSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block ml-0.5">Mobile Number</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">+91</span>
+                    <input 
+                      type="tel" 
+                      required
+                      value={playerMobile}
+                      onChange={(e) => setPlayerMobile(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-slate-800 focus:ring-0 outline-none font-bold text-sm"
+                      placeholder="98765 43210"
+                      maxLength={10}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block ml-0.5">Security PIN</label>
+                  <input 
+                    type="password" 
+                    required
+                    value={playerPin}
+                    onChange={(e) => setPlayerPin(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-slate-800 focus:ring-0 outline-none font-black tracking-widest text-sm"
+                    placeholder="••••"
+                    maxLength={12}
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isSigningIn}
+                  className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-white font-extrabold text-xs uppercase tracking-wider transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isSigningIn ? (
+                    'Signing in...'
+                  ) : (
+                    <>
+                      <LogIn className="w-4 h-4 text-emerald-400" />
+                      Sign In Player
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="pt-3 border-t border-slate-100 text-center space-y-2">
+                <p className="text-xs text-slate-500 font-medium">
+                  Don't have an active account?{' '}
+                  <Link 
+                    to="/registration" 
+                    onClick={() => setShowPlayerLogin(false)}
+                    className="text-emerald-600 hover:text-emerald-700 font-extrabold underline"
+                  >
+                    Register Now
+                  </Link>
+                </p>
+
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  Developer Mode? Code{' '}
+                  <Link 
+                    to="/developer" 
+                    onClick={() => setShowPlayerLogin(false)}
+                    className="text-slate-700 hover:text-black"
+                  >
+                    Terminal login
+                  </Link>
+                </p>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -464,43 +654,72 @@ export default function Layout({ children }: LayoutProps) {
                 <NotificationCenterUI />
                 
                 {isAdminMode && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-black text-brand-red uppercase tracking-widest">Admin Mode</span>
-                      <span className="text-xs font-bold text-slate-900">Unlocked</span>
+                  <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl">
+                    <Shield className="w-4 h-4 text-emerald-500" />
+                    <div className="flex flex-col items-start leading-none">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Console Mode</span>
+                      <span className="text-[11px] font-extrabold">Developer</span>
                     </div>
-                    <button 
-                      onClick={handleAdminLogout}
-                      className="p-2 rounded-full hover:bg-slate-100 text-brand-red transition-all"
-                      title="Lock Admin Mode"
-                    >
-                      <LogOut className="w-5 h-5" />
-                    </button>
                   </div>
                 )}
 
-                {user ? (
+                {currentUser ? (
                   <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Google User</span>
-                      <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">{user.displayName || user.email}</span>
+                    <div className="flex flex-col items-end leading-none text-right">
+                      <div className="flex items-center gap-1.5">
+                        {currentUser.role === 'developer' && (
+                          <Link 
+                            to="/developer"
+                            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black uppercase tracking-wider text-[9px] px-2 py-0.5 rounded-md border border-emerald-600/30 animate-pulse"
+                          >
+                            Console
+                          </Link>
+                        )}
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{currentUser.name}</span>
+                      </div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                        {currentUser.role === 'developer' ? 'Super Admin' : `Player (+91 ${currentUser.mobileNo})`}
+                      </span>
                     </div>
                     <button 
-                      onClick={handleLogout}
-                      className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-all"
-                      title="Logout"
+                      onClick={handleAdminLogout}
+                      className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-red-650 transition-all cursor-pointer"
+                      title="Logout Player Session"
                     >
-                      <LogOut className="w-5 h-5" />
+                      <LogOut className="w-4.5 h-4.5" />
                     </button>
                   </div>
                 ) : (
-                  <button 
-                    onClick={handleLogin}
-                    className="text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-all"
-                    title="Login with Google"
-                  >
-                    <User className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2 pl-4 border-l border-slate-200">
+                    <button 
+                      onClick={() => setShowPlayerLogin(true)}
+                      className="bg-slate-900 hover:bg-slate-850 text-white font-extrabold text-[10px] uppercase tracking-wider py-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                      title="Login with Mobile + PIN"
+                    >
+                      <User className="w-3.5 h-3.5 text-emerald-400" />
+                      Sign In
+                    </button>
+
+                    {user ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-500 truncate max-w-[80px]" title={user.email || ''}>Google</span>
+                        <button 
+                          onClick={handleLogout}
+                          className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"
+                        >
+                          <LogOut className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={handleLogin}
+                        className="text-slate-400 p-2 rounded-full hover:bg-slate-100 transition-all"
+                        title="Link Google backup"
+                      >
+                        <LogIn className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -557,41 +776,63 @@ export default function Layout({ children }: LayoutProps) {
               )
             ))}
             
-            <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
-              {isAdminMode && (
+            <div className="pt-4 mt-4 border-t border-slate-100 space-y-2 text-left">
+              {currentUser ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center font-bold text-xs">
+                        {currentUser.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-900 uppercase">{currentUser.name}</span>
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {currentUser.role === 'developer' ? 'Developer' : `+91 ${currentUser.mobileNo}`}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleAdminLogout}
+                      className="p-2 text-slate-500 hover:text-red-650 transition"
+                      title="Log Out"
+                    >
+                      <LogOut className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {currentUser.role === 'developer' && (
+                    <Link
+                      to="/developer"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500 text-slate-950 font-black uppercase tracking-wider text-xs animate-pulse"
+                    >
+                      <Shield className="w-4 h-4" /> Developer Panel
+                    </Link>
+                  )}
+                </div>
+              ) : (
                 <button 
-                  onClick={handleAdminLogout}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-red-50 text-brand-red font-bold"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setShowPlayerLogin(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white font-black uppercase tracking-wider text-xs shadow"
                 >
-                  <span className="uppercase tracking-widest text-xs">Admin Mode: Unlocked</span>
-                  <LogOut className="w-5 h-5" />
+                  <LogIn className="w-5 h-5 text-emerald-400" /> Sign In Player
                 </button>
               )}
 
               {user ? (
-                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-slate-400" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-900 uppercase">{user.displayName}</span>
-                      <span className="text-[10px] text-slate-400 font-bold">{user.email}</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="p-2 text-brand-red"
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </button>
+                <div className="flex items-center justify-between px-4 py-2 text-slate-400 text-xs">
+                  <span>Google Backup Linked: {user.displayName || user.email}</span>
+                  <button onClick={handleLogout} className="underline text-red-500">Unlink</button>
                 </div>
               ) : (
                 <button 
                   onClick={handleLogin}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-red text-white font-bold uppercase tracking-widest text-xs"
+                  className="w-full flex items-center justify-center gap-1 text-[10px] text-slate-500 hover:text-slate-700 pt-1 border-t border-slate-50/50 uppercase font-bold"
                 >
-                  <LogIn className="w-5 h-5" /> Google Login
+                  Optional Google backup login
                 </button>
               )}
             </div>

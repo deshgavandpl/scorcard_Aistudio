@@ -1,40 +1,28 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
+import { useAuth } from './AuthContext';
 
 interface AdminContextType {
   isAdminMode: boolean;
   setIsAdminMode: (value: boolean) => void;
-  login: (id: string, pin: string) => boolean;
+  login: (id: string, pin: string) => Promise<boolean>;
   logout: () => void;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
-  // Use sessionStorage so admin mode resets when the tab/browser is closed
-  const [isAdminMode, setIsAdminModeState] = useState(() => {
-    return sessionStorage.getItem('isAdminMode') === 'true';
-  });
+  const { currentUser, loginDeveloper, logout } = useAuth();
+
+  const isAdminMode = currentUser?.role === 'developer';
 
   const setIsAdminMode = (value: boolean) => {
-    setIsAdminModeState(value);
-    if (value) {
-      sessionStorage.setItem('isAdminMode', 'true');
-    } else {
-      sessionStorage.removeItem('isAdminMode');
+    if (!value) {
+      logout();
     }
   };
 
-  const login = (id: string, pin: string) => {
-    // Hardcoded credentials as per existing logic
-    if (id === 'admin' && pin === '5007') {
-      setIsAdminMode(true);
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setIsAdminMode(false);
+  const login = async (id: string, pin: string) => {
+    return await loginDeveloper(id, pin);
   };
 
   return (
@@ -51,3 +39,4 @@ export function useAdmin() {
   }
   return context;
 }
+

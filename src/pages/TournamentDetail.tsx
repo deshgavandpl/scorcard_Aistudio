@@ -11,6 +11,7 @@ import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
 import { usePlayerProfile } from '../context/PlayerProfileContext';
@@ -166,7 +167,8 @@ export default function TournamentDetail() {
     };
   }, []);
 
-  const canManage = isAdminMode;
+  const { currentUser } = useAuth();
+  const canManage = isAdminMode || (currentUser?.role === 'developer') || !!(currentUser && currentUser.isPermittedCreator && tournament?.createdBy === currentUser.id);
 
   useEffect(() => {
     if (!id) return;

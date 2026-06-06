@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   UserPlus, Search, Trophy, Shield, Users, Smartphone, Globe, Target, 
-  MapPin, Phone, Briefcase, Plus, Trash2, Award, CheckCircle2, AlertCircle, X, ChevronDown, UserCheck, Camera, UploadCloud
+  MapPin, Phone, Briefcase, Plus, Trash2, Award, CheckCircle2, AlertCircle, X, ChevronDown, UserCheck, Camera, UploadCloud,
+  User, LogOut, PlayCircle, Activity, History, ArrowRight
 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { collection, onSnapshot, query, setDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -38,6 +41,9 @@ const PRESET_AVATARS = [
 export default function Registration() {
   const [activeTab, setActiveTab] = useState<'global' | 'tournament'>('global');
   const { isAdminMode } = useAdmin();
+  const { registerPlayer, allPlayers, currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showProfileTeamForm, setShowProfileTeamForm] = useState(false);
 
   // Data States
   const [registrations, setRegistrations] = useState<GlobalRegistration[]>([]);
@@ -53,6 +59,7 @@ export default function Registration() {
   // Player Form States
   const [playerName, setPlayerName] = useState('');
   const [playerPhone, setPlayerPhone] = useState('');
+  const [playerPin, setPlayerPin] = useState('');
   const [playerRole, setPlayerRole] = useState<PlayerRole>('Batsman');
   const [battingStyle, setBattingStyle] = useState<'Right Hand' | 'Left Hand'>('Right Hand');
   const [bowlingStyle, setBowlingStyle] = useState<'Right-arm Fast' | 'Right-arm Spin' | 'Left-arm Fast' | 'Left-arm Spin' | 'None'>('None');
@@ -69,14 +76,21 @@ export default function Registration() {
 
   // Sync data from Firestore
   useEffect(() => {
-    // 1. Fetch registrations
-    const qRegs = query(collection(db, 'registrations'));
-    const unsubRegs = onSnapshot(qRegs, (snapshot) => {
-      const regs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GlobalRegistration));
-      setRegistrations(regs.sort((a,b) => b.createdAt - a.createdAt));
-    }, (error) => {
-      console.error("Firestore registrations error", error);
-    });
+    // 1. Sync registrations state from security records
+    const mapped = allPlayers.map(p => ({
+      id: p.id,
+      name: p.name,
+      phone: p.mobileNo,
+      role: (p.experience && p.experience.toLowerCase().includes('bowler') ? 'Bowler' : 'Batsman') as PlayerRole,
+      battingStyle: p.battingStyle as any,
+      bowlingStyle: p.bowlingStyle as any,
+      city: p.city,
+      experience: p.experience,
+      isVerified: true,
+      createdAt: p.createdAt,
+      ...(p.photoUrl ? { photoUrl: p.photoUrl } : {})
+    }));
+    setRegistrations(mapped);
 
     // 2. Fetch tournaments
     const qTours = query(collection(db, 'tournaments'));
@@ -91,10 +105,9 @@ export default function Registration() {
     });
 
     return () => {
-      unsubRegs();
       unsubTours();
     };
-  }, []);
+  }, [allPlayers]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,41 +131,38 @@ export default function Registration() {
   // Submit Global Player Profile
   const handleRegisterPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName.trim() || !playerPhone.trim() || !playerCity.trim()) {
-      toast.error('Please fill in Name, Phone, and City.');
+    if (!playerName.trim() || !playerPhone.trim() || !playerCity.trim() || !playerPin.trim()) {
+      toast.error('Please fill in Name, Phone, PIN and City fields.');
       return;
     }
 
-    const regId = 'reg_' + Math.random().toString(36).substr(2, 9);
-    const newReg: GlobalRegistration = {
-      id: regId,
-      name: playerName.trim(),
-      phone: playerPhone.trim(),
-      role: playerRole,
-      battingStyle,
-      bowlingStyle,
-      city: playerCity.trim(),
-      experience: playerExperience.trim() || 'Club Level Enthusiast',
-      isVerified: true, // Mark verified directly for polished feel
-      createdAt: Date.now(),
-      ...(playerPhotoUrl ? { photoUrl: playerPhotoUrl } : {})
-    };
-
     try {
-      await setDoc(doc(db, 'registrations', regId), newReg);
-      toast.success('Registration completed! Welcome to Apna Cricket.');
-      // Reset form
-      setPlayerName('');
-      setPlayerPhone('');
-      setPlayerRole('Batsman');
-      setBattingStyle('Right Hand');
-      setBowlingStyle('None');
-      setPlayerCity('');
-      setPlayerExperience('');
-      setPlayerPhotoUrl('');
-      setShowPlayerForm(false);
+      const success = await registerPlayer({
+        name: playerName,
+        mobileNo: playerPhone,
+        pin: playerPin,
+        battingStyle,
+        bowlingStyle,
+        city: playerCity,
+        experience: playerExperience || 'Local Legend Enthusiast',
+        photoUrl: playerPhotoUrl || undefined
+      });
+
+      if (success) {
+        // Reset form
+        setPlayerName('');
+        setPlayerPhone('');
+        setPlayerPin('');
+        setPlayerRole('Batsman');
+        setBattingStyle('Right Hand');
+        setBowlingStyle('None');
+        setPlayerCity('');
+        setPlayerExperience('');
+        setPlayerPhotoUrl('');
+        setShowPlayerForm(false);
+      }
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `registrations/${regId}`);
+      toast.error('Cryptographic player registration failed.');
     }
   };
 
@@ -370,6 +380,549 @@ export default function Registration() {
     };
   };
 
+  const getPlayingHistory = () => {
+    const history: Array<{
+      matchId: string;
+      tournamentName: string;
+      matchHeadline: string;
+      status: string;
+      battingContribution?: {
+        runs: number;
+        balls: number;
+        fours: number;
+        sixes: number;
+        isOut: boolean;
+      };
+      bowlingContribution?: {
+        overs: number;
+        balls: number;
+        runs: number;
+        wickets: number;
+        maiden: number;
+      };
+    }> = [];
+
+    if (!currentUser) return history;
+    const normalizedName = currentUser.name.trim().toLowerCase();
+
+    tournaments.forEach(tour => {
+      (tour.matches || []).forEach(match => {
+        let played = false;
+        let batCont: any = undefined;
+        let bowlCont: any = undefined;
+
+        // Check Innings 1 Batting
+        if (match.innings1?.battingStats) {
+          Object.values(match.innings1.battingStats).forEach((stat: any) => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              played = true;
+              batCont = {
+                runs: stat.runs || 0,
+                balls: stat.balls || 0,
+                fours: stat.fours || 0,
+                sixes: stat.sixes || 0,
+                isOut: stat.isOut || false,
+              };
+            }
+          });
+        }
+        // Check Innings 2 Batting
+        if (match.innings2?.battingStats) {
+          Object.values(match.innings2.battingStats).forEach((stat: any) => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              played = true;
+              batCont = {
+                runs: (batCont?.runs || 0) + (stat.runs || 0),
+                balls: (batCont?.balls || 0) + (stat.balls || 0),
+                fours: (batCont?.fours || 0) + (stat.fours || 0),
+                sixes: (batCont?.sixes || 0) + (stat.sixes || 0),
+                isOut: batCont?.isOut || stat.isOut || false,
+              };
+            }
+          });
+        }
+
+        // Check Innings 1 Bowling
+        if (match.innings1?.bowlingStats) {
+          Object.values(match.innings1.bowlingStats).forEach((stat: any) => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              played = true;
+              bowlCont = {
+                overs: stat.overs || 0,
+                balls: stat.balls || 0,
+                runs: stat.runs || 0,
+                wickets: stat.wickets || 0,
+                maiden: stat.maiden || 0,
+              };
+            }
+          });
+        }
+        // Check Innings 2 Bowling
+        if (match.innings2?.bowlingStats) {
+          Object.values(match.innings2.bowlingStats).forEach((stat: any) => {
+            if (stat.playerName && stat.playerName.trim().toLowerCase() === normalizedName) {
+              played = true;
+              bowlCont = {
+                overs: (bowlCont?.overs || 0) + (stat.overs || 0),
+                balls: (bowlCont?.balls || 0) + (stat.balls || 0),
+                runs: (bowlCont?.runs || 0) + (stat.runs || 0),
+                wickets: (bowlCont?.wickets || 0) + (stat.wickets || 0),
+                maiden: (bowlCont?.maiden || 0) + (stat.maiden || 0),
+              };
+            }
+          });
+        }
+
+        if (played) {
+          history.push({
+            matchId: match.id,
+            tournamentName: tour.name,
+            matchHeadline: `${match.teamAName} vs ${match.teamBName}`,
+            status: match.status,
+            battingContribution: batCont,
+            bowlingContribution: bowlCont
+          });
+        }
+      });
+    });
+
+    return history;
+  };
+
+  const handleProfileLogout = () => {
+    logout();
+    toast.success('Logged out successfully!');
+    navigate('/');
+  };
+
+  if (currentUser) {
+    const profileStats = calculatePlayerStats(currentUser.name, (currentUser.experience.toLowerCase().includes('bowler') ? 'Bowler' : 'Batsman') as PlayerRole);
+    const historyList = getPlayingHistory();
+
+    return (
+      <div className="space-y-8 px-2 md:px-0 max-w-7xl mx-auto">
+        {/* Profile Header Block */}
+        <div className="bg-slate-950 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden border border-slate-900 shadow-2xl">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-red opacity-15 blur-[120px] -mr-32 -mt-32 animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-600 opacity-5 blur-[120px] -ml-32 -mb-32"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-brand-red/40 overflow-hidden flex items-center justify-center text-slate-300 shadow-xl relative ring-4 ring-slate-800/50 flex-shrink-0 animate-pulse">
+                {currentUser.photoUrl ? (
+                  <img src={currentUser.photoUrl} alt={currentUser.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className="font-sans font-black text-4xl text-white uppercase tracking-tight">
+                    {currentUser.name[0].toUpperCase()}
+                  </span>
+                )}
+              </div>
+              
+              <div className="space-y-2 text-center sm:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] font-mono">Personal Player Dashboard</span>
+                </div>
+                <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight leading-none text-glow-red text-left">
+                  {currentUser.name}
+                </h1>
+                <p className="text-slate-400 font-bold uppercase tracking-wider text-xs flex flex-wrap items-center justify-start gap-3">
+                  <span>📱 +91 {currentUser.mobileNo}</span>
+                  <span className="text-slate-605">•</span>
+                  <span>📍 {currentUser.city}</span>
+                </p>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleProfileLogout}
+              className="px-6 py-4 rounded-xl bg-slate-905 hover:bg-brand-red text-white text-xs font-black uppercase tracking-widest border border-slate-800 hover:border-brand-red transition-all cursor-pointer flex items-center gap-2 shadow-lg"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        {/* Action Panel and Details Block */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Column Left: Information Cards & Fast Setup Actions */}
+          <div className="lg:col-span-4 space-y-6 text-left">
+            
+            {/* Bio & Styles */}
+            <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Player Profile Meta</h3>
+              
+              <div className="space-y-3">
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Experience Style</span>
+                  <span className="text-xs font-extrabold text-slate-850">{currentUser.experience || 'Local Legend'}</span>
+                </div>
+                
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-mono">BATTING HAND</span>
+                  <span className="text-xs font-black text-slate-850 uppercase tracking-tight">{currentUser.battingStyle}</span>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-mono">BOWLING ACTION</span>
+                  <span className="text-xs font-black text-slate-850 uppercase tracking-tight truncate max-w-[150px]" title={currentUser.bowlingStyle}>{currentUser.bowlingStyle}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions Panel */}
+            <div className="bg-slate-900 rounded-[2rem] p-6 text-white border border-slate-850 shadow-md space-y-6">
+              <div>
+                <h3 className="text-base font-black uppercase tracking-tight text-white">Organizer Tools</h3>
+                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">Quick create fixtures & leagues</p>
+              </div>
+
+              <div className="space-y-3">
+                <Link 
+                  to="/admin/match/new" 
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800 hover:bg-brand-red text-white font-black uppercase tracking-wider text-[11px] transition-all duration-200 group border border-slate-755 hover:border-brand-red"
+                >
+                  <span className="flex items-center gap-2">
+                    <PlayCircle className="w-4 h-4 text-emerald-400 group-hover:text-white" />
+                    Create New Match
+                  </span>
+                  <Plus className="w-4 h-4" />
+                </Link>
+
+                <Link 
+                  to="/tournaments/new" 
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800 hover:bg-brand-red text-white font-black uppercase tracking-wider text-[11px] transition-all duration-200 group border border-slate-755 hover:border-brand-red"
+                >
+                  <span className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-400 group-hover:text-white" />
+                    Create Tournament
+                  </span>
+                  <Plus className="w-4 h-4" />
+                </Link>
+
+                <button
+                  onClick={() => setShowProfileTeamForm(!showProfileTeamForm)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-4 rounded-xl font-black uppercase tracking-wider text-[11px] transition-all duration-200 group border cursor-pointer",
+                    showProfileTeamForm 
+                      ? "bg-slate-100 hover:bg-slate-200 border-white text-slate-900" 
+                      : "bg-slate-800 hover:bg-brand-red border-slate-755 hover:border-brand-red text-white"
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-400 group-hover:text-slate-900" />
+                    {showProfileTeamForm ? 'Close Squad Panel' : 'Register Team Squad'}
+                  </span>
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Column Right: Player Stats Card & playing history */}
+          <div className="lg:col-span-8 space-y-6">
+            
+            {showProfileTeamForm && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-[2rem] p-6 border border-slate-250 shadow-xl space-y-6"
+              >
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                  <div className="text-left">
+                    <h3 className="text-md font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-brand-red animate-pulse" />
+                      Register Squad & Team
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enroll your cricket team in any active tournament</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowProfileTeamForm(false)}
+                    className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleRegisterTeam} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Tournament</label>
+                      <div className="relative">
+                        <select 
+                          required
+                          value={selectedTournamentId}
+                          onChange={(e) => setSelectedTournamentId(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-black uppercase tracking-wider px-4 py-3 rounded-xl focus:border-brand-red focus:bg-white outline-none appearance-none cursor-pointer"
+                        >
+                          {tournaments.length === 0 && <option value="">No Active Tournaments Found</option>}
+                          {tournaments.map((t) => (
+                            <option key={t.id} value={t.id}>🏆 {t.name} ({t.status.toUpperCase()})</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Team / Club Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                        placeholder="e.g. Royal Challengers"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-850 font-bold px-4 py-3 rounded-xl focus:border-brand-red focus:bg-white outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">Squad Roster ({squad.length})</h4>
+                      <button
+                        type="button"
+                        onClick={handleAddSquadRow}
+                        className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-brand-red text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Player
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                      {squad.map((member, idx) => (
+                        <div key={idx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-slate-50 p-3 rounded-xl border border-slate-150">
+                          <span className="text-[10px] font-bold text-slate-350 w-5 text-center">{idx + 1}</span>
+                          <input 
+                            type="text"
+                            required
+                            placeholder="Player Full Name"
+                            value={member.name}
+                            onChange={(e) => handleSquadRowChange(idx, 'name', e.target.value)}
+                            className="flex-1 bg-white border border-slate-200 text-slate-850 font-bold px-3 py-2 rounded-lg text-xs outline-none focus:border-brand-red w-full"
+                          />
+                          <div className="relative w-full sm:w-40 text-left">
+                            <select
+                              value={member.role}
+                              onChange={(e) => handleSquadRowChange(idx, 'role', e.target.value as PlayerRole)}
+                              className="w-full bg-white border border-slate-200 text-slate-850 font-bold px-3 py-2 rounded-lg text-xs outline-none appearance-none cursor-pointer"
+                            >
+                              <option value="Batsman">🏏 Batsman</option>
+                              <option value="Bowler">🥎 Bowler</option>
+                              <option value="All-Rounder">⚡ All-Rounder</option>
+                              <option value="Wicket-Keeper">🧤 Wicket-Keeper</option>
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleSquadRowChange(idx, 'isCaptain', true)}
+                            className={cn(
+                              "px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all cursor-pointer w-full sm:w-auto",
+                              member.isCaptain 
+                                ? "bg-amber-100 border-amber-300 text-amber-800 font-black" 
+                                : "bg-white border-slate-200 text-slate-450"
+                            )}
+                          >
+                            Captain
+                          </button>
+                          <button
+                            type="button"
+                            disabled={squad.length <= 1}
+                            onClick={() => handleRemoveSquadRow(idx)}
+                            className="p-2 rounded-lg border text-red-550 hover:bg-red-50 transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit"
+                    className="w-full py-4 rounded-xl bg-slate-950 hover:bg-brand-red text-white font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    Confirm Team Squad Registration
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Performance Ledger Overview */}
+            <div className="bg-white rounded-[2rem] p-6 md:p-8 border border-slate-200 shadow-sm space-y-6 text-left">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 animate-pulse">
+                    <Activity className="w-5 h-5 text-brand-red" />
+                    Tournament Stats Ledger
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aggregated from all scored match scorecards</p>
+                </div>
+                <div className="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 text-[11px] font-black uppercase tracking-widest self-start sm:self-center">
+                  🏟️ {profileStats.matchesPlayed} Matches Played
+                </div>
+              </div>
+
+              {/* Batting Ledger Grid */}
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-250/60 space-y-4">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block font-mono">🏏 BAT PERFORMANCE</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Total Runs</span>
+                    <span className="text-lg font-black text-slate-900">{profileStats.batting.totalRuns}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Innings</span>
+                    <span className="text-lg font-black text-slate-900">{profileStats.batting.innings}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Average</span>
+                    <span className="text-lg font-black text-brand-red">{profileStats.batting.avg}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Strike Rate</span>
+                    <span className="text-lg font-black text-slate-950">{profileStats.batting.sr}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-2.5 bg-white/50 rounded-xl border border-slate-150 text-center flex justify-around">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Fours (4s)</span>
+                      <span className="text-base font-black text-slate-850">{profileStats.batting.fours}</span>
+                    </div>
+                    <div className="border-r border-slate-200 h-full"></div>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Sixes (6s)</span>
+                      <span className="text-base font-black text-brand-red">{profileStats.batting.sixes}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-2.5 bg-white/50 rounded-xl border border-slate-150 text-center flex justify-around items-center">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Dismissed</span>
+                      <span className="text-base font-black text-slate-855">{profileStats.batting.dismissals}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bowling Ledger Grid */}
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-250/60 space-y-4">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block font-mono">🥎 BALL PERFORMANCE</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Overs</span>
+                    <span className="text-lg font-black text-slate-900">{profileStats.bowling.overs}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Wickets</span>
+                    <span className="text-lg font-black text-emerald-600">{profileStats.bowling.wickets}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Runs Given</span>
+                    <span className="text-lg font-black text-slate-900">{profileStats.bowling.runs}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Economy</span>
+                    <span className="text-lg font-black text-slate-950">{profileStats.bowling.economy}</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-white/50 rounded-xl border border-slate-150 text-center flex justify-around">
+                  <div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Maiden Overs</span>
+                    <span className="text-base font-black text-slate-850">{profileStats.bowling.maidens}</span>
+                  </div>
+                  <div className="border-r border-slate-200 h-full"></div>
+                  <div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Bowling Avg</span>
+                    <span className="text-base font-black text-emerald-600">{profileStats.bowling.avg}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Timeline Match log ("his playing history") */}
+            <div className="bg-white rounded-[2rem] p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
+              <div className="text-left">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                  <History className="w-5 h-5 text-brand-red" />
+                  Playing History & Fixture Contributions
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chronological list of all your recorded appearances</p>
+              </div>
+
+              <div className="space-y-4">
+                {historyList.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 italic font-medium uppercase tracking-widest text-xs flex flex-col items-center gap-2 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <AlertCircle className="w-8 h-8 text-slate-350" />
+                    No match appearances logged under your name yet.
+                  </div>
+                ) : (
+                  historyList.map((match, index) => (
+                    <div 
+                      key={match.matchId + index}
+                      className="bg-slate-50 p-4 rounded-2xl border border-slate-150 hover:border-brand-red transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-left"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                            match.status === 'Finished' ? 'bg-slate-200 text-slate-700' : 'bg-brand-red text-white animate-pulse'
+                          }`}>
+                            {match.status}
+                          </span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                            {match.tournamentName}
+                          </span>
+                        </div>
+                        <h4 className="font-extrabold text-slate-850 uppercase text-xs sm:text-sm">
+                          {match.matchHeadline}
+                        </h4>
+
+                        {/* Specific contribution summaries */}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-600 mt-2">
+                          {match.battingContribution && (
+                            <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">
+                              🏏 Bat: <b className="text-slate-900">{match.battingContribution.runs}</b> runs off <b className="text-slate-900">{match.battingContribution.balls}</b> balls
+                              ({match.battingContribution.fours}x4, {match.battingContribution.sixes}x6)
+                              {match.battingContribution.isOut ? <span className="text-red-500 font-bold ml-1 text-[10px]">OUT</span> : <span className="text-emerald-500 font-bold ml-1 text-[10px]">*</span>}
+                            </span>
+                          )}
+
+                          {match.bowlingContribution && (
+                            <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">
+                              🥎 Bowl: <b className="text-emerald-600 font-black">{match.bowlingContribution.wickets}</b> wickets, <b className="text-slate-900">{match.bowlingContribution.runs}</b> runs given in <b className="text-slate-905">{match.bowlingContribution.overs}</b> overs
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/match/${match.matchId}`}
+                        className="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-900 text-slate-705 hover:text-white font-extrabold text-[10px] uppercase tracking-wider border border-slate-200 hover:border-slate-900 transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
+                      >
+                        Scorecard <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 px-2 md:px-0 max-w-7xl mx-auto">
       {/* Header Banner */}
@@ -580,6 +1133,20 @@ export default function Registration() {
                         onChange={(e) => setPlayerPhone(e.target.value)}
                         placeholder="e.g. +91 98765 43210"
                         className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold px-4 py-3 rounded-xl focus:border-brand-red focus:bg-white outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Security PIN Code */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Set Security login PIN (4-8 digits)</label>
+                      <input 
+                        type="password" 
+                        required
+                        value={playerPin}
+                        onChange={(e) => setPlayerPin(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="e.g. 5007"
+                        maxLength={8}
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-black tracking-widest px-4 py-3 rounded-xl focus:border-brand-red focus:bg-white outline-none transition-all"
                       />
                     </div>
 

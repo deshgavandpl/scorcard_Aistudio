@@ -10,6 +10,7 @@ import { db, auth } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { toast } from 'sonner';
 
@@ -17,6 +18,7 @@ export default function TournamentList() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const { isAdminMode } = useAdmin();
+  const { currentUser } = useAuth();
   const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,7 +31,13 @@ export default function TournamentList() {
     };
   }, []);
 
-  const canManage = isAdminMode;
+  const canCreate = isAdminMode || currentUser?.role === 'developer' || currentUser?.isPermittedCreator === true;
+  
+  const canManageTournament = (t: Tournament) => {
+    if (isAdminMode) return true;
+    if (currentUser?.role === 'developer') return true;
+    return !!(currentUser && currentUser.isPermittedCreator && t.createdBy === currentUser.id);
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'tournaments'));
@@ -43,8 +51,6 @@ export default function TournamentList() {
   }, []);
 
   const deleteTournament = async (tournamentId: string) => {
-    if (!canManage) return;
-    
     const toastId = toast.loading('Deleting tournament and matches...');
     
     try {
@@ -73,8 +79,6 @@ export default function TournamentList() {
   };
 
   const cloneTournament = async (tournament: Tournament) => {
-    if (!canManage) return;
-    
     const toastId = toast.loading('Cloning tournament...');
     
     try {
@@ -142,7 +146,7 @@ export default function TournamentList() {
           </div>
           <p className="text-slate-500 font-medium">Create and manage your cricket leagues.</p>
         </div>
-        {canManage && (
+        {canCreate && (
           <Link 
             to="/tournaments/new"
             className="px-6 py-3 rounded-xl bg-brand-red text-white font-black uppercase tracking-wider hover:bg-red-700 transition-all shadow-lg flex items-center gap-2"
@@ -187,7 +191,7 @@ export default function TournamentList() {
                     {t.status}
                   </span>
                   <div className="flex gap-2">
-                    {canManage && (
+                    {canManageTournament(t) && (
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
@@ -200,7 +204,7 @@ export default function TournamentList() {
                         <Copy className="w-5 h-5" />
                       </button>
                     )}
-                    {canManage && (
+                    {canManageTournament(t) && (
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
